@@ -1,11 +1,9 @@
 {
-  "name": "@pg3/core",
+  "name": "@pg3/interfaces",
   "version": "3.0.0",
-  "description": "PG3 Core",
+  "description": "PG3 Interfaces",
   "main": "index.js",
   "scripts": {
-    "start": "tsc && node dist/index.js",
-    "start:dev": "nodemon",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest --detectOpenHandles --colors"
   },
@@ -14,9 +12,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "winston": "^3.2.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^13.9.3",
     "@typescript-eslint/eslint-plugin": "^2.25.0",
