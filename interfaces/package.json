@@ -2,10 +2,13 @@
   "name": "@pg3/interfaces",
   "version": "3.0.0",
   "description": "PG3 Interfaces",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "build": "tsc",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "jest --detectOpenHandles --colors"
+    "test": "jest --detectOpenHandles --colors",
+    "prepublish": "tsc"
   },
   "author": "James Milne (milne.james@gmail.com)",
   "license": "MIT",

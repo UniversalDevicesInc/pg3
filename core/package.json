@@ -4,6 +4,7 @@
   "description": "PG3 Core",
   "main": "index.js",
   "scripts": {
+    "build": "tsc",
     "start": "tsc && node dist/index.js",
     "start:dev": "nodemon",
     "lint": "eslint \"src/**/*.ts\"",
