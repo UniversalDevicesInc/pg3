@@ -2,9 +2,12 @@
   "name": "@pg3/core",
   "version": "3.0.0",
   "description": "PG3 Core",
-  "main": "main.js",
+  "main": "bin/pg3.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:dev": "nodemon .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint --color ."
   },
   "repository": {
     "type": "git",
@@ -15,5 +18,34 @@
   "bugs": {
     "url": "https://github.com/UniversalDevicesInc/pg3/issues"
   },
-  "homepage": "https://github.com/UniversalDevicesInc/pg3#readme"
+  "engines": {
+    "node": ">12.16.0"
+  },
+  "homepage": "https://github.com/UniversalDevicesInc/pg3#readme",
+  "devDependencies": {
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-config-node": "^4.0.0",
+    "eslint-config-prettier": "^6.10.1",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-jest": "^23.8.2",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-standard": "^4.0.1",
+    "jest": "^25.2.0",
+    "prettier": "^2.0.2"
+  },
+  "dependencies": {
+    "aedes": "^0.40.1",
+    "bcrypt": "^4.0.1",
+    "better-sqlite3": "^6.0.1",
+    "bottleneck": "^2.19.5",
+    "dotenv": "^8.2.0",
+    "ip": "^1.1.5",
+    "mqtt": "^3.0.0",
+    "node-forge": "^0.9.1",
+    "uuid": "^7.0.2",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^4.4.2"
+  }
 }
