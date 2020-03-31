@@ -1,7 +1,7 @@
 const { v4: uuid } = require('uuid')
 
 const config = require('../config/config')
-const encryption = require('../modules/encryption')
+const encryption = require('../modules/security/encryption')
 
 /**
  *  Secure Model

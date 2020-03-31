@@ -3,12 +3,13 @@ const bcrypt = require('bcrypt')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
-const encryption = require('../modules/encryption')
+const encryption = require('../modules/security/encryption')
 
 const secure = require('../models/secure')
 const globalsettings = require('../models/globalsettings')
 const user = require('../models/user')
 const isy = require('../models/isy')
+const discoverisy = require('../modules/isy/discover')
 
 /**
  * Database Module
@@ -108,6 +109,40 @@ async function checkAndVerifyUser() {
   }
 }
 
+async function checkAndVerifyIsy() {
+  const table = 'isy'
+  if (checkForTable(table)) {
+    logger.debug(`Table ${table} exists attempting to load`)
+    config.isys = await isy.getAll()
+    if (config.isys && config.isys.length > 0) {
+      logger.info(`${table} table: Loaded (${config.isys.length}) successfully`)
+      return
+    }
+  } else {
+    logger.warn(`Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`)
+    isy.table.map(sql => config.db.exec(sql))
+  }
+  logger.debug(`Table ${table} empty. Attempting auto-discovery`)
+  const discoveredIsy = await discoverisy.find()
+  if (discoveredIsy.discovered === 1) {
+    const newEntry = new isy.DEFAULTS()
+    newEntry.password = encryption.encryptText(newEntry.password)
+    Object.assign(newEntry, discoveredIsy)
+    config.db
+      .prepare(
+        `INSERT INTO ${table} (${Object.keys(newEntry)})
+        VALUES (${Object.keys(newEntry).fill('?')})`
+      )
+      .run(Object.values(newEntry))
+    config.isys = await isy.getAll()
+    logger.info(
+      `Discovered ISY Version ${newEntry.version} with ID: ${newEntry.uuid} at ${newEntry.ip}:${newEntry.port} successfully. Database version ${newEntry.dbVersion}`
+    )
+  } else {
+    logger.info(`No ISY Discovered. Please add manually through the web interface`)
+  }
+}
+
 async function start() {
   if (!config.db) {
     logger.info(`Starting sqlite database at ${process.env.PG3WORKDIR}pg3.db`)
@@ -117,6 +152,7 @@ async function start() {
     await checkAndVerifySecure()
     await checkAndVerifySettings()
     await checkAndVerifyUser()
+    await checkAndVerifyIsy()
 
     // Tests API for secure
     // await secure.add('test', '123')
@@ -133,6 +169,12 @@ async function start() {
     // logger.debug(`!!!! ${JSON.stringify(await user.get('bob'))}`)
     // logger.debug(`!!!! ${await user.checkPassword('bob', 'test333')}`)
     // await user.remove('bob')
+
+    // Tests API for ISY
+    // await isy.add({ uuid: 'abc123', ip: '123' })
+    // await isy.update('abc123', { uuid: 'abc124', port: 443, password: 'myman' })
+    // logger.debug(`!!!! ${JSON.stringify(await isy.get('abc124'))}`)
+    // await isy.remove('abc124')
   }
 }
 

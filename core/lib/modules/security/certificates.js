@@ -1,10 +1,10 @@
 const os = require('os')
 
-const logger = require('./logger')
-const config = require('../config/config')
-const secure = require('../models/secure')
+const logger = require('../logger')
+const config = require('../../config/config')
+const secure = require('../../models/secure')
 
-const selfsigned = require('../utils/selfsigned')
+const selfsigned = require('../../utils/selfsigned')
 
 /**
  * Certificates Module

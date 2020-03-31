@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "aedes": "^0.40.1",
+    "axios": "^0.19.2",
     "bcrypt": "^4.0.1",
     "better-sqlite3": "^6.0.1",
     "bottleneck": "^2.19.5",
@@ -46,6 +47,7 @@
     "node-forge": "^0.9.1",
     "uuid": "^7.0.2",
     "winston": "^3.2.1",
-    "winston-daily-rotate-file": "^4.4.2"
+    "winston-daily-rotate-file": "^4.4.2",
+    "xml-js": "^1.6.11"
   }
 }

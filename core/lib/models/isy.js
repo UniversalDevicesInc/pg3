@@ -1,94 +1,120 @@
 const { v4: uuid } = require('uuid')
-const bcrypt = require('bcrypt')
+const encryption = require('../modules/security/encryption')
 
 const config = require('../config/config')
+const u = require('../utils/utils')
+
 /**
- *  User Model
- * @module models/user
+ *  ISY Model
+ * @module models/isy
  * @version 3.0
  */
 // Returns array that is executed in order for Schema updates
 const table = []
 // pragma user_version = 1
 table[0] = `
-  CREATE TABLE IF NOT EXISTS "user" (
+  CREATE TABLE IF NOT EXISTS "isy" (
     id BLOB PRIMARY KEY UNIQUE,
-    name TEXT NOT NULL UNIQUE,
-    hash BLOB NOT NULL,
-    enabled INTEGER,
-    role TEXT,
-    groups TEXT,
+    uuid TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    ip TEXT NOT NULL,
+    port INTEGER NOT NULL,
+    username TEXT NOT NULL,
+    password BLOB NOT NULL,
+    enabled INTEGER NOT NULL CHECK (enabled IN (0,1)),
+    discovered INTEGER NOT NULL CHECK (discovered IN (0,1)),
+    version TEXT NOT NULL,
+    secure INTEGER NOT NULL CHECK (secure IN (0,1)),
     dbVersion INTEGER
   )
 `
 class DEFAULTS {
   constructor() {
     this.id = uuid()
-    this.name = null
-    this.hash = null
+    this.uuid = 'unregistered'
+    this.name = 'ISY'
+    this.ip = null
+    this.port = 80
+    this.username = 'admin'
+    this.password = 'admin'
     this.enabled = 1
-    this.role = 'admin'
-    this.groups = JSON.stringify(['Administrators'])
+    this.version = 'unknown'
+    this.secure = 0
+    this.discovered = 0
     this.dbVersion = table.length
   }
 }
 
-async function get(username) {
-  return config.db.prepare(`SELECT id, name, enabled, role, groups FROM user WHERE (name) is (?)`).get(username)
+async function get(key) {
+  if (!key) throw new Error(`isy get requires a uuid`)
+  const isy = config.db.prepare(`SELECT * FROM isy WHERE (uuid) is (?)`).get(key)
+  if (isy) {
+    isy.password = await encryption.decryptText(isy.password)
+  }
+  return isy
 }
 
-async function add(username, password, role = null, groups = []) {
-  if (!username || !password) {
-    throw Error(`Username or password wasn't specified in addUser request`)
+async function getAll() {
+  const isys = config.db.prepare(`SELECT * FROM isy`).all()
+  if (isys) {
+    return Promise.all(
+      isys.map(async isy => {
+        return {
+          ...isy,
+          password: await encryption.decryptText(isy.password)
+        }
+      })
+    )
   }
-  const newUser = new DEFAULTS()
-  newUser.name = username
-  newUser.hash = await bcrypt.hash(password, 10)
-  if (role) newUser.role = role
-  if (groups.length > 0) newUser.groups = JSON.stringify(groups)
+  return isys
+}
+
+async function add(isy) {
+  if (!isy || typeof isy !== 'object') throw new Error(`isy object not present or not an object`)
+  if (!isy.uuid || !isy.ip) throw new Error(`isy object must contain uuid and ip at minimum`)
+  const newIsy = new DEFAULTS()
+  Object.assign(newIsy, isy)
+  newIsy.password = encryption.encryptText(newIsy.password)
   return config.db
     .prepare(
-      `INSERT INTO user (${Object.keys(newUser)})
-    VALUES (${Object.keys(newUser).fill('?')})`
+      `INSERT INTO isy (${Object.keys(newIsy)})
+    VALUES (${Object.keys(newIsy).fill('?')})`
     )
-    .run(Object.values(newUser))
+    .run(Object.values(newIsy))
 }
 
-async function update(username, updateObject) {
-  if (username && typeof updateObject === 'object') {
-    const currentUser = await get(`${username}`)
-    if (currentUser) {
-      let updatedUser = ``
-      if (Object.keys(updateObject).includes('password'))
-        updatedUser += `hash = '${await bcrypt.hash(updateObject.password, 10)}',`
-      if (Object.keys(updateObject).includes('role')) updatedUser += `role = '${updateObject.role}',`
-      if (Object.keys(updateObject).includes('groups'))
-        updatedUser += `groups = '${JSON.stringify(updateObject.groups)}',`
-      if (Object.keys(updateObject).includes('enabled')) updatedUser += `enabled = ${updateObject.enabled ? 1 : 0},`
-      updatedUser = updatedUser.replace(/,\s*$/, '')
-      if (Object.keys(updatedUser).length > 0) {
+async function update(key, updateObject) {
+  if (key && updateObject && typeof updateObject === 'object') {
+    const currentIsy = await get(`${key}`)
+    if (currentIsy) {
+      let updatedIsy = ``
+      if (u.isIn('uuid', updateObject)) updatedIsy += `uuid = '${updateObject.uuid}',`
+      if (u.isIn('name', updateObject)) updatedIsy += `name = '${updateObject.name}',`
+      if (u.isIn('ip', updateObject)) updatedIsy += `ip = '${updateObject.ip}',`
+      if (u.isIn('port', updateObject)) updatedIsy += `port = '${updateObject.port}',`
+      if (u.isIn('username', updateObject)) updatedIsy += `username = '${updateObject.username}',`
+      if (u.isIn('password', updateObject))
+        updatedIsy += `password = '${await encryption.encryptText(updateObject.password)}',`
+      if (u.isIn('enabled', updateObject)) updatedIsy += `enabled = '${updateObject.enabled}',`
+      if (u.isIn('version', updateObject)) updatedIsy += `version = '${updateObject.version}',`
+      if (u.isIn('secure', updateObject)) updatedIsy += `secure = '${updateObject.secure}',`
+      if (Object.keys(updatedIsy).length > 0) {
+        updatedIsy = updatedIsy.replace(/,\s*$/, '')
         config.db
           .prepare(
-            `UPDATE user SET
-          ${updatedUser}
-          WHERE name is (?)`
+            `UPDATE isy SET
+          ${updatedIsy}
+          WHERE uuid is (?)`
           )
-          .run(username)
+          .run(key)
       }
-    } else throw new Error(`User ${username} does not exist`)
-  } else throw new Error(`updateUser parameters not valid`)
+    } else throw new Error(`isy ${key} does not exist`)
+  } else throw new Error(`updateIsy parameters not valid`)
 }
 
-async function remove(username) {
-  if (!username) {
-    throw Error(`Username wasn't specified in deleteUser request`)
-  }
-  return config.db.prepare(`DELETE FROM user WHERE (name) is (?)`).run(username)
+async function remove(key) {
+  if (!key) throw new Error(`remove isy requires uuid parameter`)
+  return config.db.prepare(`DELETE FROM isy WHERE (uuid) is (?)`).run(key)
 }
 
-async function checkPassword(username, password) {
-  const userObject = config.db.prepare(`SELECT hash FROM user WHERE (name) is (?)`).get(username)
-  return userObject ? bcrypt.compare(password, userObject.hash) : false
-}
-
-module.exports = { table, DEFAULTS, get, add, update, remove, checkPassword }
+module.exports = { table, DEFAULTS, get, getAll, add, update, remove }

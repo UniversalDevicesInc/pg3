@@ -26,11 +26,12 @@ const mqtts = require('../lib/services/mqtts')
 const mqttc = require('../lib/services/mqttc')
 
 const environment = require('../lib/modules/environment')
-const certificates = require('../lib/modules/certificates')
+const certificates = require('../lib/modules/security/certificates')
 
-logger.info(`Starting PG3 version ${process.env.npm_package_version}`)
-logger.info(`Using Workdir ${process.env.PG3WORKDIR}`)
-
+if (require.main === module) {
+  logger.info(`Starting PG3 version ${process.env.npm_package_version}`)
+  logger.info(`Using Workdir ${process.env.PG3WORKDIR}`)
+}
 if (fs.existsSync(`${workDir}.env`)) {
   require('dotenv').config({ path: `${workDir}`.env })
 }
@@ -149,4 +150,9 @@ process.on('unhandledRejection', err => {
   // gracefulShutdown()
 })
 
-start()
+// if called directly run module, if imported for tests, do nothing
+if (require.main === module) {
+  start()
+}
+
+module.exports = { start, shutdown, gracefulShutdown, createPid, removePid }
