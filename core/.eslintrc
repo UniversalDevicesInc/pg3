@@ -16,6 +16,7 @@
   "rules": {
     "prettier/prettier": "error",
     "space-before-function-paren": [0, "never"],
-    "global-require": [0, "never"]
+    "global-require": [0, "never"],
+    "no-unused-vars": 1
   }
 }

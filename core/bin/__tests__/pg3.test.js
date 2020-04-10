@@ -1,4 +1,4 @@
-const { start, shutdown, gracefulShutdown, createPid, removePid } = require('./pg3')
+const { start, shutdown, gracefulShutdown, createPid, removePid } = require('../pg3')
 
 describe('check required functions exist', () => {
   test('check start exists', () => {

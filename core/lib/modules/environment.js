@@ -29,9 +29,15 @@ async function start() {
     Object.entries(OVERRIDES).map(([key, value]) => {
       if (value in process.env) {
         let updateValue = process.env[value]
-        if (updateValue === false || (typeof updateValue === 'string' && updateValue.toLowerCase() === 'false'))
+        if (
+          updateValue === false ||
+          (typeof updateValue === 'string' && updateValue.toLowerCase() === 'false')
+        )
           updateValue = 0
-        if (updateValue === true || (typeof updateValue === 'string' && updateValue.toLowerCase() === 'true'))
+        if (
+          updateValue === true ||
+          (typeof updateValue === 'string' && updateValue.toLowerCase() === 'true')
+        )
           updateValue = 1
         changed = true
         return globalsettings.update(key, updateValue)

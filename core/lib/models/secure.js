@@ -9,9 +9,9 @@ const encryption = require('../modules/security/encryption')
  * @version 3.0
  */
 // Returns array that is executed in order for Schema updates
-const table = []
+const TABLE = []
 // pragma user_version = 1
-table[0] = `
+TABLE[0] = `
   CREATE TABLE IF NOT EXISTS "secure" (
     id BLOB PRIMARY KEY UNIQUE,
     key TEXT NOT NULL UNIQUE,
@@ -24,7 +24,7 @@ class DEFAULTS {
     this.id = uuid()
     this.key = ''
     this.value = JSON.stringify({})
-    this.dbVersion = table.length
+    this.dbVersion = TABLE.length
   }
 }
 
@@ -59,7 +59,9 @@ async function update(key, value) {
   if (!currentKey) throw new Error(`secure key ${key} does not exist`)
   else {
     const encryptedValue = encryption.encryptText(JSON.stringify(value))
-    return config.db.prepare(`UPDATE secure SET value = (?) WHERE (key) is (?)`).run(encryptedValue, key)
+    return config.db
+      .prepare(`UPDATE secure SET value = (?) WHERE (key) is (?)`)
+      .run(encryptedValue, key)
   }
 }
 
@@ -71,4 +73,4 @@ async function remove(key) {
   else return config.db.prepare(`DELETE FROM secure WHERE (key) is (?)`).run(key)
 }
 
-module.exports = { table, DEFAULTS, get, add, update, remove }
+module.exports = { TABLE, DEFAULTS, get, add, update, remove }

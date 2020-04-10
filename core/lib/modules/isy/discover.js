@@ -46,13 +46,13 @@ let secure = 0
 
 function getBroadcast() {
   const ifaces = require('os').networkInterfaces()
-  const ip = require('ip')
+  const int = require('ip')
   let bCast = null
   Object.keys(ifaces).forEach(ifname => {
     // let alias = 0
     ifaces[ifname].forEach(iface => {
-      if (ip.address() === iface.address) {
-        bCast = ip.subnet(iface.address, iface.netmask).broadcastAddress
+      if (int.address() === iface.address) {
+        bCast = int.subnet(iface.address, iface.netmask).broadcastAddress
       }
     })
   })

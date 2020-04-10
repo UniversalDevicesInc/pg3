@@ -9,9 +9,9 @@ const config = require('../config/config')
  * @version 3.0
  */
 // Returns array that is executed in order for Schema updates
-const table = []
+const TABLE = []
 // pragma user_version = 1
-table[0] = `
+TABLE[0] = `
   CREATE TABLE IF NOT EXISTS "globalsettings" (
     id BLOB PRIMARY KEY UNIQUE,
     name TEXT NOT NULL UNIQUE,
@@ -45,7 +45,7 @@ class DEFAULTS {
     this.beta = 0
     this.polisy = process.env.POLISY ? 1 : 0
     this.timeStarted = Date.now()
-    this.dbVersion = table.length
+    this.dbVersion = TABLE.length
   }
 }
 
@@ -68,7 +68,9 @@ async function get() {
 async function update(key, value) {
   if (!key) throw new Error(`globalsettings requires a key`)
   if (!mutableKeys.includes(key)) throw new Error(`${key} is not a valid configurable key`)
-  return config.db.prepare(`UPDATE globalsettings SET ${key} = (?) WHERE (name) is 'pg3'`).run(value)
+  return config.db
+    .prepare(`UPDATE globalsettings SET ${key} = (?) WHERE (name) is 'pg3'`)
+    .run(value)
 }
 
-module.exports = { table, DEFAULTS, get, update }
+module.exports = { TABLE, DEFAULTS, get, update }

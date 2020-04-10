@@ -1,5 +1,5 @@
 const Aedes = require('aedes')
-const fs = require('fs')
+// const fs = require('fs')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
@@ -55,7 +55,9 @@ async function start() {
     config.aedes.authenticate = (client, username, password, callback) => {
       // TODO: Implement authentication to MQTT Server
       if (utils.hasOwn(config.mqttConnectedClients, client.id)) {
-        logger.error(`Client already connected. Disallowing multiple connections from the same client. ${client.id}`)
+        logger.error(
+          `Client already connected. Disallowing multiple connections from the same client. ${client.id}`
+        )
         callback(null, false)
       } else {
         if (client.id === 'polyglot' || client.id.substring(0, 18) === 'polyglot_frontend-') {
@@ -64,11 +66,15 @@ async function start() {
               logger.info(`MQTTS: ${client.id} authenticated successfully.`)
               callback(null, true)
             } else {
-              logger.error(`MQTTS: ${client.id} authentication failed. Someone is messing with something....`)
+              logger.error(
+                `MQTTS: ${client.id} authentication failed. Someone is messing with something....`
+              )
               callback(null, true)
             }
           } else {
-            logger.error(`Polyglot or Frontend didn't provide authentication credentials. Disallowing access.`)
+            logger.error(
+              `Polyglot or Frontend didn't provide authentication credentials. Disallowing access.`
+            )
             callback(null, false)
           }
         }
@@ -102,7 +108,9 @@ async function start() {
     return new Promise((resolve, reject) => {
       try {
         config.mqttServer.listen(config.globalsettings.mqttPort || 1883, () => {
-          logger.info(`Aedes MQTT Broker Service: Started on port ${config.globalsettings.mqttPort || 1883}`)
+          logger.info(
+            `Aedes MQTT Broker Service: Started on port ${config.globalsettings.mqttPort || 1883}`
+          )
           resolve()
         })
       } catch (err) {

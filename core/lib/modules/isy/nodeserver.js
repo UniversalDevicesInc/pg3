@@ -3,84 +3,64 @@ const logger = require('../logger')
 
 const core = require('./core')
 
+async function processMessage(message) {
+  const props = core.verifyProps(message, ['uuid', 'profileNum'])
+}
+
 const apiSwitch = {
   addnode: {
     props: [],
-    func: addnode,
-    result: resultaddnode,
-    batch: resultBatchaddnode,
-    type: 'ns'
+    func: 'addnode'
   },
   removenode: {
     props: [],
-    func: sendToISY,
-    result: resultremovenode,
-    batch: resultBatchremovenode,
-    type: 'ns'
+    func: 'sendToISY'
   },
   status: {
     props: [],
-    func: sendToISY,
-    result: resultstatus,
-    batch: resultBatchstatus,
-    type: 'ns'
+    func: 'sendToISY'
   },
   command: {
     props: [],
-    func: sendToISY
+    func: 'sendToISY'
   },
   batch: {
     props: [],
-    func: sendToISY,
-    result: resultBatch,
-    type: 'ns'
+    func: 'sendToISY'
   },
   config: {
     props: [],
-    func: config,
-    type: 'ns'
+    func: 'config'
   },
   update: {
     props: [],
-    func: update,
-    type: 'frontend'
+    func: 'update'
   },
   connected: {
     props: [],
-    func: connected,
-    type: 'frontend'
+    func: 'connected'
   },
   customparams: {
     props: [],
-    func: updateDatabase,
-    type: 'ns',
-    attrName: 'customParams'
+    func: ''
   },
   customdata: {
     props: [],
-    func: updateDatabase,
-    type: 'ns',
-    attrName: 'customData'
+    func: ''
   },
   notices: {
     props: [],
-    func: updateDatabase,
-    type: 'ns',
-    attrName: 'notices'
+    func: 'updateDatabase'
   },
   polls: {
     props: ['shortPoll', 'longPoll'],
-    func: polls,
-    type: 'frontend'
+    func: 'polls'
   }
 }
 
 const checkCommand = type => apiSwitch[type] || null
 
-async function handleResponse() {}
-
 // function makeNodeUrl(uuid, profileNum, path, args = null)
 // async function isyGet(uuid, type, url, profileNum = 0)
-async function status(isy, profileNum, data, cmd) {}
 
 module.exports = {}

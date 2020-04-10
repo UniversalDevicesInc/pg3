@@ -1,113 +1,66 @@
-const mqtt = require('mqtt')
-
-const logger = require('../modules/logger')
-const config = require('../config/config')
-const utils = require('../utils/utils')
-
+/* eslint-disable no-unused-vars */
 /**
  * MQTT Client Module
  * @module services/mqttc
  * @version 3.0
  */
 
-/**
- * MQTT Once MakeResponse is complete, publish the message to MQTT
- * @method
- * @param {string} topic - topic to publish to. Should be either 'connections' or the profileNum of the NodeServer
- * @param {object} message - Dictionary object of message to send. JSON format.
- * @param {object} options - Typically used for {retain: True/False} to retain the last message. [Optional]
- * @param {function} callback - Callback when publish is complete. [Optional]
+const mqtt = require('mqtt')
+const Bottleneck = require('bottleneck')
+
+const logger = require('../modules/logger')
+const config = require('../config/config')
+const { addListeners } = require('../modules/nodeserver/listeners')
+
+/* This controls the global overall queue for MQTT messages
+ * No matter how many requests are sent, it will conform to these limits
+ * This is limited to prevent flooding and DoS attacks
+ * minTime: 2ms allows for 500 requests per second 1000 ms / 2 per second
+ * highWater is how many can be queue'd (1000 max)
+ * strategy is the way in which the queue is emptied once highWater is hit
+ * https://github.com/SGrondin/bottleneck#strategies
  */
-function publish(topic, message, options, callback) {
-  config.mqttClient.publish(topic, JSON.stringify(message), options, callback)
+const GLOBALQUEUE = {
+  minTime: 2,
+  highWater: 1000,
+  strategy: Bottleneck.strategy.OVERFLOW
+}
+
+// Enables listeners for easy debugging
+function startQueueEvents(queue) {
+  queue.on('error', error => {
+    // logger.error(error.stack)
+  })
+  queue.on('failed', (error, jobInfo) => {
+    // logger.error(error.stack, `${JSON.stringify(jobInfo)}`)
+  })
+  queue.on('dropped', dropped => {
+    // logger.debug(`Dropped: ${JSON.stringify(dropped)}`)
+  })
+  queue.on('debug', (message, data) => {
+    // logger.debug(`Debug: ${message} :: ${JSON.stringify(data)}`)
+  })
+  queue.on('done', info => {
+    // logger.debug(`Job Info: ${JSON.stringify(info)}`)
+  })
 }
 
 function addSubscriptions() {
   const subscriptions = [
-    'udi/polyglot/connections/#',
-    'udi/polyglot/frontend/#',
-    'udi/polyglot/frontend/settings',
-    'udi/polyglot/frontend/nodeservers',
-    'udi/polyglot/frontend/log',
-    'udi/polyglot/ns/#',
-    'udi/polyglot/profile/#'
+    'udi/pg3/ns/status',
+    'udi/pg3/ns/command',
+    'udi/pg3/ns/system',
+    'udi/pg3/ns/custom',
+    'udi/pg3/frontend/system',
+    'udi/pg3/frontend/settings'
   ]
   config.mqttClient.subscribe(subscriptions, (err, granted) => {
-    granted.forEach(grant => {
-      logger.debug(`MQTTC: Subscribed to ${grant.topic} QoS ${grant.qos}`)
-    })
+    granted.map(grant => logger.debug(`MQTTC: Subscribed to ${grant.topic} QoS ${grant.qos}`))
   })
   config.mqttClient.publish(
-    'udi/polyglot/connections/polyglot',
-    JSON.stringify({ node: config.mqttClientId, connected: true }),
-    { retain: true }
+    'udi/pg3/connections',
+    JSON.stringify({ clientId: config.mqttClientId, connected: true })
   )
-}
-
-function addSubscription(profileNum) {
-  // TODO: remove this after a release or two
-  config.mqttClient.publish('udi/polyglot/connections/frontend', null, { retain: true })
-  const subscriptions = [`udi/polyglot/ns/${profileNum}`, `udi/polyglot/profile/${profileNum}`]
-  config.mqttClient.subscribe(subscriptions, (err, granted) => {
-    granted.forEach(grant => {
-      logger.debug(`MQTTC: Subscribed to ${grant.topic} QoS ${grant.qos}`)
-    })
-  })
-}
-
-function delSubscription(profileNum) {
-  config.mqttClient.publish(`udi/polyglot/connections/${profileNum}`, null, { retain: true })
-  config.mqttClient.publish(`udi/polyglot/ns/${profileNum}`, null, { retain: true })
-  // let subscriptions = [`udi/polyglot/ns/${profileNum}`, `udi/polyglot/profile/'${profileNum}`]
-  // config.mqttClient.unsubscribe(subscriptions, (err) => {})
-}
-
-/**
- * MQTT Make Response
- * @method
- * @param {string} topic - topic to publish to. Should be either 'connections' or the profileNum of the NodeServer
- * @param {string} command - Command to send, e.g 'status', etc.
- * @param {object} message - Dictionary object of message to send. JSON format.
- */
-function makeResponse(topic, command, message) {
-  let fullTopic
-  let response
-  if (topic === 'connections' || topic === 'udi/polyglot/connections/polyglot') {
-    fullTopic = 'udi/polyglot/connections/polyglot'
-  } else {
-    fullTopic = `udi/polyglot/ns/${topic}`
-  }
-  try {
-    response = { node: 'polyglot' }
-    response[command] = message
-  } catch (e) {
-    response = {
-      node: 'polyglot',
-      data: {
-        error: e
-      }
-    }
-  }
-  publish(fullTopic, response)
-}
-
-function nsResponse(message, success, msg, extra = null) {
-  if (utils.hasOwn(message, 'seq')) {
-    const response = {
-      node: 'polyglot',
-      seq: message.seq,
-      response: { success, msg }
-    }
-    if (extra) {
-      response.response = Object.assign(response.response, extra)
-    }
-    if (response.response.success) {
-      logger.debug(`NSResponse: Success: ${response.response.success} - ${response.response.msg}`)
-    } else {
-      logger.error(`NSResponse: Success: ${response.response.success} - ${response.response.msg}`)
-    }
-    publish('udi/polyglot/frontend/nodeservers', response)
-  }
 }
 
 /**
@@ -117,8 +70,10 @@ function nsResponse(message, success, msg, extra = null) {
  */
 function start() {
   if (!config.mqttClient) {
+    config.queue.mqtt = new Bottleneck(GLOBALQUEUE)
+    startQueueEvents(config.queue.mqtt)
     const options = {
-      keepalive: 0,
+      keepalive: 10,
       clean: true,
       clientId: config.mqttClientId,
       reconnectPeriod: 5000,
@@ -135,45 +90,18 @@ function start() {
     }
     // options['will']['topic'] = 'udi/polyglot/connections/polyglot'
     // options['will']['payload'] = new Buffer(JSON.stringify({node: config.mqttClientId, 'connected': false}))
-    const mqttConnectString = `${config.globalsettings.secure ? 'mqtts://' : 'mqtt://'}${host}:${port}`
+    const mqttConnectString = `${
+      config.globalsettings.secure ? 'mqtts://' : 'mqtt://'
+    }${host}:${port}`
     config.mqttClient = mqtt.connect(mqttConnectString, options)
 
     config.mqttClient.on('connect', () => {
-      config.mqttConnected = true
       addSubscriptions()
     })
 
-    config.mqttClient.on('message', (topic, payload) => {
-      // logger.debug(packet.toString())
-      if (payload == null || payload === '') return
-      let topicObject = {}
-      let parsed
-      try {
-        parsed = JSON.parse(payload.toString())
-        if (!parsed.node || parsed.node === 'polyglot') return
-        const temp = topic.replace(/^udi\/polyglot\//i, '').split('/')
-        topicObject = {
-          base: temp[0],
-          subject: temp[1]
-        }
-      } catch (e) {
-        logger.error(`MQTTC: Badly formatted JSON input received: ${payload} - ${e}`)
-        return
-      }
-      logger.debug(JSON.stringify(topicObject))
-      // parse.parse(topicObject, parsed)
-    })
+    addListeners()
 
-    config.mqttClient.on('reconnect', () => {
-      config.mqttConnected = false
-      logger.info('MQTT attempting reconnection to broker...')
-    })
-
-    config.mqttClient.on('error', err => {
-      logger.error(`MQTT received error: ${err.toString()}`)
-    })
-
-    logger.info('MQTT Client Service: Started')
+    logger.info('Started MQTT Client Service')
   }
 }
 
@@ -184,7 +112,10 @@ function start() {
  */
 async function stop() {
   if (config.mqttClient) {
-    publish('udi/polyglot/connections/polyglot', { node: config.mqttClientId, connected: false }, { retain: true })
+    config.mqttClient.publish('udi/polyglot/connections/polyglot', {
+      clientId: config.mqttClientId,
+      connected: false
+    })
     logger.info('MQTT Client Services Stopping Gracefully.')
     config.mqttClient.end(true, () => {
       config.mqttClient = null
@@ -193,4 +124,7 @@ async function stop() {
 }
 
 // API
-module.exports = { start, stop, addSubscriptions, addSubscription, delSubscription, makeResponse, nsResponse }
+module.exports = {
+  start,
+  stop
+}

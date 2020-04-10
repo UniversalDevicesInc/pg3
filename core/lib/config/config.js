@@ -14,14 +14,15 @@ const config = {
   pidFile: null,
   aedes: null,
   db: null,
-  httpClient: null,
+  httpClient: {},
   httpServer: null,
-  mqttServer: null,
   mqttClient: null,
+  mqttServer: null,
   mqttClientId: 'pg3',
   mqttConnectedClients: {},
   mqttClientDisconnectCallbacks: {},
-  mqttClientTails: {}
+  mqttClientTails: {},
+  queue: {}
 }
 
 module.exports = config

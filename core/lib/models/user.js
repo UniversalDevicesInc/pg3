@@ -8,9 +8,9 @@ const config = require('../config/config')
  * @version 3.0
  */
 // Returns array that is executed in order for Schema updates
-const table = []
+const TABLE = []
 // pragma user_version = 1
-table[0] = `
+TABLE[0] = `
   CREATE TABLE IF NOT EXISTS "user" (
     id BLOB PRIMARY KEY UNIQUE,
     name TEXT NOT NULL UNIQUE,
@@ -29,18 +29,21 @@ class DEFAULTS {
     this.enabled = 1
     this.role = 'admin'
     this.groups = JSON.stringify(['Administrators'])
-    this.dbVersion = table.length
+    this.dbVersion = TABLE.length
   }
 }
 
 const protectedKeys = ['admin']
 
 async function get(username) {
-  return config.db.prepare(`SELECT id, name, enabled, role, groups FROM user WHERE (name) is (?)`).get(username)
+  return config.db
+    .prepare(`SELECT id, name, enabled, role, groups FROM user WHERE (name) is (?)`)
+    .get(username)
 }
 
 async function add(username, password, role = null, groups = []) {
-  if (!username || !password) throw new Error(`Username or password wasn't specified in addUser request`)
+  if (!username || !password)
+    throw new Error(`Username or password wasn't specified in addUser request`)
   if (protectedKeys.includes(username)) throw new Error(`${username} is protected`)
   const newUser = new DEFAULTS()
   newUser.name = username
@@ -62,10 +65,12 @@ async function update(username, updateObject) {
       let updatedUser = ``
       if (Object.keys(updateObject).includes('password'))
         updatedUser += `hash = '${await bcrypt.hash(updateObject.password, 10)}',`
-      if (Object.keys(updateObject).includes('role')) updatedUser += `role = '${updateObject.role}',`
+      if (Object.keys(updateObject).includes('role'))
+        updatedUser += `role = '${updateObject.role}',`
       if (Object.keys(updateObject).includes('groups'))
         updatedUser += `groups = '${JSON.stringify(updateObject.groups)}',`
-      if (Object.keys(updateObject).includes('enabled')) updatedUser += `enabled = ${updateObject.enabled ? 1 : 0},`
+      if (Object.keys(updateObject).includes('enabled'))
+        updatedUser += `enabled = ${updateObject.enabled ? 1 : 0},`
       updatedUser = updatedUser.replace(/,\s*$/, '')
       if (Object.keys(updatedUser).length > 0) {
         return config.db
@@ -92,4 +97,4 @@ async function checkPassword(username, password) {
   return userObject ? bcrypt.compare(password, userObject.hash) : false
 }
 
-module.exports = { table, DEFAULTS, get, add, update, remove, checkPassword }
+module.exports = { TABLE, DEFAULTS, get, add, update, remove, checkPassword }

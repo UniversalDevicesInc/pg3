@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * HTTP Client Module for REST calls to the ISY Interfaces
  * Generates core httpAgents and queues
@@ -18,7 +19,7 @@ const logger = require('../modules/logger')
  * No matter how many requests are sent, it will conform to these limits
  * maxConcurrent: 2 (httpAgent has a max open sockets of 2)
  * This is limited by the ISY after extensive testing in PG2
- * minTime: 10ms allows for 100 requests per second 1000 ms / 50 per second
+ * minTime: 10ms allows for 100 requests per second 1000 ms / 10 per second
  */
 const GLOBALQUEUE = {
   maxConcurrent: httpAgentOptions.maxSockets,
@@ -56,11 +57,7 @@ const HTTPCONFIG = {
   decompress: true
 }
 
-function getConfig(uuid) {
-  if (typeof config.isys === 'object') return config.isys.find(isy => isy.uuid === uuid)
-  return null
-}
-
+// Enables listeners for easy debugging
 function startQueueEvents(queue) {
   queue.on('error', error => {
     // logger.error(error.stack)
@@ -111,10 +108,14 @@ async function removeQueues(isy) {
   logger.info(`Removing ISY queues for ${isy.uuid}`)
   await Promise.allSettled([
     Promise.allSettled(
-      config.queue[isy.uuid].statusGroup.keys().map(key => config.queue[isy.uuid].statusGroup.deleteKey(key))
+      config.queue[isy.uuid].statusGroup
+        .keys()
+        .map(key => config.queue[isy.uuid].statusGroup.deleteKey(key))
     ),
     Promise.allSettled(
-      config.queue[isy.uuid].commandGroup.keys().map(key => config.queue[isy.uuid].commandGroup.limiter.deleteKey(key))
+      config.queue[isy.uuid].commandGroup
+        .keys()
+        .map(key => config.queue[isy.uuid].commandGroup.limiter.deleteKey(key))
     ),
     config.queue[isy.uuid].status.stop(),
     config.queue[isy.uuid].command.stop(),
@@ -155,7 +156,9 @@ async function createClient(isy) {
     error => {
       const end = process.hrtime(error.config.startTime)
       const duration = (end[0] * 1e9 + end[1]) / 1e6
-      const status = error.response ? `${error.response.status} - ${error.response.statusText}` : `${error.code}`
+      const status = error.response
+        ? `${error.response.status} - ${error.response.statusText}`
+        : `${error.code}`
       let { retryCount } = error.config
       if (error.config.retryCount <= MAX_RETRIES) {
         retryCount += 1
@@ -175,8 +178,6 @@ async function createClient(isy) {
 }
 
 async function start() {
-  config.queue = {}
-  config.httpClient = {}
   const startingPromises = []
   Object.values(config.isys).map(isy => startingPromises.push(createQueues(isy), createClient(isy)))
   await Promise.all(startingPromises)

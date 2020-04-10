@@ -1,3 +1,4 @@
+/* eslint-disable */
 var forge = require('node-forge')
 
 // a hexString is considered negative if it's most significant bit is 1
@@ -138,7 +139,8 @@ exports.generate = function generate(attrs, options, done) {
 
       for (var i = 0; i < clientAttrs.length; i++) {
         if (clientAttrs[i].name === 'commonName') {
-          if (options.clientCertificateCN) clientAttrs[i] = { name: 'commonName', value: options.clientCertificateCN }
+          if (options.clientCertificateCN)
+            clientAttrs[i] = { name: 'commonName', value: options.clientCertificateCN }
           else clientAttrs[i] = { name: 'commonName', value: 'John Doe jdoe123' }
         }
       }

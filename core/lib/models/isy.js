@@ -10,9 +10,9 @@ const u = require('../utils/utils')
  * @version 3.0
  */
 // Returns array that is executed in order for Schema updates
-const table = []
+const TABLE = []
 // pragma user_version = 1
-table[0] = `
+TABLE[0] = `
   CREATE TABLE IF NOT EXISTS "isy" (
     id BLOB PRIMARY KEY UNIQUE,
     uuid TEXT NOT NULL UNIQUE,
@@ -25,6 +25,8 @@ table[0] = `
     discovered INTEGER NOT NULL CHECK (discovered IN (0,1)),
     version TEXT NOT NULL,
     secure INTEGER NOT NULL CHECK (secure IN (0,1)),
+    timeAdded INTEGER NOT NULL,
+    timeModified INTEGER,
     dbVersion INTEGER
   )
 `
@@ -33,7 +35,6 @@ class DEFAULTS {
     this.id = uuid()
     this.uuid = 'unregistered'
     this.name = 'ISY'
-    this.ip = null
     this.port = 80
     this.username = 'admin'
     this.password = 'admin'
@@ -41,9 +42,15 @@ class DEFAULTS {
     this.version = 'unknown'
     this.secure = 0
     this.discovered = 0
-    this.dbVersion = table.length
+    this.timeAdded = Date.now()
+    this.timeModified = Date.now()
+    this.dbVersion = TABLE.length
   }
 }
+
+const REQUIRED = ['uuid', 'ip']
+const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion', 'discovered']
+const MUTABLE = ['uuid', 'name', 'ip', 'port', 'username', 'enabled', 'version', 'secure']
 
 async function get(key) {
   if (!key) throw new Error(`isy get requires a uuid`)
@@ -69,11 +76,20 @@ async function getAll() {
   return isys
 }
 
-async function add(isy) {
-  if (!isy || typeof isy !== 'object') throw new Error(`isy object not present or not an object`)
-  if (!isy.uuid || !isy.ip) throw new Error(`isy object must contain uuid and ip at minimum`)
+async function add(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error(`isy object not present or not an object`)
+  // Deepcopy hack
+  const newObj = JSON.parse(JSON.stringify(obj))
+  // Can't overwrite internal properties. Nice try.
+  IMMUTABLE.forEach(key => delete newObj[key])
+  const checkProps = u.verifyProps(newObj, REQUIRED)
+  if (!checkProps.valid) throw new Error(`isy object missing ${checkProps.missing}`)
   const newIsy = new DEFAULTS()
-  Object.assign(newIsy, isy)
+  Object.assign(newIsy, newObj)
+  // SQLite doesn't allow Boolean, so convert to 1/0
+  Object.keys(newIsy).forEach(key => {
+    if (typeof newIsy[key] === 'boolean') newIsy[key] = newIsy[key] ? 1 : 0
+  })
   newIsy.password = encryption.encryptText(newIsy.password)
   return config.db
     .prepare(
@@ -85,25 +101,24 @@ async function add(isy) {
 
 async function update(key, updateObject) {
   if (key && updateObject && typeof updateObject === 'object') {
-    const currentIsy = await get(`${key}`)
-    if (currentIsy) {
-      let updatedIsy = ``
-      if (u.isIn(updateObject, 'uuid')) updatedIsy += `uuid = '${updateObject.uuid}',`
-      if (u.isIn(updateObject, 'name')) updatedIsy += `name = '${updateObject.name}',`
-      if (u.isIn(updateObject, 'ip')) updatedIsy += `ip = '${updateObject.ip}',`
-      if (u.isIn(updateObject, 'port')) updatedIsy += `port = '${updateObject.port}',`
-      if (u.isIn(updateObject, 'username')) updatedIsy += `username = '${updateObject.username}',`
+    const current = await get(`${key}`)
+    if (current) {
+      let updated = ``
+      MUTABLE.forEach(item => {
+        if (u.isIn(updateObject, item)) {
+          if (typeof updateObject[item] === 'boolean')
+            updated += `${item} = '${updateObject[item] ? 1 : 0}',`
+          else updated += `${item} = '${updateObject[item]}',`
+        }
+      })
       if (u.isIn(updateObject, 'password'))
-        updatedIsy += `password = '${await encryption.encryptText(updateObject.password)}',`
-      if (u.isIn(updateObject, 'enabled')) updatedIsy += `enabled = '${updateObject.enabled}',`
-      if (u.isIn(updateObject, 'version')) updatedIsy += `version = '${updateObject.version}',`
-      if (u.isIn(updateObject, 'secure')) updatedIsy += `secure = '${updateObject.secure}',`
-      if (Object.keys(updatedIsy).length > 0) {
-        updatedIsy = updatedIsy.replace(/,\s*$/, '')
+        updated += `password = '${await encryption.encryptText(updateObject.password)}',`
+      if (updated.length > 0) {
+        updated += `timeModified = ${Date.now()}`
         config.db
           .prepare(
             `UPDATE isy SET
-          ${updatedIsy}
+          ${updated}
           WHERE uuid is (?)`
           )
           .run(key)
@@ -117,4 +132,4 @@ async function remove(key) {
   return config.db.prepare(`DELETE FROM isy WHERE (uuid) is (?)`).run(key)
 }
 
-module.exports = { table, DEFAULTS, get, getAll, add, update, remove }
+module.exports = { TABLE, DEFAULTS, get, getAll, add, update, remove }

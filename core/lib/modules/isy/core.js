@@ -48,9 +48,9 @@ function makeSystemUrl(uuid, path, args = null) {
 function makeNodeUrl(uuid, profileNum, path, args = null) {
   if (!uuid) return null
   const isy = getIsyConfig(uuid)
-  let url = `${isy.secure === true ? 'https://' : 'http://'}${isy.ip}:${isy.port}/rest/ns/${profileNum}/${path.join(
-    '/'
-  )}`
+  let url = `${isy.secure === true ? 'https://' : 'http://'}${isy.ip}:${
+    isy.port
+  }/rest/ns/${profileNum}/${path.join('/')}`
   if (args) {
     url += `?${qs.stringify(args).trim()}`
   }
@@ -66,7 +66,9 @@ async function isyGet(uuid, type, url, profileNum = 0) {
     priority: PRIORITY[type]
   }
   if (type === 'system') {
-    return config.queue[isy.uuid][type].schedule(options, () => config.httpClient[isy.uuid].get(`${url}`, { isy }))
+    return config.queue[isy.uuid][type].schedule(options, () =>
+      config.httpClient[isy.uuid].get(`${url}`, { isy })
+    )
   }
   return config.queue[isy.uuid][`${type}Group`]
     .key(`${profileNum}`)
@@ -92,25 +94,12 @@ async function isyPost(uuid, type, url, data, httpOpts = {}, profileNum = 0) {
     .schedule(options, async () => config.httpClient[isy.uuid].get(`${url}`, data, httpOpts))
 }
 
-const propExists = (obj, path) => {
-  return !!path.split('.').reduce((obj, prop) => {
-    return obj && obj[prop] ? obj[prop] : undefined
-  }, obj)
+module.exports = {
+  isyGet,
+  isyPost,
+  addNodePrefix,
+  makeSystemUrl,
+  makeNodeUrl,
+  getIsyConfig,
+  Response
 }
-
-const verifyProps = (message, props) => {
-  const confirm = {
-    valid: true,
-    missing: null
-  }
-  Object.values(props).map(prop => {
-    if (!propExists(message, prop)) {
-      confirm.valid = false
-      confirm.missing = prop
-    }
-    return prop
-  })
-  return confirm
-}
-
-module.exports = { isyGet, isyPost, addNodePrefix, makeSystemUrl, makeNodeUrl, getIsyConfig, Response, verifyProps }

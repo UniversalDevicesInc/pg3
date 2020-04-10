@@ -10,6 +10,9 @@ const globalsettings = require('../models/globalsettings')
 const user = require('../models/user')
 const isy = require('../models/isy')
 const discoverisy = require('../modules/isy/discover')
+const ns = require('../models/nodeserver')
+const node = require('../models/node')
+const driver = require('../models/driver')
 
 /**
  * Database Module
@@ -18,7 +21,9 @@ const discoverisy = require('../modules/isy/discover')
  */
 
 function checkForTable(table) {
-  return config.db.prepare(`SELECT name FROM sqlite_master WHERE type='table' and name=(?);`).get(table)
+  return config.db
+    .prepare(`SELECT name FROM sqlite_master WHERE type='table' and name=(?);`)
+    .get(table)
 }
 
 async function checkAndVerifySecure() {
@@ -31,8 +36,10 @@ async function checkAndVerifySecure() {
       return
     }
   } else {
-    logger.warn(`Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`)
-    secure.table.map(sql => config.db.exec(sql))
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    secure.TABLE.map(sql => config.db.exec(sql))
   }
   logger.debug(`Encryption key not found. Generating`)
   config.pg3key = encryption.generateKey()
@@ -45,7 +52,9 @@ async function checkAndVerifySecure() {
     VALUES (${Object.keys(newKey).fill('?')})`
     )
     .run(Object.values(newKey))
-  logger.info(`Encryption key generated with ID: ${newKey.id}. Database version ${newKey.dbVersion}`)
+  logger.info(
+    `Encryption key generated with ID: ${newKey.id}. Database version ${newKey.dbVersion}`
+  )
 }
 
 async function checkAndVerifySettings() {
@@ -58,8 +67,10 @@ async function checkAndVerifySettings() {
       return
     }
   } else {
-    logger.warn(`Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`)
-    globalsettings.table.map(sql => config.db.exec(sql))
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    globalsettings.TABLE.map(sql => config.db.exec(sql))
   }
   logger.debug(`Table ${table} empty. Creating default ${table} entry`)
   const newEntry = new globalsettings.DEFAULTS()
@@ -97,14 +108,18 @@ async function checkAndVerifyUser() {
       logger.debug(`Table ${table} empty. Creating default ${table} entry`)
       await addDefaultUser()
     } else {
-      logger.debug(`Verified default ${table} successfully. Database version ${adminUser.dbVersion}`)
+      logger.debug(
+        `Verified default ${table} successfully. Database version ${adminUser.dbVersion}`
+      )
       bcrypt.compare('admin', adminUser.hash).then(result => {
         if (result) logger.warn(`Default password for user admin still in use! Please change!`)
       })
     }
   } else {
-    logger.warn(`Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`)
-    user.table.map(sql => config.db.exec(sql))
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    user.TABLE.map(sql => config.db.exec(sql))
     await addDefaultUser()
   }
 }
@@ -119,8 +134,10 @@ async function checkAndVerifyIsy() {
       return
     }
   } else {
-    logger.warn(`Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`)
-    isy.table.map(sql => config.db.exec(sql))
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    isy.TABLE.Objectmap(sql => config.db.exec(sql))
   }
   logger.debug(`Table ${table} empty. Attempting auto-discovery`)
   const discoveredIsy = await discoverisy.find()
@@ -143,6 +160,48 @@ async function checkAndVerifyIsy() {
   }
 }
 
+async function checkAndVerifyNodeServer() {
+  const table = 'nodeserver'
+  if (checkForTable(table)) {
+    logger.debug(`Table ${table} exists attempting to load`)
+    config.nodeservers = await isy.getAll()
+  } else {
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    ns.TABLE.map(sql => config.db.exec(sql))
+  }
+  if (config.nodeservers && config.nodeservers.length > 0) {
+    logger.info(`${table} table: Loaded (${config.nodeservers.length}) nodeservers successfully`)
+    return
+  }
+  logger.info(`No NodeServers in database. Add one through the user interface to get started`)
+}
+
+async function checkAndVerifyNode() {
+  const table = 'node'
+  if (checkForTable(table)) {
+    logger.debug(`Table ${table} exists`)
+  } else {
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    node.TABLE.map(sql => config.db.exec(sql))
+  }
+}
+
+async function checkAndVerifyDriver() {
+  const table = 'driver'
+  if (checkForTable(table)) {
+    logger.debug(`Table ${table} exists`)
+  } else {
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    driver.TABLE.map(sql => config.db.exec(sql))
+  }
+}
+
 async function start() {
   if (!config.db) {
     logger.info(`Starting sqlite database at ${process.env.PG3WORKDIR}pg3.db`)
@@ -153,6 +212,9 @@ async function start() {
     await checkAndVerifySettings()
     await checkAndVerifyUser()
     await checkAndVerifyIsy()
+    await checkAndVerifyNodeServer()
+    await checkAndVerifyNode()
+    await checkAndVerifyDriver()
 
     // Tests API for secure
     // await secure.add('test', '123')
@@ -173,8 +235,48 @@ async function start() {
     // Tests API for ISY
     // await isy.add({ uuid: 'abc123', ip: '123' })
     // await isy.update('abc123', { uuid: 'abc124', port: 443, password: 'myman' })
-    // logger.debug(`!!!! ${JSON.stringify(await isy.get('abc124'))}`)
+    // console.log(await isy.get('abc124'))
     // await isy.remove('abc124')
+
+    // Test API for nodeserver
+    // await ns.add({
+    //   uuid: '00:21:b9:02:45:1b',
+    //   name: 'test',
+    //   profileNum: 25,
+    //   version: '1.2',
+    //   home: '~/.pg3/ns/test',
+    //   type: 'node',
+    //   executable: 'main.js'
+    // })
+    // await ns.update('00:21:b9:02:45:1b', 25, { name: 'dumb', enabled: true })
+    // console.log(await ns.get('00:21:b9:02:45:1b', 25))
+    // await ns.remove('00:21:b9:02:45:1b', 25)
+
+    // Test API for node
+    // await node.add({
+    //   uuid: '00:21:b9:02:45:1b',
+    //   profileNum: 25,
+    //   address: 'yourmom',
+    //   nodeDefId: 'abc123'
+    // })
+    // await node.update('00:21:b9:02:45:1b', 25, 'yourmom', { nodeDefId: 'abc124' })
+    // console.log(await node.get('00:21:b9:02:45:1b', 25, 'yourmom'))
+
+    // Test API for driver
+    // await driver.add({
+    //   uuid: '00:21:b9:02:45:1b',
+    //   profileNum: 25,
+    //   address: 'yourmom',
+    //   driver: 'ST',
+    //   value: 123,
+    //   uom: 48
+    // })
+    // await driver.update('00:21:b9:02:45:1b', 25, 'yourmom', 'ST', { value: 223 })
+    // await driver.set('00:21:b9:02:45:1b', 25, 'yourmom', 'ST', 224, 33)
+    // console.log(await driver.get('00:21:b9:02:45:1b', 25, 'yourmom', 'ST'))
+
+    // Delete Nodeserver which should delete all nodes and drivers associated
+    // await ns.remove('00:21:b9:02:45:1b', 25)
   }
 }
 

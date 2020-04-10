@@ -21,8 +21,9 @@ async function testQueues() {
     const allThePromises = []
     for (let i = 0; i < count; i += 1) {
       allThePromises.push(
-        config.queue[isy.uuid].system.schedule({ id: `system${i}`, priority: PRIORITY.system }, () =>
-          config.httpClient[isy.uuid].get(`${url}+system${i}`, { isy })
+        config.queue[isy.uuid].system.schedule(
+          { id: `system${i}`, priority: PRIORITY.system },
+          () => config.httpClient[isy.uuid].get(`${url}+system${i}`, { isy })
         )
       )
       allThePromises.push(
@@ -56,7 +57,9 @@ async function testQueues() {
         total += 1
         return result
       })
-      logger.warn(`Test took ${duration}s. ${failed} failed and ${completed} succeded out of ${total}`)
+      logger.warn(
+        `Test took ${duration}s. ${failed} failed and ${completed} succeded out of ${total}`
+      )
     } catch (err) {
       logger.error(err.stack)
     }
