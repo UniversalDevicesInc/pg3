@@ -2,6 +2,7 @@
   eslint no-bitwise: 0,
   prefer-destructuring: 0,
   no-plusplus: 0
+  no-underscore-dangle: 0
   */
 
 const axios = require('axios')

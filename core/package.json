@@ -45,6 +45,7 @@
     "ip": "^1.1.5",
     "mqtt": "^3.0.0",
     "node-forge": "^0.9.1",
+    "querystring": "^0.2.0",
     "uuid": "^7.0.2",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.4.2",

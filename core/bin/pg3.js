@@ -24,6 +24,7 @@ const logger = require('../lib/modules/logger')
 const db = require('../lib/services/db')
 const mqtts = require('../lib/services/mqtts')
 const mqttc = require('../lib/services/mqttc')
+const httpc = require('../lib/services/httpc')
 
 const environment = require('../lib/modules/environment')
 const certificates = require('../lib/modules/security/certificates')
@@ -69,30 +70,6 @@ async function removePid() {
   }
 }
 
-/* Save NodeServers */
-// async function saveNodeServers() {
-//   await Promise.all(
-//     config.nodeServers.map((ns) => {
-//       if (ns.type !== 'unmanaged') {
-//         logger.debug(`Saving NodeServer ${ns.name} to database.`)
-//         ns.save()
-//       }
-//     })
-//   )
-// }
-
-/* Kill all Children */
-// async function killChildren() {
-//   await Promise.all(
-//     Object.values(config.nodeServers).map(async (ns) => {
-//       if (ns.type === 'local') {
-//         await nodeserver.stop(ns.profileNum)
-//       }
-//     })
-//   )
-//   logger.debug(`All NodeServers stopped.`)
-// }
-
 /* Initial Startup */
 async function start() {
   try {
@@ -102,6 +79,7 @@ async function start() {
     await certificates.start()
     await mqtts.start()
     await mqttc.start()
+    await httpc.start()
   } catch (err) {
     logger.error(`Startup error. Shutting down: ${err.stack} `)
     process.exit(1)
@@ -111,6 +89,7 @@ async function start() {
 /* Shutdown */
 async function shutdown() {
   config.shutdown = true
+  await httpc.stop()
   await mqttc.stop()
   await mqtts.stop()
   await db.stop()

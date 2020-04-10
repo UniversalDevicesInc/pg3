@@ -1,4 +1,3 @@
-const os = require('os')
 /**
  * Config data pulled from the .env file
  * and some globally accessible internal variables
@@ -15,6 +14,8 @@ const config = {
   pidFile: null,
   aedes: null,
   db: null,
+  httpClient: null,
+  httpServer: null,
   mqttServer: null,
   mqttClient: null,
   mqttClientId: 'pg3',

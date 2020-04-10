@@ -88,16 +88,16 @@ async function update(key, updateObject) {
     const currentIsy = await get(`${key}`)
     if (currentIsy) {
       let updatedIsy = ``
-      if (u.isIn('uuid', updateObject)) updatedIsy += `uuid = '${updateObject.uuid}',`
-      if (u.isIn('name', updateObject)) updatedIsy += `name = '${updateObject.name}',`
-      if (u.isIn('ip', updateObject)) updatedIsy += `ip = '${updateObject.ip}',`
-      if (u.isIn('port', updateObject)) updatedIsy += `port = '${updateObject.port}',`
-      if (u.isIn('username', updateObject)) updatedIsy += `username = '${updateObject.username}',`
-      if (u.isIn('password', updateObject))
+      if (u.isIn(updateObject, 'uuid')) updatedIsy += `uuid = '${updateObject.uuid}',`
+      if (u.isIn(updateObject, 'name')) updatedIsy += `name = '${updateObject.name}',`
+      if (u.isIn(updateObject, 'ip')) updatedIsy += `ip = '${updateObject.ip}',`
+      if (u.isIn(updateObject, 'port')) updatedIsy += `port = '${updateObject.port}',`
+      if (u.isIn(updateObject, 'username')) updatedIsy += `username = '${updateObject.username}',`
+      if (u.isIn(updateObject, 'password'))
         updatedIsy += `password = '${await encryption.encryptText(updateObject.password)}',`
-      if (u.isIn('enabled', updateObject)) updatedIsy += `enabled = '${updateObject.enabled}',`
-      if (u.isIn('version', updateObject)) updatedIsy += `version = '${updateObject.version}',`
-      if (u.isIn('secure', updateObject)) updatedIsy += `secure = '${updateObject.secure}',`
+      if (u.isIn(updateObject, 'enabled')) updatedIsy += `enabled = '${updateObject.enabled}',`
+      if (u.isIn(updateObject, 'version')) updatedIsy += `version = '${updateObject.version}',`
+      if (u.isIn(updateObject, 'secure')) updatedIsy += `secure = '${updateObject.secure}',`
       if (Object.keys(updatedIsy).length > 0) {
         updatedIsy = updatedIsy.replace(/,\s*$/, '')
         config.db
