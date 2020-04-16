@@ -2,7 +2,7 @@ const config = require('../../config/config')
 const logger = require('../logger')
 const u = require('../../utils/utils')
 
-// const core = require('./core')
+const core = require('./core')
 const status = require('./status')
 const command = require('./command')
 const system = require('./system')
@@ -13,11 +13,13 @@ const apiSwitch = {
     status: status.API,
     command: command.API,
     system: system.API,
-    custom: custom.API
+    custom: custom.API,
+    props: ['uuid', 'profileNum']
   },
   frontend: {
     system: '',
-    settings: ''
+    settings: '',
+    props: []
   }
 }
 
@@ -25,37 +27,35 @@ const checkCommand = (type, target) => apiSwitch[type][target] || null
 
 async function processMessage(topic, message) {
   try {
-    const coreKeys = ['uuid', 'profileNum']
-    const props = u.verifyProps(message, coreKeys)
+    const [type, target] = topic.split('/').slice(-2)
+    if (!Object.keys(apiSwitch).includes(type)) throw new Error(`API not found ${type}/${target}`)
+    const api = checkCommand(type, target)
+    if (!api) throw new Error(`API not found ${type}/${target}`)
+    const props = u.verifyProps(message, apiSwitch[type].props)
     if (!props.valid)
-      return logger.error(
+      throw new Error(
         `Request missing required property: ${props.missing} :: ${JSON.stringify(message)}`
       )
-    const [type, target] = topic.split('/').slice(-2)
-    if (!Object.keys(apiSwitch).includes(type))
-      return logger.error(`API not found ${type}/${target}`)
-    const api = checkCommand(type, target)
-    Object.keys(message)
-      .filter(key => !coreKeys.includes(key))
-      .map(key => {
-        const missing = u.verifyProps(message, api[key].props)
-        if (!missing.valid)
-          return logger.error(
-            `Request missing required property: ${missing.missing} :: ${JSON.stringify(
-              message[key]
-            )}`
-          )
-        return config.queue.mqtt
-          .schedule(() => {
-            return api[key].func(message)
-          })
-          .catch(err => {
-            logger.error(`MQTT on Inbound processFunction: ${err.stack}`)
-          })
-      })
-    return logger.debug(`Process`)
+    const results = {}
+    await Promise.all(
+      Object.keys(api)
+        .filter(key => u.isIn(message, key))
+        .map(key =>
+          config.queue.mqtt
+            .schedule(() => api[key].func(message.uuid, message.profileNum, key, message[key]))
+            .then(result => {
+              results[key] = result
+            })
+            .catch(err => {
+              logger.error(`MQTT on Inbound processFunction: ${err.stack}`)
+            })
+        )
+    )
+    console.log(results)
+    if (type === 'ns' && u.isIn(message, 'id'))
+      core.nsResponse(message.uuid, message.profileNum, { id: message.id, results })
   } catch (err) {
-    return logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
+    logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }
 }
 

@@ -8,7 +8,6 @@ const u = require('../utils/utils')
  * @module models/node
  * @version 3.0
  */
-
 const TABLENAME = 'node'
 
 // Returns array that is executed in order for Schema updates
@@ -51,7 +50,7 @@ class DEFAULTS {
   }
 }
 
-const REQUIRED = ['uuid', 'profileNum', 'address']
+const REQUIRED = ['uuid', 'profileNum', 'address', 'primaryNode']
 const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion']
 const MUTABLE = ['name', 'nodeDefId', 'hint', 'controller', 'primary', 'isPrimary', 'enabled']
 
@@ -93,6 +92,7 @@ async function add(obj) {
   Object.keys(newNode).forEach(key => {
     if (typeof newNode[key] === 'boolean') newNode[key] = newNode[key] ? 1 : 0
   })
+  newNode.isPrimary = newNode.address === newNode.primaryNode ? 1 : 0
   return config.db
     .prepare(
       `INSERT INTO ${TABLENAME} (${Object.keys(newNode)})
@@ -102,30 +102,27 @@ async function add(obj) {
 }
 
 async function update(key, profileNum, address, updateObject) {
-  if (key && profileNum && address && updateObject && typeof updateObject === 'object') {
-    const current = await get(key, profileNum, address)
-    if (current) {
-      let updated = ``
-      MUTABLE.forEach(item => {
-        if (u.isIn(updateObject, item)) {
-          if (typeof updateObject[item] === 'boolean')
-            updated += `${item} = '${updateObject[item] ? 1 : 0}',`
-          else updated += `${item} = '${updateObject[item]}',`
-        }
-      })
-      if (updated.length > 0) {
-        updated += `timeModified = ${Date.now()}`
-        return config.db
-          .prepare(
-            `UPDATE ${TABLENAME} SET
+  if (!key || !profileNum || !address || !updateObject || typeof updateObject !== 'object')
+    throw new Error(`update${TABLENAME} parameters not valid`)
+  const current = await get(key, profileNum, address)
+  if (!current) throw new Error(`${TABLENAME} ${key}/${profileNum}/${address} does not exist`)
+  let updated = ``
+  MUTABLE.forEach(item => {
+    if (u.isIn(updateObject, item)) {
+      if (typeof updateObject[item] === 'boolean')
+        updated += `${item} = '${updateObject[item] ? 1 : 0}',`
+      else updated += `${item} = '${updateObject[item]}',`
+    }
+  })
+  if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
+  updated += `timeModified = ${Date.now()}`
+  return config.db
+    .prepare(
+      `UPDATE ${TABLENAME} SET
           ${updated}
           WHERE (uuid, profileNum, address) is (?, ?, ?)`
-          )
-          .run(key, profileNum, address)
-      }
-    } else throw new Error(`${TABLENAME} ${key}/${profileNum}/${address} does not exist`)
-  } else throw new Error(`updateNode parameters not valid`)
-  return null
+    )
+    .run(key, profileNum, address)
 }
 
 async function remove(key, profileNum, address) {
@@ -136,4 +133,37 @@ async function remove(key, profileNum, address) {
     .run(key, profileNum, address)
 }
 
-module.exports = { TABLE, DEFAULTS, get, getAll, getAllIsy, getAllNodeServer, add, update, remove }
+async function TEST() {
+  // Test API for node
+  let valid = false
+  await add({
+    uuid: '00:21:b9:02:45:1b',
+    profileNum: 2,
+    address: 'controller',
+    nodeDefId: 'controller'
+  })
+  await add({
+    uuid: '00:21:b9:02:45:1b',
+    profileNum: 2,
+    address: 'templateaddr',
+    nodeDefId: 'templatenodeid'
+  })
+  // await update('test123', 25, 'test', { nodeDefId: 'abc124' })
+  // const value = await get('00:21:b9:02:45:1b', 25, 'test')
+  // if (value.nodeDefId === 'abc124') valid = true
+  // await remove('test123', 25, 'test')
+  // return valid
+}
+
+module.exports = {
+  TABLE,
+  DEFAULTS,
+  TEST,
+  get,
+  getAll,
+  getAllIsy,
+  getAllNodeServer,
+  add,
+  update,
+  remove
+}

@@ -101,30 +101,35 @@ async function add(obj) {
 }
 
 async function update(key, profileNum, address, driver, updateObject) {
-  if (key && profileNum && address && driver && updateObject && typeof updateObject === 'object') {
-    const current = await get(key, profileNum, address, driver)
-    if (current) {
-      let updated = ``
-      MUTABLE.forEach(item => {
-        if (u.isIn(updateObject, item)) {
-          if (typeof updateObject[item] === 'boolean')
-            updated += `${item} = '${updateObject[item] ? 1 : 0}',`
-          else updated += `${item} = '${updateObject[item]}',`
-        }
-      })
-      if (updated.length > 0) {
-        updated += `timeModified = ${Date.now()}`
-        return config.db
-          .prepare(
-            `UPDATE ${TABLENAME} SET
-          ${updated}
-          WHERE (uuid, profileNum, address, driver) is (?, ?, ?, ?)`
-          )
-          .run(key, profileNum, address, driver)
-      }
-    } else throw new Error(`${TABLENAME} ${key}/${profileNum}/${address}/${driver} does not exist`)
-  } else throw new Error(`update${TABLENAME} parameters not valid`)
-  return null
+  if (
+    !key ||
+    !profileNum ||
+    !address ||
+    !driver ||
+    !updateObject ||
+    typeof updateObject !== 'object'
+  )
+    throw new Error(`update${TABLENAME} parameters not valid`)
+  const current = await get(key, profileNum, address, driver)
+  if (!current)
+    throw new Error(`${TABLENAME} ${key}/${profileNum}/${address}/${driver} does not exist`)
+  let updated = ``
+  MUTABLE.forEach(item => {
+    if (u.isIn(updateObject, item)) {
+      if (typeof updateObject[item] === 'boolean')
+        updated += `${item} = '${updateObject[item] ? 1 : 0}',`
+      else updated += `${item} = '${updateObject[item]}',`
+    }
+  })
+  if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
+  updated += `timeModified = ${Date.now()}`
+  return config.db
+    .prepare(
+      `UPDATE ${TABLENAME} SET
+        ${updated}
+        WHERE (uuid, profileNum, address, driver) is (?, ?, ?, ?)`
+    )
+    .run(key, profileNum, address, driver)
 }
 
 async function remove(key, profileNum, address, driver) {
@@ -148,9 +153,37 @@ async function set(key, profileNum, address, driver, value, uom = null) {
     .run(key, profileNum, address, driver)
 }
 
+async function TEST() {
+  // Test API for driver
+  let valid = false
+  await add({
+    uuid: '00:21:b9:02:45:1b',
+    profileNum: 2,
+    address: 'controller',
+    driver: 'ST',
+    value: 1,
+    uom: 2
+  })
+  await add({
+    uuid: '00:21:b9:02:45:1b',
+    profileNum: 2,
+    address: 'templateaddr',
+    driver: 'ST',
+    value: 1,
+    uom: 2
+  })
+  // await update('abc123', 25, 'test', 'ST', { value: 223 })
+  // await set('abc123', 25, 'test', 'ST', 224, 33)
+  // const value = await get('abc123', 25, 'test', 'ST')
+  // if (value.value === 33) valid = true
+  // await remove('abc123', 25, 'test', 'ST')
+  // return valid
+}
+
 module.exports = {
   TABLE,
   DEFAULTS,
+  TEST,
   get,
   set,
   getAll,

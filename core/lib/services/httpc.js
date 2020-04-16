@@ -92,13 +92,13 @@ async function createQueues(isy) {
   startQueueEvents(config.queue[isy.uuid].status)
   config.queue[isy.uuid].commandGroup = new Bottleneck.Group(COMMANDGROUP)
   config.queue[isy.uuid].commandGroup.on('created', (queue, key) => {
-    logger.debug(`Created Command Queue for ${key} in ${queue}`)
+    logger.debug(`Created Command Queue for for Nodeserver ${key}`)
     queue.chain(config.queue.command)
     startQueueEvents(queue)
   })
   config.queue[isy.uuid].statusGroup = new Bottleneck.Group(STATUSGROUP)
   config.queue[isy.uuid].statusGroup.on('created', (queue, key) => {
-    logger.debug(`Created Status Queue for ${key} in ${queue}`)
+    logger.debug(`Created Status Queue for Nodeserver ${key}`)
     queue.chain(config.queue[isy.uuid].status)
     startQueueEvents(queue)
   })
@@ -154,6 +154,7 @@ async function createClient(isy) {
       return new Promise(resolve => resolve(response))
     },
     error => {
+      if ([400, 403, 404].includes(error.response.status)) return Promise.resolve(error.response)
       const end = process.hrtime(error.config.startTime)
       const duration = (end[0] * 1e9 + end[1]) / 1e6
       const status = error.response

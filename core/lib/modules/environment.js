@@ -24,7 +24,7 @@ const OVERRIDES = {
 async function start() {
   let changed = false
   // Update the start time in the database
-  globalsettings.update('timeStarted', Date.now())
+  globalsettings.update({ timeStarted: Date.now() })
   await Promise.all(
     Object.entries(OVERRIDES).map(([key, value]) => {
       if (value in process.env) {

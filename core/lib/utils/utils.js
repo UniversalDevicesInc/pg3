@@ -22,4 +22,6 @@ const verifyProps = (message, props) => {
   return confirm
 }
 
-module.exports = { hasOwn, isIn, verifyProps }
+const hasProps = (obj, props) => props.every(prop => Object.keys(obj).includes(prop))
+
+module.exports = { hasOwn, isIn, verifyProps, hasProps }

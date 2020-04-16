@@ -58,37 +58,35 @@ function makeNodeUrl(uuid, profileNum, path, args = null) {
 }
 
 async function isyGet(uuid, type, url, profileNum = 0) {
-  if (!uuid || !type || !url) return null
-  if (!TYPES.includes(type)) return null
+  if (!uuid || !type || !url) throw new Error(`isyGet parameters invalid`)
+  if (!TYPES.includes(type)) throw new Error(`isyGet type invalid`)
   const isy = getIsyConfig(uuid)
   const options = {
     id: `${type}${random5Digit()}`,
     priority: PRIORITY[type]
   }
-  if (type === 'system') {
+  if (type === 'system')
     return config.queue[isy.uuid][type].schedule(options, () =>
       config.httpClient[isy.uuid].get(`${url}`, { isy })
     )
-  }
   return config.queue[isy.uuid][`${type}Group`]
     .key(`${profileNum}`)
     .schedule(options, () => config.httpClient[isy.uuid].get(`${url}`, { isy }))
 }
 
 async function isyPost(uuid, type, url, data, httpOpts = {}, profileNum = 0) {
-  if (!uuid || !type || !url) return null
-  if (!TYPES.includes(type)) return null
+  if (!uuid || !type || !url) throw new Error(`isyPost parameters invalid`)
+  if (!TYPES.includes(type)) throw new Error(`isyPost type invalid`)
   const isy = getIsyConfig(uuid)
   const options = {
     id: `${type}${random5Digit()}`,
     priority: PRIORITY[type]
   }
   Object.assign(httpOpts, { isy })
-  if (type === 'system') {
+  if (type === 'system')
     return config.queue[isy.uuid][type].schedule(options, async () =>
       config.httpClient[isy.uuid].post(`${url}`, data, httpOpts)
     )
-  }
   return config.queue[isy.uuid][`${type}Group`]
     .key(`${profileNum}`)
     .schedule(options, async () => config.httpClient[isy.uuid].get(`${url}`, data, httpOpts))

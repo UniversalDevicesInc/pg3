@@ -19,14 +19,12 @@ const algorithm = 'aes-256-ctr'
  * @returns {string} Encrypted Text
  */
 function encryptText(text) {
-  if (config.pg3key) {
-    const iv = Buffer.from(crypto.randomBytes(16))
-    const cipher = crypto.createCipheriv(algorithm, config.pg3key, iv)
-    let crypted = cipher.update(text)
-    crypted = Buffer.concat([crypted, cipher.final()])
-    return `${iv.toString(outputEncoding)}:${crypted.toString(outputEncoding)}`
-  }
-  throw new Error(`Key not found`)
+  if (!config.pg3key) throw new Error(`Key not found`)
+  const iv = Buffer.from(crypto.randomBytes(16))
+  const cipher = crypto.createCipheriv(algorithm, config.pg3key, iv)
+  let crypted = cipher.update(text)
+  crypted = Buffer.concat([crypted, cipher.final()])
+  return `${iv.toString(outputEncoding)}:${crypted.toString(outputEncoding)}`
 }
 
 /**
@@ -35,16 +33,14 @@ function encryptText(text) {
  * @returns {string} clear text
  */
 function decryptText(text) {
-  if (config.pg3key) {
-    const textParts = text.split(':')
-    const iv = Buffer.from(textParts.shift(), outputEncoding)
-    const encryptedText = Buffer.from(textParts.join(':'), outputEncoding)
-    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(config.pg3key), iv)
-    let decrypted = decipher.update(encryptedText)
-    decrypted = Buffer.concat([decrypted, decipher.final()])
-    return decrypted.toString()
-  }
-  throw new Error(`Key not found`)
+  if (!config.pg3key) throw new Error(`Key not found`)
+  const textParts = text.split(':')
+  const iv = Buffer.from(textParts.shift(), outputEncoding)
+  const encryptedText = Buffer.from(textParts.join(':'), outputEncoding)
+  const decipher = crypto.createDecipheriv(algorithm, Buffer.from(config.pg3key), iv)
+  let decrypted = decipher.update(encryptedText)
+  decrypted = Buffer.concat([decrypted, decipher.final()])
+  return decrypted.toString()
 }
 
 /**

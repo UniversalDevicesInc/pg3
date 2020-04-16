@@ -112,10 +112,10 @@ function start() {
  */
 async function stop() {
   if (config.mqttClient) {
-    config.mqttClient.publish('udi/polyglot/connections/polyglot', {
-      clientId: config.mqttClientId,
-      connected: false
-    })
+    await config.mqttClient.publish(
+      'udi/pg3/connections',
+      JSON.stringify({ clientId: config.mqttClientId, connected: true })
+    )
     logger.info('MQTT Client Services Stopping Gracefully.')
     config.mqttClient.end(true, () => {
       config.mqttClient = null

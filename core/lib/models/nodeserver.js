@@ -9,11 +9,13 @@ const u = require('../utils/utils')
  * @module models/nodeserver
  * @version 3.0
  */
+const TABLENAME = 'nodeserver'
+
 // Returns array that is executed in order for Schema updates
 const TABLE = []
 // pragma user_version = 1
 TABLE[0] = `
-  CREATE TABLE IF NOT EXISTS "nodeserver" (
+  CREATE TABLE IF NOT EXISTS "${TABLENAME}" (
     id BLOB PRIMARY KEY UNIQUE,
     uuid TEXT NOT NULL,
     token BLOB NOT NULL,
@@ -44,8 +46,8 @@ TABLE[0] = `
         ON DELETE CASCADE,
     UNIQUE(uuid, profileNum)
   );
-  CREATE INDEX idx_nodeserver_uuid_profileNum
-  ON nodeserver (uuid, profileNum)
+  CREATE INDEX idx_${TABLENAME}_uuid_profileNum
+  ON ${TABLENAME} (uuid, profileNum)
 `
 class DEFAULTS {
   constructor() {
@@ -86,25 +88,25 @@ const MUTABLE = [
 ]
 
 async function get(key, profileNum) {
-  if (!key || !profileNum) throw new Error(`nodeserver get requires a uuid and profileNum`)
+  if (!key || !profileNum) throw new Error(`${TABLENAME} get requires a uuid and profileNum`)
   return config.db
-    .prepare(`SELECT * FROM nodeserver WHERE (uuid, profileNum) is (?, ?)`)
+    .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
     .get(key, profileNum)
 }
 
 async function getAll() {
-  return config.db.prepare(`SELECT * FROM nodeserver`).all()
+  return config.db.prepare(`SELECT * FROM ${TABLENAME}`).all()
 }
 
 async function add(obj) {
   if (!obj || typeof obj !== 'object')
-    throw new Error(`nodeserver object not present or not an object`)
+    throw new Error(`${TABLENAME} object not present or not an object`)
   // Deepcopy hack
   const newObj = JSON.parse(JSON.stringify(obj))
   // Can't overwrite internal properties. Nice try.
   IMMUTABLE.forEach(key => delete newObj[key])
   const checkProps = u.verifyProps(newObj, REQUIRED)
-  if (!checkProps.valid) throw new Error(`nodeserver object missing ${checkProps.missing}`)
+  if (!checkProps.valid) throw new Error(`${TABLENAME} object missing ${checkProps.missing}`)
   const newNs = new DEFAULTS()
   // Overwrite defaults with passed in properties
   Object.assign(newNs, newObj)
@@ -114,45 +116,63 @@ async function add(obj) {
   })
   return config.db
     .prepare(
-      `INSERT INTO nodeserver (${Object.keys(newNs)})
+      `INSERT INTO ${TABLENAME} (${Object.keys(newNs)})
     VALUES (${Object.keys(newNs).fill('?')})`
     )
     .run(Object.values(newNs))
 }
 
 async function update(key, profileNum, updateObject) {
-  if (key && profileNum && updateObject && typeof updateObject === 'object') {
-    const current = await get(`${key}`, profileNum)
-    if (current) {
-      let updated = ``
-      MUTABLE.forEach(item => {
-        if (u.isIn(updateObject, item)) {
-          if (typeof updateObject[item] === 'boolean')
-            updated += `${item} = '${updateObject[item] ? 1 : 0}',`
-          else updated += `${item} = '${updateObject[item]}',`
-        }
-      })
-      if (updated.length > 0) {
-        updated += `timeModified = ${Date.now()}`
-        return config.db
-          .prepare(
-            `UPDATE nodeserver SET
+  if (key || !profileNum || !updateObject || typeof updateObject !== 'object')
+    throw new Error(`update${TABLENAME} parameters not valid`)
+  const current = await get(`${key}`, profileNum)
+  if (!current) throw new Error(`${TABLENAME} ${key}/${profileNum} does not exist`)
+  let updated = ``
+  MUTABLE.forEach(item => {
+    if (u.isIn(updateObject, item)) {
+      if (typeof updateObject[item] === 'boolean')
+        updated += `${item} = '${updateObject[item] ? 1 : 0}',`
+      else updated += `${item} = '${updateObject[item]}',`
+    }
+  })
+  if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
+  updated += `timeModified = ${Date.now()}`
+  return config.db
+    .prepare(
+      `UPDATE ${TABLENAME} SET
           ${updated}
           WHERE (uuid, profileNum) is (?, ?)`
-          )
-          .run(key, profileNum)
-      }
-    } else throw new Error(`nodeserver ${key}/${profileNum} does not exist`)
-  } else throw new Error(`updateNs parameters not valid`)
-  return null
+    )
+    .run(key, profileNum)
 }
 
 async function remove(key, profileNum) {
   if (!key || !profileNum)
-    throw new Error(`remove nodeserver requires uuid and profileNum parameters`)
+    throw new Error(`remove ${TABLENAME} requires uuid and profileNum parameters`)
   return config.db
-    .prepare(`DELETE FROM nodeserver WHERE (uuid, profileNum) is (?, ?)`)
+    .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
     .run(key, profileNum)
 }
 
-module.exports = { TABLE, DEFAULTS, get, getAll, add, update, remove }
+async function TEST() {
+  // Test API for nodeserver
+  let valid = false
+  await add({
+    uuid: '00:21:b9:02:45:1b',
+    name: 'PythonTemplate',
+    profileNum: 2,
+    version: '1.2',
+    home: '~/.pg3/ns/test',
+    type: 'python3',
+    executable: 'template-poly.py',
+    longPoll: 240,
+    shortPoll: 120
+  })
+  // await update('00:21:b9:02:45:1b', 25, { enabled: true })
+  // const value = await get('00:21:b9:02:45:1b', 25)
+  // if (value.enabled) valid = true
+  // await remove('abc123', 25)
+  return valid
+}
+
+module.exports = { TABLE, DEFAULTS, TEST, get, getAll, add, update, remove }
