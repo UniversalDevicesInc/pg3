@@ -14,7 +14,7 @@ const apiSwitch = {
     command: command.API,
     system: system.API,
     custom: custom.API,
-    props: ['uuid', 'profileNum']
+    props: []
   },
   frontend: {
     system: '',
@@ -27,7 +27,7 @@ const checkCommand = (type, target) => apiSwitch[type][target] || null
 
 async function processMessage(topic, message) {
   try {
-    const [type, target] = topic.split('/').slice(-2)
+    const [type, target, clientId] = topic.split('/').slice(-3)
     if (!Object.keys(apiSwitch).includes(type)) throw new Error(`API not found ${type}/${target}`)
     const api = checkCommand(type, target)
     if (!api) throw new Error(`API not found ${type}/${target}`)
@@ -36,13 +36,15 @@ async function processMessage(topic, message) {
       throw new Error(
         `Request missing required property: ${props.missing} :: ${JSON.stringify(message)}`
       )
+    let id = clientId
+    if (!topic.includes(`frontend`)) id = clientId.split('_')
     const results = {}
     await Promise.all(
       Object.keys(api)
         .filter(key => u.isIn(message, key))
         .map(key =>
           config.queue.mqtt
-            .schedule(() => api[key].func(message.uuid, message.profileNum, key, message[key]))
+            .schedule(() => api[key].func, id, key, message[key])
             .then(result => {
               results[key] = result
             })

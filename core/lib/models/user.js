@@ -2,6 +2,7 @@ const { v4: uuid } = require('uuid')
 const bcrypt = require('bcrypt')
 
 const config = require('../config/config')
+
 /**
  *  User Model
  * @module models/user

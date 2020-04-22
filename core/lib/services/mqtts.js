@@ -1,43 +1,58 @@
+/* eslint callback-return: "error" */
 const Aedes = require('aedes')
 // const fs = require('fs')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
 const utils = require('../utils/utils')
+const encryption = require('../modules/security/encryption')
+const ns = require('../models/nodeserver')
+const user = require('../models/user')
+
 /**
  * MQTT Server Start Service.
  * @method
  * @param {function} callback - Callback when connected or if already started.
  */
 async function start() {
-  if (!config.mqttSerice) {
+  if (!config.mqttServer) {
+    config.mqttClientKey = encryption.randomString(32)
     logger.info(`Starting MQTT Server Aedes`)
+
     config.aedes = Aedes({
-      heartbeatInterval: 5000,
-      connectTimeout: 10 * 10000
+      id: 'pg3_broker', // Override the broker uuid (used for heartbeat)
+      heartbeatInterval: 5000 // 5 seconds, Default is 60 seconds
+      // connectTimeout: 3 * 10000 // Default is 30 seconds
     })
 
     config.aedes.on('client', client => {
       logger.info(`MQTTS: Client Connected: ${client.id}`)
-      config.mqttConnectedClients[client.id] = {}
+      // console.log(Object.keys(config.aedes.clients))
       config.mqttClientDisconnectCallbacks[client.id] = []
     })
 
     config.aedes.on('clientDisconnect', client => {
       logger.info(`MQTTS: Client Disconnected: ${client.id}`)
-      if (utils.hasOwn(config.mqttConnectedClients, client.id)) {
-        delete config.mqttConnectedClients[client.id]
-      }
-      if (utils.hasOwn(config.mqttClientTails, client.id)) {
+      // console.log(Object.keys(config.aedes.clients))
+      if (utils.isIn(config.mqttClientTails, client.id)) {
         config.mqttClientTails[client.id].unwatch()
         delete config.mqttClientTails[client.id]
       }
-      if (utils.hasOwn(config.mqttClientDisconnectCallbacks, client.id)) {
+      if (utils.isIn(config.mqttClientDisconnectCallbacks, client.id)) {
         while (config.mqttClientDisconnectCallbacks[client.id].length > 0) {
           config.mqttClientDisconnectCallbacks[client.id].shift()()
         }
         delete config.mqttClientDisconnectCallbacks[client.id]
       }
+    })
+
+    // Debug pings every 10 seconds for each client
+    // config.aedes.on('ping', (packet, client) => {
+    //   logger.debug(`MQTTS: Client ping: ${client.id}`)
+    // })
+
+    config.aedes.on('keepaliveTimeout', client => {
+      logger.warn(`MQTTS: keepaliveTimeout: ${client.id}`)
     })
 
     config.aedes.on('clientError', (client, err) => {
@@ -48,46 +63,64 @@ async function start() {
       logger.error(`MQTTS: connectionError: ${client.id} ${err.message}`)
     })
 
-    config.aedes.on('keepaliveTimeout', client => {
-      logger.error(`MQTTS: keepaliveTimeout: ${client.id}`)
-    })
-
-    config.aedes.authenticate = (client, username, password, callback) => {
+    config.aedes.authenticate = async (client, username, password, callback) => {
       // TODO: Implement authentication to MQTT Server
-      if (utils.hasOwn(config.mqttConnectedClients, client.id)) {
+      const error = new Error(`Auth Error`)
+      error.returnCode = 4
+      if (Object.keys(config.aedes.clients).includes(client.id)) {
+        error.returnCode = 2
         logger.error(
-          `Client already connected. Disallowing multiple connections from the same client. ${client.id}`
+          `MQTTS: ClientID: ${client.id} is already connected. Disallowing multiple connections.`
         )
-        callback(null, false)
-      } else {
-        if (client.id === 'polyglot' || client.id.substring(0, 18) === 'polyglot_frontend-') {
-          if (username && password) {
-            if (password.toString() === config.globalsettings.secret) {
-              logger.info(`MQTTS: ${client.id} authenticated successfully.`)
-              callback(null, true)
-            } else {
-              logger.error(
-                `MQTTS: ${client.id} authentication failed. Someone is messing with something....`
-              )
-              callback(null, true)
-            }
-          } else {
-            logger.error(
-              `Polyglot or Frontend didn't provide authentication credentials. Disallowing access.`
-            )
-            callback(null, false)
-          }
-        }
-        callback(null, true)
+        return callback(error, null)
       }
+      if (!username || !password) return callback(error, false)
+      if (client.id === config.mqttClientId)
+        return callback(null, password.toString() === config.mqttClientKey)
+      if (username === 'debug') return callback(null, true)
+      if (client.id.startsWith('pg3frontend'))
+        return callback(null, user.checkPassword(username, password.toString()))
+      // NodeServers
+      const userParts = username.split('_')
+      if (userParts.length < 2) return callback(error, null)
+      const nodeserver = await ns.get(userParts[0], userParts[1])
+      if (nodeserver && client.id === username && password.toString() === nodeserver.token)
+        return callback(null, true)
+      callback(error, false)
     }
 
     config.aedes.authorizePublish = (client, packet, callback) => {
-      callback(null)
+      if (client.id === 'debug') return callback(null)
+      if (client.id === config.mqttClientId) return callback(null)
+      const error = new Error('invalid publish')
+      if (client.id.startsWith('pg3frontend')) {
+        if (
+          packet.topic.includes(`udi/pg3/frontend/`) &&
+          !packet.topic.includes(`udi/pg3/frontend/clients/`)
+        )
+          return callback(null)
+        return callback(error)
+      }
+      if (packet.topic.includes(`udi/pg3/ns/`) && !packet.topic.includes(`udi/pg3/ns/clients/`))
+        return callback(null)
+      callback(error)
     }
 
     config.aedes.authorizeSubscribe = (client, sub, callback) => {
-      callback(null, sub)
+      const error = new Error('invalid subscription')
+      try {
+        if (client.id === 'debug') return callback(null, sub)
+        if (client.id === config.mqttClientId) return callback(null, sub)
+        const { username } = client.parser.settings
+        if (client.id.startsWith('pg3frontend')) {
+          if (sub.topic === `udi/pg3/frontend/clients/${username}`) return callback(null, sub)
+          return callback(error, null)
+        }
+        if (sub.topic === `udi/pg3/ns/clients/${client.id}`) return callback(null, sub)
+      } catch (err) {
+        logger.error(`MQTTS: authorizeSubscribe Error: ${err.stack}`)
+      }
+      callback(error, null)
     }
 
     if (config.globalsettings.secure) {

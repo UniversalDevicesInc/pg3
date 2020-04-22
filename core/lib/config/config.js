@@ -18,7 +18,7 @@ const config = {
   httpServer: null,
   mqttClient: null,
   mqttServer: null,
-  mqttClientId: 'pg3',
+  mqttClientId: 'pg3_client',
   mqttConnectedClients: {},
   mqttClientDisconnectCallbacks: {},
   mqttClientTails: {},

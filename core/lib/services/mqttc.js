@@ -47,12 +47,12 @@ function startQueueEvents(queue) {
 
 function addSubscriptions() {
   const subscriptions = [
-    'udi/pg3/ns/status',
-    'udi/pg3/ns/command',
-    'udi/pg3/ns/system',
-    'udi/pg3/ns/custom',
-    'udi/pg3/frontend/system',
-    'udi/pg3/frontend/settings'
+    'udi/pg3/ns/status/#',
+    'udi/pg3/ns/command/#',
+    'udi/pg3/ns/system/#',
+    'udi/pg3/ns/custom/#',
+    'udi/pg3/frontend/system/#',
+    'udi/pg3/frontend/settings/#'
   ]
   config.mqttClient.subscribe(subscriptions, (err, granted) => {
     granted.map(grant => logger.debug(`MQTTC: Subscribed to ${grant.topic} QoS ${grant.qos}`))
@@ -77,7 +77,9 @@ function start() {
       clean: true,
       clientId: config.mqttClientId,
       reconnectPeriod: 5000,
-      connectTimeout: 30 * 1000
+      connectTimeout: 30 * 1000,
+      username: 'pg3',
+      password: config.mqttClientKey
       // will: { retain: true },
     }
     const host = config.globalsettings.mqttHost || '127.0.0.1'

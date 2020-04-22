@@ -34,7 +34,7 @@ function checkResponse(cmd, response) {
   }
 }
 
-async function addnode(uuid, profileNum, cmd, data) {
+async function addnode([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   return Promise.all(
     Object.values(data).map(async item => {

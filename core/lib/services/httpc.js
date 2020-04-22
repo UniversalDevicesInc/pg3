@@ -129,13 +129,10 @@ async function createClient(isy) {
   config.httpClient[isy.uuid].interceptors.request.use(
     request => {
       if (request.isy) {
-        const dev = request.isy
-        if (dev) {
-          /* eslint no-param-reassign: "error" */
-          request.auth = {
-            username: dev.username,
-            password: dev.password
-          }
+        /* eslint no-param-reassign: "error" */
+        request.auth = {
+          username: request.isy.username,
+          password: request.isy.password
         }
       }
       request.startTime = process.hrtime()
@@ -154,7 +151,7 @@ async function createClient(isy) {
       return new Promise(resolve => resolve(response))
     },
     error => {
-      if ([400, 403, 404].includes(error.response.status)) return Promise.resolve(error.response)
+      if (!error.config.retry) return Promise.resolve(error.response)
       const end = process.hrtime(error.config.startTime)
       const duration = (end[0] * 1e9 + end[1]) / 1e6
       const status = error.response

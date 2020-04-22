@@ -22,12 +22,12 @@ const API = {
   }
 }
 
-async function get(uuid, profileNum, cmd, data) {
+async function get([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   return Promise.all(Object.values(data).map(item => getDrivers(uuid, profileNum, item)))
 }
 
-async function set(uuid, profileNum, cmd, data) {
+async function set([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   return Promise.all(Object.values(data).map(item => setDriver(uuid, profileNum, item)))
 }
