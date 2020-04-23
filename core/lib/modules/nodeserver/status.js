@@ -4,7 +4,7 @@
   */
 const convert = require('xml-js')
 
-const config = require('../../config/config')
+// const config = require('../../config/config')
 const logger = require('../logger')
 const u = require('../../utils/utils')
 
@@ -39,17 +39,17 @@ async function getDrivers(uuid, profileNum, data) {
     if (!u.hasProps(data, API.get.props))
       throw new Error(`driver object does not have the correct properties`)
     const path = ['rest', 'nodes', isy.addNodePrefix(profileNum, data.address)]
-    response = await isy.isyGet(uuid, 'status', isy.makeSystemUrl(uuid, path))
+    response = await isy.isyGet(uuid, 'status', isy.makeSystemUrl(uuid, path), profileNum)
     if (response.status !== 200) throw new Error(`could not get status from ISY`)
-    const result = { address: data.address, drivers: {} }
+    const result = { address: data.address, drivers: [] }
     const parsed = convert.xml2js(response.data, { compact: true })
-    if (Array.isArray(parsed.nodeInfo.properties)) {
-      parsed.nodeInfo.properties.map(item => {
-        result.drivers[item._attributes.id] = {
+    if (Array.isArray(parsed.nodeInfo.properties.property)) {
+      parsed.nodeInfo.properties.property.forEach(item => {
+        result.drivers.push({
+          driver: `${item._attributes.id}`,
           value: item._attributes.value,
           uom: item._attributes.uom
-        }
-        return true
+        })
       })
     } else if (Object.keys(parsed.nodeInfo.properties).length > 0) {
       result.drivers[parsed.nodeInfo.properties.property._attributes.id] = {
@@ -68,7 +68,7 @@ async function getDrivers(uuid, profileNum, data) {
   }
 }
 
-async function setDriver(uuid, profileNum, data) {
+async function setDriver(uuid, profileNum, data, isNew = false) {
   let response = {}
   try {
     if (typeof data !== 'object') throw new Error(`driver object invalid`)
@@ -85,10 +85,12 @@ async function setDriver(uuid, profileNum, data) {
     ]
     response = await isy.isyGet(uuid, 'status', isy.makeNodeUrl(uuid, profileNum, path), profileNum)
     if (response.status !== 200) throw new Error(`could not set driver on ISY ${response.status}`)
-    driver.update(uuid, profileNum, data.address, data.driver, {
-      value: data.value,
-      uom: data.uom
-    })
+    if (!isNew) {
+      driver.update(uuid, profileNum, data.address, data.driver, {
+        value: data.value,
+        uom: data.uom
+      })
+    }
     return data
   } catch (err) {
     logger.error(`status set ${err.stack}`)

@@ -21,6 +21,7 @@ TABLE[0] = `
     address TEXT NOT NULL,
     name TEXT,
     nodeDefId TEXT,
+    nls TEXT,
     hint TEXT,
     controller INTEGER NOT NULL CHECK (controller IN (0,1)),
     primaryNode TEXT,
@@ -44,6 +45,7 @@ class DEFAULTS {
     this.enabled = 1
     this.controller = 0
     this.isPrimary = 0
+    this.hint = '0x00000000'
     this.timeAdded = Date.now()
     this.timeModified = Date.now()
     this.dbVersion = TABLE.length
@@ -52,7 +54,7 @@ class DEFAULTS {
 
 const REQUIRED = ['uuid', 'profileNum', 'address', 'primaryNode']
 const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion']
-const MUTABLE = ['name', 'nodeDefId', 'hint', 'controller', 'primary', 'isPrimary', 'enabled']
+const MUTABLE = ['name', 'nodeDefId', 'hint', 'controller', 'isPrimary', 'enabled']
 
 async function get(key, profileNum, address) {
   if (!key || !profileNum || !address)
@@ -60,6 +62,14 @@ async function get(key, profileNum, address) {
   return config.db
     .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum, address) is (?, ?, ?)`)
     .get(key, profileNum, address)
+}
+
+async function getChildren(key, profileNum, primaryNode) {
+  if (!key || !profileNum || !primaryNode)
+    throw new Error(`${TABLENAME} get requires a uuid, profileNum, and primaryNode`)
+  return config.db
+    .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum, primaryNode) is (?, ?, ?)`)
+    .get(key, profileNum, primaryNode)
 }
 
 async function getAll() {
@@ -83,6 +93,10 @@ async function add(obj) {
   const newObj = JSON.parse(JSON.stringify(obj))
   // Can't overwrite internal properties. Nice try.
   IMMUTABLE.forEach(key => delete newObj[key])
+  // Verify add object only has appropriate properties
+  Object.keys(newObj).forEach(key => {
+    if (!REQUIRED.concat(IMMUTABLE, MUTABLE).includes(key)) delete newObj[key]
+  })
   const checkProps = u.verifyProps(newObj, REQUIRED)
   if (!checkProps.valid) throw new Error(`${TABLENAME} object missing ${checkProps.missing}`)
   const newNode = new DEFAULTS()
@@ -128,38 +142,49 @@ async function update(key, profileNum, address, updateObject) {
 async function remove(key, profileNum, address) {
   if (!key || !profileNum || !address)
     throw new Error(`remove ${TABLENAME} requires uuid, profileNum, and address parameters`)
+  const children = await getChildren(key, profileNum, address)
+  if (children && Array.isArray(children)) {
+    await Promise.all(
+      children.map(async item => {
+        return config.db
+          .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum, address) is (?, ?, ?)`)
+          .run(key, profileNum, item.address)
+      })
+    )
+  }
   return config.db
     .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum, address) is (?, ?, ?)`)
     .run(key, profileNum, address)
 }
 
-async function TEST() {
-  // Test API for node
-  let valid = false
-  await add({
-    uuid: '00:21:b9:02:45:1b',
-    profileNum: 2,
-    address: 'controller',
-    nodeDefId: 'controller'
-  })
-  await add({
-    uuid: '00:21:b9:02:45:1b',
-    profileNum: 2,
-    address: 'templateaddr',
-    nodeDefId: 'templatenodeid'
-  })
-  // await update('test123', 25, 'test', { nodeDefId: 'abc124' })
-  // const value = await get('00:21:b9:02:45:1b', 25, 'test')
-  // if (value.nodeDefId === 'abc124') valid = true
-  // await remove('test123', 25, 'test')
-  // return valid
-}
+// async function TEST() {
+//   // Test API for node
+//   let valid = false
+//   await add({
+//     uuid: '00:21:b9:02:45:1b',
+//     profileNum: 2,
+//     address: 'controller',
+//     nodeDefId: 'controller'
+//   })
+//   await add({
+//     uuid: '00:21:b9:02:45:1b',
+//     profileNum: 2,
+//     address: 'templateaddr',
+//     nodeDefId: 'templatenodeid'
+//   })
+//   await update('test123', 25, 'test', { nodeDefId: 'abc124' })
+//   const value = await get('00:21:b9:02:45:1b', 25, 'test')
+//   if (value.nodeDefId === 'abc124') valid = true
+//   await remove('test123', 25, 'test')
+//   return valid
+// }
 
 module.exports = {
   TABLE,
   DEFAULTS,
-  TEST,
+  // TEST,
   get,
+  getChildren,
   getAll,
   getAllIsy,
   getAllNodeServer,

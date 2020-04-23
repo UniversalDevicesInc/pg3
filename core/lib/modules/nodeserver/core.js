@@ -1,6 +1,6 @@
-const logger = require('../logger')
+// const logger = require('../logger')
 const config = require('../../config/config')
-const u = require('../../utils/utils')
+// const u = require('../../utils/utils')
 
 /**
  * MQTT Once MakeResponse is complete, publish the message to MQTT
@@ -22,7 +22,7 @@ function publish(topic, message) {
  * @param {object} message - Dictionary object of message to send. JSON format.
  */
 async function nsResponse(uuid, profileNum, message) {
-  return publish(`udi/pg3/ns/${uuid}_${profileNum}`, message)
+  return publish(`udi/pg3/ns/clients/${uuid}_${profileNum}`, message)
 }
 
 module.exports = {

@@ -61,18 +61,30 @@ async function getAll() {
 }
 
 async function getAllIsy(key) {
+  if (!key) throw new Error(`${TABLENAME} getAllIsy requires a uuid`)
   return config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid) is (?)`).run(key)
 }
 
 async function getAllNodeServer(key, profileNum) {
+  if (!key || !profileNum) throw new Error(`${TABLENAME} get requires a uuid, profileNum`)
   return config.db
     .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
     .run(key, profileNum)
 }
 
 async function getAllNode(key, profileNum, address) {
+  if (!key || !profileNum || !address)
+    throw new Error(`${TABLENAME} getAllNode requires a uuid, profileNum and address`)
   return config.db
     .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum, address) is (?, ?, ?)`)
+    .all(key, profileNum, address)
+}
+
+async function removeAllNode(key, profileNum, address) {
+  if (!key || !profileNum || !address)
+    throw new Error(`${TABLENAME} removeAllNode requires a uuid, profileNum and address`)
+  return config.db
+    .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum, address) is (?, ?, ?)`)
     .run(key, profileNum, address)
 }
 
@@ -83,6 +95,10 @@ async function add(obj) {
   const newObj = JSON.parse(JSON.stringify(obj))
   // Can't overwrite internal properties. Nice try.
   IMMUTABLE.forEach(key => delete newObj[key])
+  // Verify add object only has appropriate properties
+  Object.keys(newObj).forEach(key => {
+    if (!REQUIRED.concat(IMMUTABLE, MUTABLE).includes(key)) delete newObj[key]
+  })
   const checkProps = u.verifyProps(newObj, REQUIRED)
   if (!checkProps.valid) throw new Error(`${TABLENAME} object missing ${checkProps.missing}`)
   const newDriver = new DEFAULTS()
@@ -153,43 +169,44 @@ async function set(key, profileNum, address, driver, value, uom = null) {
     .run(key, profileNum, address, driver)
 }
 
-async function TEST() {
-  // Test API for driver
-  let valid = false
-  await add({
-    uuid: '00:21:b9:02:45:1b',
-    profileNum: 2,
-    address: 'controller',
-    driver: 'ST',
-    value: 1,
-    uom: 2
-  })
-  await add({
-    uuid: '00:21:b9:02:45:1b',
-    profileNum: 2,
-    address: 'templateaddr',
-    driver: 'ST',
-    value: 1,
-    uom: 2
-  })
-  // await update('abc123', 25, 'test', 'ST', { value: 223 })
-  // await set('abc123', 25, 'test', 'ST', 224, 33)
-  // const value = await get('abc123', 25, 'test', 'ST')
-  // if (value.value === 33) valid = true
-  // await remove('abc123', 25, 'test', 'ST')
-  // return valid
-}
+// async function TEST() {
+//   // Test API for driver
+//   let valid = false
+//   await add({
+//     uuid: '00:21:b9:02:45:1b',
+//     profileNum: 2,
+//     address: 'controller',
+//     driver: 'ST',
+//     value: 1,
+//     uom: 2
+//   })
+//   await add({
+//     uuid: '00:21:b9:02:45:1b',
+//     profileNum: 2,
+//     address: 'templateaddr',
+//     driver: 'ST',
+//     value: 1,
+//     uom: 2
+//   })
+//   await update('abc123', 25, 'test', 'ST', { value: 223 })
+//   await set('abc123', 25, 'test', 'ST', 224, 33)
+//   const value = await get('abc123', 25, 'test', 'ST')
+//   if (value.value === 33) valid = true
+//   await remove('abc123', 25, 'test', 'ST')
+//   return valid
+// }
 
 module.exports = {
   TABLE,
   DEFAULTS,
-  TEST,
+  // TEST,
   get,
   set,
   getAll,
   getAllIsy,
   getAllNodeServer,
   getAllNode,
+  removeAllNode,
   add,
   update,
   remove

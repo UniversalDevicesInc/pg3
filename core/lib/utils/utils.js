@@ -22,6 +22,18 @@ const verifyProps = (message, props) => {
   return confirm
 }
 
+const convertHint = hint => {
+  if (!Array.isArray(hint)) {
+    return hint
+  }
+  return `0x${hint
+    .map(value => {
+      const s = value.toString(16)
+      return s.length > 1 ? s : `0${s}`
+    })
+    .join('')}`
+}
+
 const hasProps = (obj, props) => props.every(prop => Object.keys(obj).includes(prop))
 
-module.exports = { hasOwn, isIn, verifyProps, hasProps }
+module.exports = { hasOwn, isIn, verifyProps, hasProps, convertHint }

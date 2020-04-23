@@ -44,7 +44,7 @@ async function processMessage(topic, message) {
         .filter(key => u.isIn(message, key))
         .map(key =>
           config.queue.mqtt
-            .schedule(() => api[key].func, id, key, message[key])
+            .schedule(() => api[key].func(id, key, message[key]))
             .then(result => {
               results[key] = result
             })
@@ -53,9 +53,9 @@ async function processMessage(topic, message) {
             })
         )
     )
-    console.log(results)
-    if (type === 'ns' && u.isIn(message, 'id'))
-      core.nsResponse(message.uuid, message.profileNum, { id: message.id, results })
+    console.log(results, id)
+    if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
+      core.nsResponse(id[0], id[1], { id: message.id, results })
   } catch (err) {
     logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }

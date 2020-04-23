@@ -1,66 +1,42 @@
-const config = require('../../config/config')
-const logger = require('../logger')
+// const config = require('../../config/config')
+// const logger = require('../logger')
 
 const core = require('./core')
+const u = require('../../utils/utils')
 
-async function processMessage(message) {
-  const props = core.verifyProps(message, ['uuid', 'profileNum'])
+async function setHint(uuid, profileNum, newNode) {
+  const path = [
+    'nodes',
+    core.addNodePrefix(profileNum, newNode.address),
+    'set',
+    'hint',
+    u.convertHint(newNode.hint)
+  ]
+  await core.isyGet(
+    uuid,
+    'command',
+    core.makeNodeUrl(uuid, profileNum, path),
+    profileNum,
+    false // retry?
+  )
 }
 
-const apiSwitch = {
-  addnode: {
-    props: [],
-    func: 'addnode'
-  },
-  removenode: {
-    props: [],
-    func: 'sendToISY'
-  },
-  status: {
-    props: [],
-    func: 'sendToISY'
-  },
-  command: {
-    props: [],
-    func: 'sendToISY'
-  },
-  batch: {
-    props: [],
-    func: 'sendToISY'
-  },
-  config: {
-    props: [],
-    func: 'config'
-  },
-  update: {
-    props: [],
-    func: 'update'
-  },
-  connected: {
-    props: [],
-    func: 'connected'
-  },
-  customparams: {
-    props: [],
-    func: ''
-  },
-  customdata: {
-    props: [],
-    func: ''
-  },
-  notices: {
-    props: [],
-    func: 'updateDatabase'
-  },
-  polls: {
-    props: ['shortPoll', 'longPoll'],
-    func: 'polls'
-  }
+async function changeNodeDef(uuid, profileNum, newNode) {
+  const path = [
+    'nodes',
+    core.addNodePrefix(profileNum, newNode.address),
+    'change',
+    newNode.nodeDefId
+  ]
+  let args = null
+  if (u.isIn(newNode, 'nls')) args = { nls: newNode.nls }
+  await core.isyGet(
+    uuid,
+    'command',
+    core.makeNodeUrl(uuid, profileNum, path, args),
+    profileNum,
+    false // retry?
+  )
 }
 
-const checkCommand = type => apiSwitch[type] || null
-
-// function makeNodeUrl(uuid, profileNum, path, args = null)
-// async function isyGet(uuid, type, url, profileNum = 0)
-
-module.exports = {}
+module.exports = { setHint, changeNodeDef }
