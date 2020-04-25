@@ -131,7 +131,7 @@ async function removenode([uuid, profileNum], cmd, data) {
       try {
         if (typeof item !== 'object') throw new Error(`driver object invalid`)
         if (!u.hasProps(item, API[cmd].props))
-          throw new Error(`driver object does not have the correct properties`)
+          throw new Error(`${cmd} object does not have the correct properties`)
         const path = ['nodes', isy.addNodePrefix(profileNum, item.address), 'remove']
         const response = await isy.isyGet(
           uuid,
@@ -197,16 +197,55 @@ async function checkNodeDefAndHint(uuid, profileNum, newNode, existingNode) {
   }
 }
 
-async function change(uuid, profileNum, data) {
-  console.log(data)
+async function changenode([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {
+        address: item.address,
+        nodeDefId: item.nodeDefId
+      }
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        const updateObject = {}
+        updateObject.nodeDefId = item.nodeDefId
+        logger.info(
+          `[${uuid}_${profileNum}] ${item.address} changing nodeDefId. Updated to ${item.nodeDefId}`
+        )
+        await isyNodeServer.changeNodeDef(uuid, profileNum, item)
+        await node.update(uuid, profileNum, item.address, updateObject)
+        return { ...result, success: true }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, success: false, error: err.message }
+      }
+    })
+  )
 }
 
-async function command(uuid, profileNum, data) {
-  console.log(data)
-}
-
-async function restcall(uuid, profileNum, data) {
-  console.log(data)
+async function command([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {
+        address: item.address,
+        command: item.command
+      }
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        logger.info(`[${uuid}_${profileNum}] ${item.address} reporting command ${item.command}`)
+        await isyNodeServer.sendCommand(uuid, profileNum, item)
+        return { ...result, success: true }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, success: false, error: err.message }
+      }
+    })
+  )
 }
 
 const API = {
@@ -218,17 +257,13 @@ const API = {
     props: ['address'],
     func: removenode
   },
+  changenode: {
+    props: ['address', 'nodeDefId'],
+    func: changenode
+  },
   command: {
     props: [],
     func: command
-  },
-  restcall: {
-    props: [],
-    func: restcall
-  },
-  change: {
-    props: [],
-    func: change
   }
 }
 
