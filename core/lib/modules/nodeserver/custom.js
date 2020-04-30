@@ -1,63 +1,73 @@
-const config = require('../../config/config')
+/* eslint-disable
+  no-use-before-define
+  */
 const logger = require('../logger')
-const core = require('./core')
+const u = require('../../utils/utils')
 
-async function customparams(message) {
-  console.log(message)
+const ns = require('../../models/nodeserver')
+
+const KEYS = [
+  'customparams',
+  'customdata',
+  'customparamsdoc',
+  'customtypeddata',
+  'customtypedparams',
+  'notices'
+]
+
+async function set([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {}
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a mutable property`)
+        const updateObject = {
+          [item.key]: typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
+        }
+        await ns.update(uuid, profileNum, updateObject)
+        logger.info(`[${uuid}_${profileNum}] Set ${item.key}`)
+        return { ...result, success: true, [item.key]: item.value }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, success: false, error: err.message }
+      }
+    })
+  )
 }
 
-async function customdata(message) {
-  console.log(message)
-}
-
-async function customparamsdoc(message) {
-  console.log(message)
-}
-
-async function typedcustomdata(message) {
-  console.log(message)
-}
-
-async function typedparams(message) {
-  console.log(message)
-}
-
-async function addnotice(message) {
-  console.log(message)
-}
-
-async function removenotice(message) {
-  console.log(message)
+async function get([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {}
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a valid property`)
+        const value = await ns.getColumn(uuid, profileNum, item.key)
+        logger.info(`[${uuid}_${profileNum}] Retrieved ${item.key}`)
+        return { ...result, ...value }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, error: err.message }
+      }
+    })
+  )
 }
 
 const API = {
-  customparams: {
-    props: [],
-    func: customparams
+  set: {
+    props: ['key', 'value'],
+    func: set
   },
-  customdata: {
-    props: [],
-    func: customdata
-  },
-  customparamsdoc: {
-    props: [],
-    func: customparamsdoc
-  },
-  typedcustomdata: {
-    props: [],
-    func: typedcustomdata
-  },
-  typedparams: {
-    props: [],
-    func: typedparams
-  },
-  addnotice: {
-    props: [],
-    func: addnotice
-  },
-  removenotice: {
-    props: [],
-    func: removenotice
+  get: {
+    props: ['key'],
+    func: get
   }
 }
 

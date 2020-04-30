@@ -33,11 +33,11 @@ TABLE[0] = `
     executable TEXT NOT NULL,
     shortPoll INTEGER NOT NULL,
     longPoll INTEGER NOT NULL,
-    customParams BLOB,
-    customData BLOB,
-    customParamsDoc BLOB,
-    typedCustomData BLOB,
-    typedParams BLOB,
+    customparams BLOB,
+    customdata BLOB,
+    customparamsdoc BLOB,
+    customtypeddata BLOB,
+    customtypedparams BLOB,
     notices BLOB,
     dbVersion INTEGER,
     FOREIGN KEY (uuid)
@@ -79,13 +79,21 @@ const MUTABLE = [
   'enabled',
   'shortPoll',
   'longPoll',
-  'customParams',
-  'customData',
-  'customParamsDoc',
-  'typedCustomData',
-  'typedParams',
+  'customparams',
+  'customdata',
+  'customparamsdoc',
+  'customtypeddata',
+  'customtypedparams',
   'notices'
 ]
+
+async function getColumn(key, profileNum, columnKey) {
+  if (!key || !profileNum || !columnKey)
+    throw new Error(`${TABLENAME} get requires a uuid, profileNum, and columnKey`)
+  return config.db
+    .prepare(`SELECT ${columnKey} FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
+    .get(key, profileNum)
+}
 
 async function get(key, profileNum) {
   if (!key || !profileNum) throw new Error(`${TABLENAME} get requires a uuid and profileNum`)
@@ -123,7 +131,7 @@ async function add(obj) {
 }
 
 async function update(key, profileNum, updateObject) {
-  if (key || !profileNum || !updateObject || typeof updateObject !== 'object')
+  if (!key || !profileNum || !updateObject || typeof updateObject !== 'object')
     throw new Error(`update${TABLENAME} parameters not valid`)
   const current = await get(`${key}`, profileNum)
   if (!current) throw new Error(`${TABLENAME} ${key}/${profileNum} does not exist`)
@@ -154,25 +162,25 @@ async function remove(key, profileNum) {
     .run(key, profileNum)
 }
 
-async function TEST() {
-  // Test API for nodeserver
-  let valid = false
-  await add({
-    uuid: '00:21:b9:02:45:1b',
-    name: 'PythonTemplate',
-    profileNum: 2,
-    version: '1.2',
-    home: '~/.pg3/ns/test',
-    type: 'python3',
-    executable: 'template-poly.py',
-    longPoll: 240,
-    shortPoll: 120
-  })
-  // await update('00:21:b9:02:45:1b', 25, { enabled: true })
-  // const value = await get('00:21:b9:02:45:1b', 25)
-  // if (value.enabled) valid = true
-  // await remove('abc123', 25)
-  return valid
-}
+// async function TEST() {
+//   // Test API for nodeserver
+//   let valid = false
+//   await add({
+//     uuid: '00:21:b9:02:45:1b',
+//     name: 'PythonTemplate',
+//     profileNum: 2,
+//     version: '1.2',
+//     home: '~/.pg3/ns/test',
+//     type: 'python3',
+//     executable: 'template-poly.py',
+//     longPoll: 240,
+//     shortPoll: 120
+//   })
+//   // await update('00:21:b9:02:45:1b', 25, { enabled: true })
+//   // const value = await get('00:21:b9:02:45:1b', 25)
+//   // if (value.enabled) valid = true
+//   // await remove('abc123', 25)
+//   return valid
+// }
 
-module.exports = { TABLE, DEFAULTS, TEST, get, getAll, add, update, remove }
+module.exports = { TABLE, DEFAULTS, getColumn, get, getAll, add, update, remove }
