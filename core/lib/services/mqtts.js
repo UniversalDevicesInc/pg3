@@ -28,6 +28,11 @@ async function start() {
     config.aedes.on('client', client => {
       logger.info(`MQTTS: Client Connected: ${client.id}`)
       // console.log(Object.keys(config.aedes.clients))
+      config.aedes.publish({
+        topic: 'udi/pg3/clients',
+        payload: JSON.stringify(Object.keys(config.aedes.clients)),
+        retain: true
+      })
       config.mqttClientDisconnectCallbacks[client.id] = []
     })
 
@@ -38,6 +43,11 @@ async function start() {
         config.mqttClientTails[client.id].unwatch()
         delete config.mqttClientTails[client.id]
       }
+      config.aedes.publish({
+        topic: 'udi/pg3/clients',
+        payload: JSON.stringify(Object.keys(config.aedes.clients)),
+        retain: true
+      })
       if (utils.isIn(config.mqttClientDisconnectCallbacks, client.id)) {
         while (config.mqttClientDisconnectCallbacks[client.id].length > 0) {
           config.mqttClientDisconnectCallbacks[client.id].shift()()
@@ -86,7 +96,7 @@ async function start() {
       const nodeserver = await ns.get(userParts[0], userParts[1])
       if (nodeserver && client.id === username && password.toString() === nodeserver.token)
         return callback(null, true)
-      callback(error, false)
+      return callback(error, false)
     }
 
     config.aedes.authorizePublish = (client, packet, callback) => {
@@ -103,7 +113,7 @@ async function start() {
       }
       if (packet.topic.includes(`udi/pg3/ns/`) && !packet.topic.includes(`udi/pg3/ns/clients/`))
         return callback(null)
-      callback(error)
+      return callback(error)
     }
 
     config.aedes.authorizeSubscribe = (client, sub, callback) => {
@@ -120,7 +130,7 @@ async function start() {
       } catch (err) {
         logger.error(`MQTTS: authorizeSubscribe Error: ${err.stack}`)
       }
-      callback(error, null)
+      return callback(error, null)
     }
 
     if (config.globalsettings.secure) {

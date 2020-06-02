@@ -25,10 +25,12 @@ TABLE[0] = `
     timeStarted INTEGER,
     timeModified INTEGER,
     version TEXT NOT NULL,
+    branch TEXT NOT NULL,
     home TEXT NOT NULL,
     log TEXT NOT NULL,
     logLevel TEXT NOT NULL,
     enabled INTEGER NOT NULL CHECK (enabled IN (0,1)),
+    devMode INTEGER NOT NULL CHECK (devMode IN (0,1)),
     type TEXT NOT NULL,
     executable TEXT NOT NULL,
     shortPoll INTEGER NOT NULL,
@@ -60,25 +62,38 @@ class DEFAULTS {
     this.logLevel = 'DEBUG'
     this.shortPoll = 10
     this.longPoll = 30
+    this.branch = 'master'
+    this.devMode = 0
     this.dbVersion = TABLE.length
   }
 }
 
 const REQUIRED = ['uuid', 'name', 'profileNum', 'version', 'home', 'type', 'executable']
 const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion']
+const ENCRYPTED = [
+  'customparams',
+  'customdata',
+  'customtypeddata',
+  'customtypedparams',
+  'customparamsdoc'
+]
 const MUTABLE = [
   'uuid',
   'token',
   'name',
   'profileNum',
   'version',
+  'branch',
   'timeStarted',
   'home',
   'log',
   'logLevel',
   'enabled',
+  'devMode',
   'shortPoll',
   'longPoll',
+  'type',
+  'executable',
   'customparams',
   'customdata',
   'customparamsdoc',
@@ -90,16 +105,26 @@ const MUTABLE = [
 async function getColumn(key, profileNum, columnKey) {
   if (!key || !profileNum || !columnKey)
     throw new Error(`${TABLENAME} get requires a uuid, profileNum, and columnKey`)
-  return config.db
+  const value = config.db
     .prepare(`SELECT ${columnKey} FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
     .get(key, profileNum)
+  if (!value) return value
+  Object.keys(value).forEach(item => {
+    if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
+  })
+  return value
 }
 
 async function get(key, profileNum) {
   if (!key || !profileNum) throw new Error(`${TABLENAME} get requires a uuid and profileNum`)
-  return config.db
+  const value = config.db
     .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
     .get(key, profileNum)
+  if (!value) return value
+  Object.keys(value).forEach(item => {
+    if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
+  })
+  return value
 }
 
 async function getAll() {
@@ -116,11 +141,18 @@ async function add(obj) {
   const checkProps = u.verifyProps(newObj, REQUIRED)
   if (!checkProps.valid) throw new Error(`${TABLENAME} object missing ${checkProps.missing}`)
   const newNs = new DEFAULTS()
+  // Verify add object only has appropriate properties
+  Object.keys(newObj).forEach(key => {
+    if (!REQUIRED.concat(IMMUTABLE, MUTABLE).includes(key)) delete newObj[key]
+  })
   // Overwrite defaults with passed in properties
   Object.assign(newNs, newObj)
   // SQLite doesn't allow Boolean, so convert to 1/0
   Object.keys(newNs).forEach(key => {
     if (typeof newNs[key] === 'boolean') newNs[key] = newNs[key] ? 1 : 0
+  })
+  Object.keys(newNs).forEach(key => {
+    if (ENCRYPTED.includes(key)) newNs[key] = encryption.encryptText(newNs[key])
   })
   return config.db
     .prepare(
@@ -140,6 +172,8 @@ async function update(key, profileNum, updateObject) {
     if (u.isIn(updateObject, item)) {
       if (typeof updateObject[item] === 'boolean')
         updated += `${item} = '${updateObject[item] ? 1 : 0}',`
+      else if (ENCRYPTED.includes(item))
+        updated += `${item} = '${encryption.encryptText(updateObject[item])}',`
       else updated += `${item} = '${updateObject[item]}',`
     }
   })

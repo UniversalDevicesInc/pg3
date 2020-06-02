@@ -1,5 +1,6 @@
 /* eslint-disable
-  no-use-before-define
+  no-use-before-define,
+  no-empty
   */
 const logger = require('../logger')
 const u = require('../../utils/utils')
@@ -51,6 +52,9 @@ async function get([uuid, profileNum], cmd, data) {
         if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a valid property`)
         const value = await ns.getColumn(uuid, profileNum, item.key)
         logger.info(`[${uuid}_${profileNum}] Retrieved ${item.key}`)
+        try {
+          value[item.key] = JSON.parse(value[item.key])
+        } catch (err) {}
         return { ...result, ...value }
       } catch (err) {
         logger.error(`command ${cmd} ${err.message}`)

@@ -53,7 +53,7 @@ async function processMessage(topic, message) {
             })
         )
     )
-    console.log(results, id)
+    logger.debug(results, id)
     if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
       core.nsResponse(id[0], id[1], { id: message.id, results })
   } catch (err) {

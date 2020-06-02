@@ -20,6 +20,7 @@ const algorithm = 'aes-256-ctr'
  */
 function encryptText(text) {
   if (!config.pg3key) throw new Error(`Key not found`)
+  if (!text) return text
   const iv = Buffer.from(crypto.randomBytes(16))
   const cipher = crypto.createCipheriv(algorithm, config.pg3key, iv)
   let crypted = cipher.update(text)
@@ -34,6 +35,7 @@ function encryptText(text) {
  */
 function decryptText(text) {
   if (!config.pg3key) throw new Error(`Key not found`)
+  if (!text) return text
   const textParts = text.split(':')
   const iv = Buffer.from(textParts.shift(), outputEncoding)
   const encryptedText = Buffer.from(textParts.join(':'), outputEncoding)

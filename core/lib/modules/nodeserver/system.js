@@ -1,6 +1,13 @@
-const config = require('../../config/config')
+/* eslint-disable
+  no-use-before-define
+  */
 const logger = require('../logger')
-const core = require('./core')
+const u = require('../../utils/utils')
+
+const isy = require('../isy/core')
+const isyNodeServer = require('../isy/nodeserver')
+const isyErrors = require('../isy/errors')
+const ns = require('../../models/nodeserver')
 
 async function configuration(message) {
   console.log(message)
@@ -14,8 +21,8 @@ async function polls(message) {
   console.log(message)
 }
 
-async function installprofile(message) {
-  console.log(message)
+async function installprofile([uuid, profileNum], cmd, data) {
+  console.log(uuid)
 }
 
 async function start(message) {
