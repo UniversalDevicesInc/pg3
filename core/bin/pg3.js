@@ -24,6 +24,7 @@ const logger = require('../lib/modules/logger')
 const db = require('../lib/services/db')
 const mqtts = require('../lib/services/mqtts')
 const mqttc = require('../lib/services/mqttc')
+const https = require('../lib/services/https')
 const httpc = require('../lib/services/httpc')
 
 const environment = require('../lib/modules/environment')
@@ -78,6 +79,7 @@ async function start() {
     await environment.start()
     await certificates.start()
     await mqtts.start()
+    await https.start()
     await mqttc.start()
     await httpc.start()
   } catch (err) {
@@ -90,6 +92,7 @@ async function start() {
 async function shutdown() {
   config.shutdown = true
   await httpc.stop()
+  await https.stop()
   await mqttc.stop()
   await mqtts.stop()
   await db.stop()

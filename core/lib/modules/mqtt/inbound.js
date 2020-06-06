@@ -2,23 +2,26 @@ const config = require('../../config/config')
 const logger = require('../logger')
 const u = require('../../utils/utils')
 
-const core = require('./core')
-const status = require('./status')
-const command = require('./command')
-const system = require('./system')
-const custom = require('./custom')
+const nscore = require('../nodeserver/core')
+const nsstatus = require('../nodeserver/status')
+const nscommand = require('../nodeserver/command')
+const nssystem = require('../nodeserver/system')
+const nscustom = require('../nodeserver/custom')
+
+const frontendsettings = require('../frontend/settings')
+const frontendsystem = require('../frontend/settings')
 
 const apiSwitch = {
   ns: {
-    status: status.API,
-    command: command.API,
-    system: system.API,
-    custom: custom.API,
+    status: nsstatus.API,
+    command: nscommand.API,
+    system: nssystem.API,
+    custom: nscustom.API,
     props: []
   },
   frontend: {
-    system: '',
-    settings: '',
+    system: frontendsystem.API,
+    settings: frontendsettings.API,
     props: []
   }
 }
@@ -55,7 +58,7 @@ async function processMessage(topic, message) {
     )
     logger.debug(results, id)
     if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
-      core.nsResponse(id[0], id[1], { id: message.id, results })
+      nscore.nsResponse(id[0], id[1], { id: message.id, results })
   } catch (err) {
     logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }

@@ -48,6 +48,12 @@ async function get(username) {
     .get(username)
 }
 
+async function getById(id) {
+  return config.db
+    .prepare(`SELECT id, name, enabled, role, groups FROM user WHERE (id) is (?)`)
+    .get(id)
+}
+
 async function add(username, password, role = null, groups = []) {
   if (!username || !password)
     throw new Error(`Username or password wasn't specified in add${TABLENAME} request`)
@@ -112,4 +118,4 @@ async function TEST() {
   return valid
 }
 
-module.exports = { TABLE, DEFAULTS, TEST, get, add, update, remove, checkPassword }
+module.exports = { TABLE, DEFAULTS, TEST, get, getById, add, update, remove, checkPassword }

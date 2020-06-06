@@ -10,7 +10,7 @@ const Bottleneck = require('bottleneck')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
-const { addListeners } = require('../modules/nodeserver/listeners')
+const { addListeners } = require('../modules/mqtt/listeners')
 
 /* This controls the global overall queue for MQTT messages
  * No matter how many requests are sent, it will conform to these limits
