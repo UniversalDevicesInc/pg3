@@ -167,7 +167,7 @@ async function nodeserverTable() {
   }
   if (nodeservers && nodeservers.length > 0)
     logger.info(`${table} table: Loaded ${nodeservers.length} nodeserver(s) successfully`)
-  logger.info(`No NodeServers in database. Add one through the user interface to get started`)
+  else logger.info(`No NodeServers in database. Add one through the user interface to get started`)
 }
 
 async function nodeTable() {
