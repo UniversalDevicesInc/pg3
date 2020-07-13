@@ -89,7 +89,7 @@ async function isyPost(uuid, type, url, data, httpOpts = {}, profileNum = 0, ret
     )
   return config.queue[isy.uuid][`${type}Group`]
     .key(`${profileNum}`)
-    .schedule(options, async () => config.httpClient[isy.uuid].get(`${url}`, data, httpOpts))
+    .schedule(options, async () => config.httpClient[isy.uuid].post(`${url}`, data, httpOpts))
 }
 
 module.exports = {

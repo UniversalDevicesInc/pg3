@@ -10,6 +10,7 @@
  * @type {Object}
  */
 const config = {
+  globalsettings: {},
   shutdown: false,
   pidFile: null,
   aedes: null,
@@ -19,10 +20,13 @@ const config = {
   mqttClient: null,
   mqttServer: null,
   mqttClientId: 'pg3_client',
-  mqttConnectedClients: {},
-  mqttClientDisconnectCallbacks: {},
-  mqttClientTails: {},
-  queue: {}
+  // mqttClientDisconnectCallbacks: {},
+  // mqttClientTails: {},
+  queue: {},
+  nodeProcesses: {},
+  git: {},
+  shortPolls: {},
+  longPolls: {}
 }
 
 module.exports = config

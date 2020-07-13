@@ -2,7 +2,7 @@
   no-use-before-define,
   no-underscore-dangle
   */
-const convert = require('xml-js')
+const convert = require('xml2js')
 
 // const config = require('../../config/config')
 const logger = require('../logger')
@@ -40,26 +40,32 @@ async function getDrivers(uuid, profileNum, data) {
       throw new Error(`driver object does not have the correct properties`)
     const path = ['rest', 'nodes', isy.addNodePrefix(profileNum, data.address)]
     response = await isy.isyGet(uuid, 'status', isy.makeSystemUrl(uuid, path), profileNum)
-    if (response.status !== 200) throw new Error(`could not get status from ISY`)
+    if (response.status !== 200) throw new Error(`node '${data.address}' not found`)
     const result = { address: data.address, drivers: [] }
-    const parsed = convert.xml2js(response.data, { compact: true })
+    const opts = {
+      trim: true,
+      async: true,
+      mergeAttrs: true,
+      explicitArray: false
+    }
+    const parsed = await convert.parseStringPromise(response.data, opts)
     if (Array.isArray(parsed.nodeInfo.properties.property)) {
       parsed.nodeInfo.properties.property.forEach(item => {
         result.drivers.push({
-          driver: `${item._attributes.id}`,
-          value: item._attributes.value,
-          uom: item._attributes.uom
+          driver: `${item.id}`,
+          value: item.value,
+          uom: item.uom
         })
       })
     } else if (Object.keys(parsed.nodeInfo.properties).length > 0) {
-      result.drivers[parsed.nodeInfo.properties.property._attributes.id] = {
-        value: parsed.nodeInfo.properties.property._attributes.value,
-        uom: parsed.nodeInfo.properties.property._attributes.uom
+      result.drivers[parsed.nodeInfo.properties.property.id] = {
+        value: parsed.nodeInfo.properties.property.value,
+        uom: parsed.nodeInfo.properties.property.uom
       }
     }
     return result
   } catch (err) {
-    logger.error(`status get :: ${err}`)
+    logger.error(`[${uuid}_${profileNum}] status get :: ${err.stack}`)
     return {
       address: data.address,
       error: err.message,
@@ -93,7 +99,7 @@ async function setDriver(uuid, profileNum, data, isNew = false) {
     }
     return data
   } catch (err) {
-    logger.error(`status set ${err.stack}`)
+    logger.error(`[${uuid}_${profileNum}] status set :: ${err.stack}`)
     return {
       address: data.address,
       driver: data.driver,

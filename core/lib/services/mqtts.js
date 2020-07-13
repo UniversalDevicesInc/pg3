@@ -4,7 +4,7 @@ const Aedes = require('aedes')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
-const utils = require('../utils/utils')
+// const utils = require('../utils/utils')
 const encryption = require('../modules/security/encryption')
 const ns = require('../models/nodeserver')
 const user = require('../models/user')
@@ -33,27 +33,28 @@ async function start() {
         payload: JSON.stringify(Object.keys(config.aedes.clients)),
         retain: true
       })
-      config.mqttClientDisconnectCallbacks[client.id] = []
+      // config.mqttClientDisconnectCallbacks[client.id] = []
     })
 
     config.aedes.on('clientDisconnect', client => {
       logger.info(`MQTTS: Client Disconnected: ${client.id}`)
       // console.log(Object.keys(config.aedes.clients))
-      if (utils.isIn(config.mqttClientTails, client.id)) {
-        config.mqttClientTails[client.id].unwatch()
-        delete config.mqttClientTails[client.id]
-      }
+      // if (utils.isIn(config.mqttClientTails, client.id)) {
+      //   config.mqttClientTails[client.id].unwatch()
+      //   delete config.mqttClientTails[client.id]
+      // }
       config.aedes.publish({
         topic: 'udi/pg3/clients',
         payload: JSON.stringify(Object.keys(config.aedes.clients)),
         retain: true
       })
+      /*
       if (utils.isIn(config.mqttClientDisconnectCallbacks, client.id)) {
         while (config.mqttClientDisconnectCallbacks[client.id].length > 0) {
           config.mqttClientDisconnectCallbacks[client.id].shift()()
         }
         delete config.mqttClientDisconnectCallbacks[client.id]
-      }
+      } */
     })
 
     // Debug pings every 10 seconds for each client
@@ -84,10 +85,13 @@ async function start() {
         )
         return callback(error, null)
       }
+      // eslint-disable-next-line no-param-reassign
+      client.username = username
       if (!username || !password) return callback(error, false)
       if (client.id === config.mqttClientId)
         return callback(null, password.toString() === config.mqttClientKey)
       if (username === 'debug') return callback(null, true)
+      // Frontend
       if (client.id.startsWith('pg3frontend'))
         return callback(null, user.checkPassword(username, password.toString()))
       // NodeServers
@@ -121,7 +125,7 @@ async function start() {
       try {
         if (client.id === 'debug') return callback(null, sub)
         if (client.id === config.mqttClientId) return callback(null, sub)
-        const { username } = client.parser.settings
+        const { username } = client
         if (client.id.startsWith('pg3frontend')) {
           if (sub.topic === `udi/pg3/frontend/clients/${username}`) return callback(null, sub)
           return callback(error, null)

@@ -3,7 +3,7 @@
   no-underscore-dangle,
   no-param-reassign
   */
-const convert = require('xml-js')
+const convert = require('xml2js')
 
 // const config = require('../../config/config')
 const logger = require('../logger')
@@ -17,11 +17,19 @@ const node = require('../../models/node')
 const driver = require('../../models/driver')
 const status = require('./status')
 
-function checkResponse(cmd, response) {
+async function checkResponse(cmd, response) {
   let reason = null
   if (response.status !== 200) {
     try {
-      reason = convert.xml2js(response.data, { compact: true }).RestResponse.reason._attributes.code
+      const opts = {
+        trim: true,
+        async: true,
+        mergeAttrs: true,
+        explicitArray: false
+      }
+      const reason1 = await convert.parseStringPromise(response.data, opts)
+      console.log(reason1)
+      reason = reason1.RestResponse.reason.code
       throw new Error(
         `${cmd} failed: ISY returned error: (${reason}) ${isyErrors.ERRORS[reason] || ''}`
       )
@@ -110,7 +118,7 @@ async function addnode([uuid, profileNum], cmd, data) {
         }
         return await node.get(uuid, profileNum, item.address)
       } catch (err) {
-        logger.error(`command ${cmd} ${err.message}`)
+        logger.error(`command ${cmd} ${err.stack}`)
         return {
           address: item.address,
           error: err.message,

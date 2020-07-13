@@ -26,6 +26,7 @@ const mqtts = require('../lib/services/mqtts')
 const mqttc = require('../lib/services/mqttc')
 const https = require('../lib/services/https')
 const httpc = require('../lib/services/httpc')
+const nodeservers = require('../lib/services/nodeservers')
 
 const environment = require('../lib/modules/environment')
 const certificates = require('../lib/modules/security/certificates')
@@ -36,6 +37,13 @@ if (require.main === module) {
 }
 if (fs.existsSync(`${workDir}.env`)) {
   require('dotenv').config({ path: `${workDir}`.env })
+}
+
+/**
+ * Create NodeServer folder if it does not exist
+ */
+if (!fs.existsSync(`${workDir}ns`)) {
+  fs.mkdirSync(`${workDir}ns`)
 }
 
 /* Create Pid file */
@@ -82,6 +90,7 @@ async function start() {
     await https.start()
     await mqttc.start()
     await httpc.start()
+    await nodeservers.start()
   } catch (err) {
     logger.error(`Startup error. Shutting down: ${err.stack} `)
     process.exit(1)
@@ -91,6 +100,7 @@ async function start() {
 /* Shutdown */
 async function shutdown() {
   config.shutdown = true
+  await nodeservers.stop()
   await httpc.stop()
   await https.stop()
   await mqttc.stop()

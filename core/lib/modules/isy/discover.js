@@ -6,7 +6,7 @@
   */
 
 const axios = require('axios')
-const convert = require('xml-js')
+const convert = require('xml2js')
 
 const logger = require('../logger')
 
@@ -88,9 +88,15 @@ async function getUuid() {
   const url = `${secure === 1 ? 'https' : 'http'}://${ip}:${port}/desc`
   try {
     const response = await axios.get(url)
-    const converted = convert.xml2js(response.data, { compact: true })
-    version = converted.root.device.modelVersion._text
-    uuid = converted.root.device.UDN._text.slice(5)
+    const opts = {
+      trim: true,
+      async: true,
+      mergeAttrs: true,
+      explicitArray: false
+    }
+    const converted = await convert.parseStringPromise(response.data, opts)
+    version = converted.root.device.modelVersion
+    uuid = converted.root.device.UDN.slice(5)
     discovered = 1
   } catch (err) {
     logger.error(`getUuid ${err.stack}`)

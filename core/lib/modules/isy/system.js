@@ -1,6 +1,6 @@
-// const config = require('../../config/config')
-const logger = require('../logger')
+const convert = require('xml2js')
 
+const logger = require('../logger')
 const core = require('./core')
 
 async function reboot(uuid) {
@@ -80,4 +80,26 @@ async function groupNodes(uuid, profileNum, address, primary) {
   }
 }
 
-module.exports = { reboot, groupNodes }
+async function getExistingNodeServers(uuid) {
+  let found = null
+  try {
+    const response = await core.isyGet(
+      uuid,
+      'system',
+      core.makeSystemUrl(uuid, ['rest/profiles/ns/0/connection'])
+    )
+    const opts = {
+      trim: true,
+      async: true,
+      mergeAttrs: true,
+      explicitArray: false
+    }
+    const converted = await convert.parseStringPromise(response.data, opts)
+    found = converted.connections.connection
+  } catch (err) {
+    logger.error(`getExistingNodeServers :: ${err.stack}`)
+  }
+  return found
+}
+
+module.exports = { reboot, groupNodes, getExistingNodeServers }

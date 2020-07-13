@@ -44,6 +44,7 @@
     "better-sqlite3": "^7.0.1",
     "bottleneck": "^2.19.5",
     "dotenv": "^8.2.0",
+    "fs-extra": "^9.0.1",
     "ip": "^1.1.5",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.12.0",
@@ -57,10 +58,11 @@
     "node-forge": "^0.9.1",
     "passport-jwt": "^4.0.0",
     "querystring": "^0.2.0",
+    "simple-git": "^2.11.0",
     "uuid": "^8.1.0",
     "websocket-stream": "^5.5.2",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.4.2",
-    "xml-js": "^1.6.11"
+    "xml2js": "^0.4.23"
   }
 }

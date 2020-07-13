@@ -56,9 +56,9 @@ async function processMessage(topic, message) {
             })
         )
     )
-    logger.debug(results, id)
+    logger.debug(`MQTT Results: ${JSON.stringify(results)}, ${id}`)
     if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
-      nscore.nsResponse(id[0], id[1], { id: message.id, results })
+      nscore.nsMessage(id[0], id[1], { id: message.id, results })
   } catch (err) {
     logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }

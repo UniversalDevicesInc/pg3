@@ -10,7 +10,7 @@ const config = require('../../config/config')
  * @param {object} options - Typically used for {retain: True/False} to retain the last message. [Optional]
  * @param {function} callback - Callback when publish is complete. [Optional]
  */
-function publish(topic, message) {
+async function publish(topic, message) {
   return config.mqttClient.publish(topic, JSON.stringify(message))
 }
 
@@ -21,10 +21,10 @@ function publish(topic, message) {
  * @param {string} command - Command to send, e.g 'status', etc.
  * @param {object} message - Dictionary object of message to send. JSON format.
  */
-async function nsResponse(uuid, profileNum, message) {
+async function nsMessage(uuid, profileNum, message) {
   return publish(`udi/pg3/ns/clients/${uuid}_${profileNum}`, message)
 }
 
 module.exports = {
-  nsResponse
+  nsMessage
 }

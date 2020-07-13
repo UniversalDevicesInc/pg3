@@ -1,5 +1,6 @@
 // const config = require('../../config/config')
-// const logger = require('../logger')
+const logger = require('../logger')
+const config = require('../../config/config')
 
 const core = require('./core')
 const u = require('../../utils/utils')
@@ -65,4 +66,59 @@ async function sendCommand(uuid, profileNum, data) {
   )
 }
 
-module.exports = { setHint, changeNodeDef, sendCommand }
+async function profileUpload(uuid, profileNum, type, filename, data) {
+  try {
+    const url = core.makeSystemUrl(uuid, [
+      'rest',
+      'ns',
+      'profile',
+      profileNum,
+      'upload',
+      type,
+      `${filename}`
+    ])
+    const options = {}
+    const res = await core.isyPost(uuid, 'command', url, data, options, profileNum, true)
+    if (res && res.status === 200) {
+      logger.info(`upload successful`)
+    } else {
+      logger.info(`upload not successful`)
+    }
+  } catch (err) {
+    logger.error(`ISY: profileUpload - ${err.stack}`)
+  }
+}
+
+async function installNodeServer(nodeServer) {
+  const { uuid, profileNum } = nodeServer
+  try {
+    const args = {
+      ip: config.globalsettings.ipAddress,
+      baseurl: `/ns/${uuid}_${profileNum}`,
+      name: nodeServer.name,
+      nsuser: uuid,
+      nspwd: nodeServer.token,
+      isyusernum: 0,
+      port: config.globalsettings.listenPort,
+      timeout: 0,
+      // eslint-disable-next-line no-unneeded-ternary
+      ssl: config.globalsettings.secure ? true : false,
+      enabled: true,
+      sni: true
+    }
+    const res = await core.isyGet(
+      uuid,
+      'system',
+      core.makeSystemUrl(uuid, [`rest/profiles/ns/${profileNum}/connection/set/network`], args),
+      0,
+      true
+    )
+    if (res && res.status === 200) {
+      logger.info(`[${uuid}_${profileNum}] '${nodeServer.name}' installed into ISY successfully...`)
+    }
+  } catch (err) {
+    logger.error(`installNodeServer :: ${err.stack}`)
+  }
+}
+
+module.exports = { setHint, changeNodeDef, sendCommand, profileUpload, installNodeServer }

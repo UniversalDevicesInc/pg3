@@ -149,8 +149,7 @@ async function isyTable() {
     logger.info(
       `Discovered ISY Version ${newEntry.version} with ID: ${newEntry.uuid} at ${newEntry.ip}:${newEntry.port} successfully. Database version ${newEntry.dbVersion}`
     )
-  }
-  logger.info(`No ISY Discovered. Please add manually through the web interface`)
+  } else logger.info(`No ISY Discovered. Please add manually through the web interface`)
 }
 
 async function nodeserverTable() {

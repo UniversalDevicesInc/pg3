@@ -8,6 +8,7 @@ const isy = require('../isy/core')
 const isyNodeServer = require('../isy/nodeserver')
 const isyErrors = require('../isy/errors')
 const ns = require('../../models/nodeserver')
+const nodeserver = require('../../services/nodeservers')
 
 async function configuration(message) {
   console.log(message)
@@ -22,11 +23,12 @@ async function polls(message) {
 }
 
 async function installprofile([uuid, profileNum], cmd, data) {
-  console.log(uuid)
-}
-
-async function start(message) {
-  console.log(message)
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    await isyNodeServer.profileUpload(nodeServer)
+  } catch (err) {
+    logger.error(`installprofile error: ${err.stack}`)
+  }
 }
 
 async function stop(message) {
@@ -53,10 +55,6 @@ const API = {
   installprofile: {
     props: [],
     func: installprofile
-  },
-  start: {
-    props: [],
-    func: start
   },
   stop: {
     props: [],

@@ -60,8 +60,8 @@ class DEFAULTS {
     this.timeModified = Date.now()
     this.log = 'logs/debug.log'
     this.logLevel = 'DEBUG'
-    this.shortPoll = 10
-    this.longPoll = 30
+    this.shortPoll = 60
+    this.longPoll = 300
     this.branch = 'master'
     this.devMode = 0
     this.dbVersion = TABLE.length
@@ -125,6 +125,21 @@ async function get(key, profileNum) {
     if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
   })
   return value
+}
+
+async function getIsy(key) {
+  if (!key) throw new Error(`${TABLENAME} getIsy requires a uuid`)
+  const items = config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid) is (?)`).all(key)
+  items.map(value => {
+    if (!value) return value
+    Object.keys(value).map(item => {
+      // eslint-disable-next-line
+      if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
+      return item
+    })
+    return value
+  })
+  return items
 }
 
 async function getAll() {
@@ -217,4 +232,4 @@ async function remove(key, profileNum) {
 //   return valid
 // }
 
-module.exports = { TABLE, DEFAULTS, getColumn, get, getAll, add, update, remove }
+module.exports = { TABLE, DEFAULTS, getColumn, get, getAll, getIsy, add, update, remove }
