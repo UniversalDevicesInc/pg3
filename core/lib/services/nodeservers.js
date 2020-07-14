@@ -159,8 +159,10 @@ async function createNs(nodeServer) {
     await isyns.installNodeServer(newNs)
     await installNs(newNs, serverJson)
     await startNs(newNs)
+    return { ...newNs, success: true }
   } catch (err) {
     logger.error(`createNS: ${err.stack}`)
+    return { ...nodeServer, success: false, error: err.message }
   }
 }
 

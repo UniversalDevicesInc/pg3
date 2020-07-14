@@ -3,16 +3,31 @@
   no-underscore-dangle,
   no-param-reassign
   */
+const logger = require('../logger')
+const u = require('../../utils/utils')
 
-async function get() {}
+const frontcore = require('../core')
+const servicens = require('../../services/nodeservers')
+
+async function nsinstall(id, cmd, data) {
+  console.log(id, cmd, data)
+}
 async function set() {}
 
 const API = {
-  get: {
-    props: ['address'],
-    func: get
+  nsinstall: {
+    props: ['uuid', 'name', 'profileNum', 'url'],
+    func: nsinstall
   },
-  set: {
+  nsremove: {
+    props: ['address', 'driver', 'value', 'uom'],
+    func: set
+  },
+  nschangebranch: {
+    props: ['address', 'driver', 'value', 'uom'],
+    func: set
+  },
+  nsconfig: {
     props: ['address', 'driver', 'value', 'uom'],
     func: set
   }

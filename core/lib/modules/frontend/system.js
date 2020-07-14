@@ -4,17 +4,15 @@
   no-param-reassign
   */
 
-async function get() {}
+async function reboot(id, cmd, data) {
+  console.log(id, cmd, data)
+}
 async function set() {}
 
 const API = {
-  get: {
-    props: ['address'],
-    func: get
-  },
-  set: {
-    props: ['address', 'driver', 'value', 'uom'],
-    func: set
+  reboot: {
+    props: ['uuid', 'name', 'profileNum', 'url'],
+    func: reboot
   }
 }
 

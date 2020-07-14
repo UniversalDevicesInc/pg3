@@ -51,6 +51,7 @@ function addSubscriptions() {
     'udi/pg3/ns/command/#',
     'udi/pg3/ns/system/#',
     'udi/pg3/ns/custom/#',
+    'udi/pg3/frontend/command/#',
     'udi/pg3/frontend/system/#',
     'udi/pg3/frontend/settings/#'
   ]

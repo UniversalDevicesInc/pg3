@@ -3,6 +3,7 @@ const logger = require('../logger')
 const u = require('../../utils/utils')
 
 const nscore = require('../nodeserver/core')
+
 const nsstatus = require('../nodeserver/status')
 const nscommand = require('../nodeserver/command')
 const nssystem = require('../nodeserver/system')
@@ -10,7 +11,7 @@ const nscustom = require('../nodeserver/custom')
 
 const frontendcommand = require('../frontend/command')
 const frontendsettings = require('../frontend/settings')
-const frontendsystem = require('../frontend/settings')
+const frontendsystem = require('../frontend/system')
 
 const apiSwitch = {
   ns: {
