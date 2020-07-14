@@ -153,9 +153,7 @@ async function createNs(nodeServer) {
     }
     await ns.add(addObj)
     const newNs = await ns.get(uuid, profileNum)
-    logger.info(
-      `[${uuid}_${profileNum}] :: Clone Complete. Added '${name}' to database. Starting nodeserver...`
-    )
+    logger.info(`[${uuid}_${profileNum}] :: Clone Complete. Added '${name}' to database...`)
     await isyns.installNodeServer(newNs)
     await installNs(newNs, serverJson)
     await startNs(newNs)
@@ -210,6 +208,29 @@ async function installNs(nodeServer, serverJson = null) {
     )
   } catch (err) {
     return logger.error(`installNs: ${err.stack}`)
+  }
+}
+
+// TODO send delete to NS
+async function removeNs(nodeServer) {
+  const { uuid, name, profileNum } = nodeServer
+  try {
+    logger.info(`[${uuid}_${profileNum})]: Removing NodeServer: ${name}`)
+    const existingNs = await ns.get(uuid, profileNum)
+    if (!existingNs) throw new Error(`[${uuid}_${profileNum})]: ${name} does not exist.`)
+    await stopNs(existingNs)
+    const localDir = `${process.env.PG3WORKDIR}ns/${uuid}_${profileNum}`
+    // Check if NodeServer folder exists and remove it
+    if (uuid && profileNum && fs.existsSync(localDir)) {
+      logger.info(`[${uuid}_${profileNum}] :: NodeServer folder exists, removing... ${localDir}`)
+      fs.rmdirSync(localDir, { recursive: true })
+    }
+    await isyns.removeNodeServer(nodeServer)
+    await ns.remove(uuid, profileNum)
+    return { ...nodeServer, success: true }
+  } catch (err) {
+    logger.error(`createNS: ${err.stack}`)
+    return { ...nodeServer, success: false, error: err.message }
   }
 }
 
@@ -316,9 +337,10 @@ async function startNs(nodeServer) {
   }
 }
 
+// TODO send stop to NS
 async function stopNs(nodeServer) {
   if (config.nodeProcesses[nodeServer.id]) {
-    logger.info(`NSChild: Stopping Nodeserver [${nodeServer.name}(${nodeServer.profileNum})]`)
+    logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Stopping Nodeserver`)
     stopPolls(nodeServer)
     process.kill(-config.nodeProcesses[nodeServer.id].pid)
   }
@@ -351,6 +373,28 @@ async function startPolls(nodeServer) {
   }
 }
 
+async function getNs(nodeServer) {
+  const { uuid, profileNum } = nodeServer
+  try {
+    const result = await ns.get(uuid, profileNum)
+    if (result) return result
+  } catch (err) {
+    logger.error(`getNs: ${err.stack}`)
+  }
+  return { error: 'Not found' }
+}
+
+async function getAllNs(nodeServer) {
+  const { uuid } = nodeServer
+  try {
+    const result = await ns.getIsy(uuid)
+    if (result) return result
+  } catch (err) {
+    logger.error(`getAllNs: ${err.stack}`)
+  }
+  return { error: 'Not found' }
+}
+
 // API
 module.exports = {
   start,
@@ -359,9 +403,12 @@ module.exports = {
   gitCheckout,
   createNs,
   installNs,
+  removeNs,
   startNs,
   stopNs,
   restartNs,
   stopPolls,
-  startPolls
+  startPolls,
+  getNs,
+  getAllNs
 }

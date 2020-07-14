@@ -3,6 +3,7 @@ const logger = require('../logger')
 const u = require('../../utils/utils')
 
 const nscore = require('../nodeserver/core')
+const frontcore = require('../frontend/core')
 
 const nsstatus = require('../nodeserver/status')
 const nscommand = require('../nodeserver/command')
@@ -59,9 +60,10 @@ async function processMessage(topic, message) {
             })
         )
     )
-    logger.debug(`MQTT Results: ${JSON.stringify(results)}, ${id}`)
+    logger.debug(`MQTT Results: [${id}] :: ${JSON.stringify(results)}`)
     if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
       nscore.nsMessage(id[0], id[1], { id: message.id, results })
+    else frontcore.frontendMessage(id, { id: message.id, results })
   } catch (err) {
     logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }

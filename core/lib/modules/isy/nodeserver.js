@@ -121,4 +121,29 @@ async function installNodeServer(nodeServer) {
   }
 }
 
-module.exports = { setHint, changeNodeDef, sendCommand, profileUpload, installNodeServer }
+async function removeNodeServer(nodeServer) {
+  const { uuid, profileNum } = nodeServer
+  try {
+    const res = await core.isyGet(
+      uuid,
+      'system',
+      core.makeSystemUrl(uuid, [`rest/profiles/ns/${profileNum}/connection/remove`]),
+      0,
+      true
+    )
+    if (res && res.status === 200) {
+      logger.info(`[${uuid}_${profileNum}] '${nodeServer.name}' removed from ISY successfully...`)
+    }
+  } catch (err) {
+    logger.error(`removeNodeServer :: ${err.stack}`)
+  }
+}
+
+module.exports = {
+  setHint,
+  changeNodeDef,
+  sendCommand,
+  profileUpload,
+  installNodeServer,
+  removeNodeServer
+}
