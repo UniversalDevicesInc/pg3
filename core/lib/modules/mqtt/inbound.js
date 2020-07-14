@@ -8,6 +8,7 @@ const nscommand = require('../nodeserver/command')
 const nssystem = require('../nodeserver/system')
 const nscustom = require('../nodeserver/custom')
 
+const frontendcommand = require('../frontend/command')
 const frontendsettings = require('../frontend/settings')
 const frontendsystem = require('../frontend/settings')
 
@@ -20,6 +21,7 @@ const apiSwitch = {
     props: []
   },
   frontend: {
+    command: frontendcommand.API,
     system: frontendsystem.API,
     settings: frontendsettings.API,
     props: []

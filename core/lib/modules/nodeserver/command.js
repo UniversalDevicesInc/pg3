@@ -27,9 +27,7 @@ async function checkResponse(cmd, response) {
         mergeAttrs: true,
         explicitArray: false
       }
-      const reason1 = await convert.parseStringPromise(response.data, opts)
-      console.log(reason1)
-      reason = reason1.RestResponse.reason.code
+      reason = await convert.parseStringPromise(response.data, opts).RestResponse.reason.code
       throw new Error(
         `${cmd} failed: ISY returned error: (${reason}) ${isyErrors.ERRORS[reason] || ''}`
       )
