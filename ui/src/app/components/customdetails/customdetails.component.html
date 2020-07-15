@@ -1,0 +1,66 @@
+<div *ngIf="nsdetails.currentlyEnabled === 'custom'">
+  <div *ngIf="nsdetails.selectedNodeServer">
+    <h2>Advanced Configuration</h2>
+    <table class="table table-striped table-bordered table-hover">
+        <thead>
+            <tr>
+                <td>Option</td>
+                <td>Value</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="margin-bottom: 10px;">
+                <td>shortPoll</td>
+                <td><input class="form-control input-sm" type="number" #short value={{nsdetails.selectedNodeServer.shortPoll}}></td>
+                <td align="middle"><button class="btn btn-primary btn-xs" (click)="nsdetails.savePolls(short.value, long.value)">Save</button></td>
+            </tr>
+            <tr style="margin-bottom: 10px;">
+                <td>longPoll</td>
+                <td><input class="form-control input-sm" type="number" #long value={{nsdetails.selectedNodeServer.longPoll}}></td>
+                <td align="middle"><button class="btn btn-primary btn-xs" (click)="nsdetails.savePolls(short.value, long.value)">Save</button></td>
+            </tr>
+        </tbody>
+    </table>
+    <br />
+    <div align="center" *ngIf="nsdetails.selectedNodeServer.customParamsDoc">
+        <button type="button" class="btn btn-primary btn-lg"
+            (click)="helpCollapsed = !helpCollapsed"
+            [attr.aria-expanded]="!helpCollapsed" aria-controls="configDocs">
+            Configuration Help</button>
+        <div align="left" id="configDocs" [ngbCollapse]="helpCollapsed"
+            class="card card-block card-header"
+            [innerHTML]="nsdetails.selectedNodeServer.customParamsDoc"></div>
+    </div>
+    <h2>Custom Configuration Parameters</h2>
+    <table class="table table-striped table-bordered table-hover">
+        <thead>
+            <tr>
+                <td>Key</td>
+                <td>Value</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let key of nsdetails.arrayOfKeys; let i = index" style="margin-bottom: 10px;">
+                <td>{{key}}</td>
+                <td><input class="form-control input-sm" type="text" [(ngModel)]="nsdetails.customParams[key]"></td>
+                <td><button class="btn btn-primary btn-xs" (click)="nsdetails.removeCustom(key, i)">Delete</button></td>
+            </tr>
+            <tr *ngFor="let key of nsdetails.typedParams; index as i"
+                style="margin-bottom: 10px;" app-customparam
+                [desc]='nsdetails.typedParams[i]'
+                [(data)]='nsdetails.typedCustomData'>
+            </tr>
+        </tbody>
+    </table>
+    <div align="center" style="margin-bottom: 10px;">
+      <!--button class="btn btn-primary btn-xs" (click)="nsdetails.sendCustom()" type="submit">Save Changes</button-->
+      <button class="btn btn-primary btn-xs" (click)="saveChanges()">Save Changes</button>
+    </div>
+    <div class="addCustom" align="center">
+      <input #newkey id="newkey" placeholder="key" value= "" style="width:16%" />
+      <input #newvalue id="newvalue" placeholder="value" value="" style="width:41%" />
+      <button class="btn btn-primary btn-xs" (click)="addCustom(newkey.value, newvalue.value)">Add Custom Parameter</button>
+    </div>
+  </div>
+</div>
+<br />

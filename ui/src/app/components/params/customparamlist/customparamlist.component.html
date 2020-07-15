@@ -1,0 +1,30 @@
+<div class="card" style="margin-left: 10px">
+    <table class="table">
+        <tbody>
+            <tr><td class="control-label" tooltip={{desc.desc}}>{{desc.title}}</td></tr>
+            <tr *ngFor="let key of items; index as i; trackBy: trackByIndex"
+                style="margin-bottom: 5px;" class="{{errorClasses[i]}}">
+                <td>
+                    <input class="form-control input-sm" type="text"
+                        [(ngModel)]="items[i]">
+                    <span class="help-block">{{errorMessages[i]}}</span>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-primary btn-sm"
+                        (click)="removeItem(i)" style="margin-bottom: 10px">
+                        <span class="glyphicon glyphicon-remove" aria-hidden="true">
+                        </span>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <button type="button" class="btn btn-primary btn-sm"
+                    (click)="addItem()">
+                    <span class="glyphicon glyphicon-plus" aria-hidden="true">
+                    </span>
+                    Add Value
+                </button>
+            </tr>
+        </tbody>
+    </table>
+</div>

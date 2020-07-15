@@ -1,0 +1,26 @@
+<div class="card" style="margin-left: 10px">
+    <div tooltip={{desc.desc}} style="margin-bottom: 5px;">{{desc.title}}</div>
+    <div *ngFor="let key of items; let i = index">
+        <div style="display: inline-block; vertical-align: middle">
+            <table class="table">
+                <tbody>
+                    <tr *ngFor="let param of desc.params" app-customparam
+                        [desc]='param' [(data)]='items[i]'
+                        style="margin-bottom: 5px;"></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display: inline-block">
+            <button *ngIf="desc.isList" type="button"
+                class="btn btn-primary btn-sm float-right"
+                (click)="removeItem(i)" style="margin-bottom: 10px">
+                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+            </button>
+        </div>
+    </div>
+    <button *ngIf="desc.isList" type="button" class="btn btn-primary btn-sm"
+        (click)="addItem()">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        Add {{desc.title}}
+    </button>
+</div>

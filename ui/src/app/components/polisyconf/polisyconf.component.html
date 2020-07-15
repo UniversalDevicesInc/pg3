@@ -1,0 +1,222 @@
+<div *ngIf="!polisyDatetimes && !polisyNics">
+  Please wait, getting configuration...
+</div>
+<h1 *ngIf="polisyDatetimes && polisyNics">
+  Polisy Settings:
+</h1>
+<div class="container" *ngIf="polisyDatetimes && currentDatetime">
+  <div class="row">
+    <div class="col">
+      <fieldset>
+        <legend>Timezone</legend>
+        <div class="row">
+          <legend class="col-form-label col-2">Current Timezone</legend>
+          <div class="col-8 align-self-center text-white">{{currentDatetime.name}}</div>
+        </div>
+        <div class="row">
+          <legend class="col-form-label col-2">Change Timezone</legend>
+          <form (ngSubmit)="confirmTz()">
+            <div class="form-inline col-8">
+              <select type="dropdown-toggle" class="btn btn-primary dropdown-toggle btn-block form-control"
+                style="width:auto;" (change)="selectTz($event.target.value)">
+                <option *ngFor="let tz of polisyDatetimes; let i = index" [value]="i"
+                [selected]="tz.name === currentDatetime.name">
+                  {{tz.name}} ({{tz.tzOffset}} )
+                </option>
+              </select>
+              <input class="btn btn-primary" value="Change" type="submit"
+                data-toggle="tooltip" data-placement="right" title="This will change the timezone on your Polisy device.">
+            </div>
+          </form>
+        </div>
+        <hr style="border:1px solid;">
+      </fieldset>
+    </div>
+  </div>
+</div>
+<div class="container" *ngIf="selectedNic">
+  <div class="row">
+    <div class="col" style="padding-right:20px; border-right: 1px solid #ccc;">
+      <fieldset>
+        <legend>IPv4 Networking</legend>
+        <div class="row">
+          <legend class="col-form-label col-4 align-self-center">Network Interface</legend>
+            <div class="col-8" >
+              <select type="dropdown-toggle" class="btn btn-primary dropdown-toggle btn-block form-control"
+                (change)="selectNic($event.target.value)">
+                <option *ngFor="let nic of polisyNics; let i = index" [value]="i">
+                  {{nic.logicalName}}
+                </option>
+              </select>
+            </div>
+        </div>
+        <form *ngIf="this.selectedNic" [formGroup]="nicForm" class="form-group" (ngSubmit)="confirmNic()">
+          <div class="row">
+            <legend class="col-form-label col-4">MAC Address</legend>
+            <div class="col-8 align-self-center text-white">{{selectedNic.mac}}</div>
+          </div>
+          <div class="row">
+            <legend class="col-form-label col-4">Interface Type</legend>
+            <div class="col-8 align-self-center text-white">{{selectedNic.isWiFi ? "WiFi" : "Ethernet"}}</div>
+          </div>
+          <div class="row">
+            <legend class="col-form-label col-4">Interface Enabled</legend>
+            <div class="checkbox align-self-center col-8">
+              <input type="checkbox" [ngModelOptions]="{standalone: true}" [(ngModel)]="nicEnabled">
+            </div>
+          </div>
+          <div class="row">
+            <legend class="col-form-label col-4">DHCP Enabled</legend>
+            <div class="checkbox align-self-center col-8">
+              <input [disabled]="!nicEnabled" type="checkbox" [ngModelOptions]="{standalone: true}" [(ngModel)]="dhcpChecked">
+            </div>
+          </div>
+          <div class="row" formGroupName="IPInfo">
+            <legend class="col-form-label col-4">IPv4 Address</legend>
+            <div class="col-8">
+              <input [readonly]="dhcpChecked || !nicEnabled" type="text" class="form-control" formControlName="ip" [ngClass]="{'is-invalid': submitted && f('IPInfo.ip').errors}">
+            </div>
+            <div class="invalid-feedback">
+              <div>Failed IP Validataion</div>
+            </div>
+          </div>
+          <div class="row" formGroupName="IPInfo">
+            <legend class="col-form-label col-4">Netmask</legend>
+            <div class="col-8">
+              <input [readonly]="dhcpChecked || !nicEnabled" type="text" class="form-control" formControlName="mask">
+            </div>
+          </div>
+          <div class="row" formGroupName="IPInfo">
+            <legend class="col-form-label col-4">IPv4 Gateway</legend>
+            <div class="col-8">
+              <input [readonly]="dhcpChecked || !nicEnabled" type="text" class="form-control" formControlName="gateway"
+                data-toggle="tooltip" data-placement="right" title="If DHCP is enabled, the gateway will show 0.0.0.0">
+            </div>
+          </div>
+          <hr *ngIf="allowIpv6" style="border:1px solid;">
+          <ng-container *ngIf="allowIpv6">
+            <legend>IPv6 Networking</legend>
+            <div class="row">
+              <legend class="col-form-label col-4">IPv6 Enabled</legend>
+              <div class="checkbox align-self-center col-8">
+                <input type="checkbox" [ngModelOptions]="{standalone: true}" [(ngModel)]="ipv6Enabled">
+              </div>
+            </div>
+            <div class="row">
+              <legend class="col-form-label col-4">Router Advertisment Enabled</legend>
+              <div class="checkbox align-self-center col-8">
+                <input [disabled]="!ipv6Enabled" type="checkbox" [ngModelOptions]="{standalone: true}" [(ngModel)]="rtadvChecked">
+              </div>
+            </div>
+            <div class="row" formGroupName="IPInfo" *ngIf="selectedNic.IPInfo.ipV6 !== '::' || (ipv6Enabled && !rtadvChecked)">
+              <legend class="col-form-label col-4">IPv6 Address</legend>
+              <div class="col-8">
+                <input type="text" [readonly]="!ipv6Enabled || rtadvChecked" class="form-control" formControlName="ipV6">
+              </div>
+            </div>
+            <ng-container *ngIf="ipv6Enabled && !rtadvChecked">
+              <div class="row" formGroupName="IPInfo">
+                <legend class="col-form-label col-4">IPv6 Gateway</legend>
+                <div class="col-8">
+                  <input type="text" class="form-control" formControlName="gatewayV6">
+                </div>
+              </div>
+            </ng-container>
+          </ng-container>
+          <hr style="border:1px solid;">
+          <ng-container>
+            <legend>DNS</legend>
+              <div class="row" formGroupName="IPInfo">
+                <legend class="col-form-label col-4">DNS Server 1</legend>
+                <div class="col-8">
+                  <input [readonly]="dhcpChecked || !nicEnabled" type="text" class="form-control" formControlName="dns1"
+                  data-toggle="tooltip" data-placement="right" title="At least one DNS server is required. Google Public DNS is 8.8.8.8 and 8.8.4.4">
+                </div>
+              </div>
+              <div class="row" formGroupName="IPInfo">
+                <legend class="col-form-label col-4">DNS Server 2</legend>
+                <div class="col-8">
+                  <input [readonly]="dhcpChecked || !nicEnabled" type="text" class="form-control" formControlName="dns2"
+                  data-toggle="tooltip" data-placement="right" title="If you don't wish to have a secondary DNS server enter 0.0.0.0">
+                </div>
+              </div>
+              <div class="row" formGroupName="IPInfo">
+                <legend class="col-form-label col-4">DNS Server 3</legend>
+                <div class="col-8">
+                  <input [readonly]="dhcpChecked || !nicEnabled" type="text" class="form-control" formControlName="dns3"
+                  data-toggle="tooltip" data-placement="right" title="If you don't wish to have a tertiary DNS server enter 0.0.0.0">
+                </div>
+              </div>
+          </ng-container>
+          <hr style="border:1px solid;">
+          <ng-container>
+            <div class="row">
+              <legend class="col-form-label col-4"></legend>
+              <input class="btn btn-primary mx-sm-3" value="Save" type="submit"
+                data-toggle="tooltip" data-placement="right" title="This will save the IPv4 and IPv6 changes made to this interface.">
+            </div>
+          </ng-container>
+        </form>
+      </fieldset>
+    </div>
+    <div class="col" style="padding-left:40px;" *ngIf="selectedNic && selectedNic.isWiFi">
+      <fieldset >
+        <legend>WiFi</legend>
+        <div class="row">
+          <legend class="col-form-label col-4">Currently Connected SSID</legend>
+          <div class="col-8 align-self-center text-white" *ngIf="selectedNic.WiFiInfo && selectedNic.WiFiInfo.ssid">
+            {{selectedNic.WiFiInfo.ssid}}
+          </div>
+          <div class="col-8 align-self-center text-white" *ngIf="!selectedNic.WiFiInfo || !selectedNic.WiFiInfo.ssid">
+            Not Connected
+          </div>
+        </div>
+        <div class="row" *ngIf="selectedNic.WiFiInfo && selectedNic.WiFiInfo.channel">
+          <legend class="col-form-label col-4">WiFi Channel</legend>
+          <div class="col-8 align-self-center text-white">{{selectedNic.WiFiInfo.channel || 'Not Connected'}}</div>
+        </div>
+        <div class="row" *ngIf="selectedNic.WiFiInfo && selectedNic.WiFiInfo.bars">
+          <legend class="col-form-label col-4">WiFi Bars</legend>
+          <div class="col-8 align-self-center text-white">{{selectedNic.WiFiInfo.bars || 'Not Connected'}}</div>
+        </div>
+        <div class="row" *ngIf="selectedNic.WiFiInfo && selectedNic.WiFiInfo.ssid">
+          <input class="btn btn-primary col-8" value="Forget This Network" (click)="forgetWifi()"
+            data-toggle="tooltip" data-placement="right" title="This will Forget this SSID">
+        </div>
+        <div class="row">
+          <input class="btn btn-primary col-8" value="Forget all Networks" (click)="forgetAllWifi()"
+            data-toggle="tooltip" data-placement="right" title="This will Forget all SSIDs">
+        </div>
+        <div *ngIf="gotWifi">
+          <div class="row ">
+            <legend class="col-form-label col-4">Available WiFi Networks</legend>
+            <div class="col-8" align-self-center>
+              <select type="dropdown-toggle" class="btn btn-primary dropdown-toggle btn-block"
+                style="width:auto;" (change)="selectWifi($event.target.value)">
+                <option *ngFor="let net of polisyWifi; let i = index" [value]="i">
+                  {{net.ssid}}
+                </option>
+              </select>
+            </div>
+          </div>
+          <form (ngSubmit)="saveWifi()">
+            <div class="row ">
+              <legend class="col-form-label col-4">Key</legend>
+              <div class="col-8">
+                <input type="text" [ngModelOptions]="{standalone: true}" [(ngModel)]="wifiKey" class="form-control">
+              </div>
+            </div>
+            <div class="row">
+              <input class="btn btn-primary col-8" value="Connect" type="submit"
+                data-toggle="tooltip" data-placement="right" title="This will configure the WiFi key for the selected SSID.">
+            </div>
+            <div class="row">
+              <input class="btn btn-primary col-8" value="Re-Scan for WiFi networks" (click)="scanWifi()"
+                data-toggle="tooltip" data-placement="right" title="This will Re-Scan for Available WiFi networks">
+            </div>
+          </form>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</div>

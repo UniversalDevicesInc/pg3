@@ -1,0 +1,27 @@
+<br>
+<table *ngIf="node" class="table table-striped table-bordered table-hover ">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Address</th>
+      <th>NodeDef ID</th>
+      <th>Primary Node</th>
+      <th>Hint</th>
+      <th>Enabled</th>
+      <th>Is Primary</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let node of node.nodes; let i = index" (click)="showDrivers(node.drivers, i)" [class.active]="i == selectedRow">
+      <td>{{node.name}}</td>
+      <td>{{node.address}}</td>
+      <td>{{node.nodedef}}</td>
+      <td>{{node.primary}}</td>
+      <td>{{node.hint}}</td>
+      <td>{{node.enabled}}</td>
+      <td>{{node.isprimary}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<app-driverpop [drivers]="selectedDrivers" [selectedNode]=node></app-driverpop>

@@ -1,0 +1,14 @@
+<td *ngIf="desc.params == null && !desc.isList" tooltip={{desc.desc}}
+    placement="right" class="control-label">
+    {{desc.title}}
+</td>
+<td *ngIf="desc.params == null && !desc.isList">
+    <input class="form-control input-sm" type="text" [(ngModel)]="data[desc.name]">
+    <span class="help-block">{{errorMessage}}</span>
+</td>
+<app-customparamlist *ngIf="desc.params == null && desc.isList"
+    [desc]='desc' [(data)]='data'>
+</app-customparamlist>
+<app-customparamset *ngIf="desc.params != null" [desc]='desc'
+    [(data)]='data'>
+</app-customparamset>

@@ -1,0 +1,8 @@
+pre {
+    display: block;
+    font-family: monospace;
+    color: #BFC8BF;
+    background-color: #272B30;
+    white-space: pre-wrap;
+    margin: 1em 0;
+}

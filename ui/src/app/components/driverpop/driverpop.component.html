@@ -1,0 +1,16 @@
+<table *ngIf="drivers && (selectedNode != null)" class="table table-striped table-bordered table-hover ">
+ <thead>
+   <tr>
+     <th>Driver</th>
+     <th>UOM</th>
+     <th>Value</th>
+   </tr>
+ </thead>
+ <tbody>
+   <tr *ngFor="let driver of objectKeys(drivers)">
+     <td>{{driver}}</td>
+     <td>{{drivers[driver].uom}}</td>
+     <td>{{drivers[driver].value}}</td>
+   </tr>
+ </tbody>
+</table>

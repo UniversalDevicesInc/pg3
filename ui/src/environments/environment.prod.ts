@@ -1,3 +1,8 @@
+import { version } from '../../package.json'
+
 export const environment = {
-  production: true
-};
+  production: true,
+  PG_URI: '',
+  STAGE: 'prod',
+  VERSION: version
+}

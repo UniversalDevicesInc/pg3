@@ -1,0 +1,42 @@
+<h2 class="page-header">Register New NodeServer</h2>
+<form (submit)="showConfirm()">
+  <div>
+      <label>Node Server Type</label><br />
+      <select (change)="onSelectType($event.target.value)" type="button" class="btn btn-primary dropdown-toggle btn-block">
+          <option *ngFor="let type of types; let i = index" [value]="i">
+              {{type}}
+          </option>
+      </select>
+  <br /></div>
+  <div *ngIf="nsTypes.length > 0 && selectedType === 'local'">
+      <label>Available Node Servers</label><br />
+      <select (change)="onSelectNS($event.target.value)" type="button" class="btn btn-primary dropdown-toggle btn-block">
+          <option *ngFor="let ns of this.nsTypes; let i = index" [value]="i">
+              {{ns.name}}
+          </option>
+      </select>
+  <br /></div>
+  <div *ngIf="selectedType === 'remote'">
+      <label>Node Server Name</label><br />
+      <input class="form-control"  name='name' type="text" [(ngModel)]="name">
+  <br /></div>
+  <div *ngIf="((nsTypes.length > 0 && selectedType === 'local') || selectedType === 'remote')">
+      <label>Available Node Server Slot</label><br />
+      <select (change)="onSelect($event.target.value)" type="button" class="btn btn-primary dropdown-toggle btn-block">
+          <option *ngFor="let num of indexes" [value]="num">
+              {{num}}
+          </option>
+      </select>
+  <br /></div>
+  <input *ngIf="((nsTypes.length > 0 && selectedType === 'local') || selectedType === 'remote')"
+   type="submit" class="btn btn-primary pull-right" value="Submit">
+</form>
+<p *ngIf="received && nsTypes.length <= 0 && selectedType === 'local'">
+  No uninstalled NodeServers currently available. Either none are installed, the server.json
+  is missing, or all installed NodeServers are already added to Polyglot. NodeServers are
+  installed in the ~/.polyglot/nodeservers/ directory, and must contain either a dynamic server.js
+  or static server.json file.
+<br /></p>
+<p *ngIf="!received">
+  Gathering Installed NodeServer types from Polyglot. Standby....
+</p><br />

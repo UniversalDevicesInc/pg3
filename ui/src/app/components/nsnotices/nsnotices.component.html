@@ -1,0 +1,5 @@
+<h2>{{nsdetails.selectedNodeServer.name}} Notices:</h2>
+<div *ngFor="let notice of nsdetails.selectedNodeServer.notices" class="alert alert-info alert-dismissible fade show">
+  <div [innerHTML]="notice">
+  </div>
+</div>

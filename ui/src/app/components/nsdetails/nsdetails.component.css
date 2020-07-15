@@ -1,0 +1,6 @@
+.card { background-color: rgba(0, 0, 0, 0.3); }
+.card-header, .card-footer { opacity: 1}
+
+.modal-lg {
+  max-width: 95% !important;
+}
