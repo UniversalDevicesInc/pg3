@@ -33,7 +33,6 @@
     "@angular/upgrade": "9.0.0-rc.13",
     "@ng-bootstrap/ng-bootstrap": "5.1.4",
     "angular-in-memory-web-api": "0.9.0",
-    "angular2-flash-messages": "^3.0.1",
     "buffer": "^5.4.3",
     "core-js": "3.4.8",
     "file-saver": "2.0.2",
