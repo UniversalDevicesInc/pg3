@@ -13,7 +13,7 @@ import { FlashMessagesService } from 'angular2-flash-messages'
   styleUrls: ['./nsdetails.component.css']
 })
 export class NsdetailsComponent implements OnInit, OnDestroy {
-  @ViewChild('nslogScroll') private logScrollContainer: ElementRef;
+  @ViewChild('nslogScroll') private logScrollContainer: ElementRef
 
   nodeServers: NodeServer[]
   public mqttConnected = false
@@ -46,7 +46,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     this.arrayOfKeys = []
     this.customParams = {}
     this.customParamsChangePending = false
-    this.route.params.subscribe((params) => {
+    this.route.params.subscribe(params => {
       this.profileNum = params['id']
     })
   }
@@ -65,9 +65,15 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
         this.sockets.sendMessage('log', { stop: this.selectedNodeServer.profileNum })
       }
     }
-    if (this.subNodeServers) { this.subNodeServers.unsubscribe() }
-    if (this.subResponses) { this.subResponses.unsubscribe() }
-    if (this.uptimeInterval) { clearInterval(this.uptimeInterval) }
+    if (this.subNodeServers) {
+      this.subNodeServers.unsubscribe()
+    }
+    if (this.subResponses) {
+      this.subResponses.unsubscribe()
+    }
+    if (this.uptimeInterval) {
+      clearInterval(this.uptimeInterval)
+    }
   }
 
   getConnected() {
@@ -82,48 +88,59 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     modalRef.componentInstance.body = `This will delete the ${nodeServer.name} NodeServer.
  You will need to restart the ISY admin console to reflect the changes,
  if you are still having problems, click on 'Reboot ISY' above. Are you sure you want to delete?`
-    modalRef.result.then((isConfirmed) => {
+    modalRef.result
+      .then(isConfirmed => {
         if (isConfirmed) {
-          this.deleteNodeServer(nodeServer, isConfirmed);
+          this.deleteNodeServer(nodeServer, isConfirmed)
         }
-    }).catch((error) => {})
+      })
+      .catch(error => {})
   }
 
   confirmNodeDelete(i) {
     const modalRef = this.modal.open(ConfirmComponent, { centered: true })
     modalRef.componentInstance.title = 'Delete Node?'
     modalRef.componentInstance.body = `This will delete the node: ${i.address} from Polyglot and ISY if it exists. Are you sure?`
-    modalRef.result.then((isConfirmed) => {
+    modalRef.result
+      .then(isConfirmed => {
         if (isConfirmed) {
-          this.deleteNode(i);
+          this.deleteNode(i)
         }
-    }).catch((error) => {})
+      })
+      .catch(error => {})
   }
 
   deleteNode(i) {
     if (this.mqttConnected) {
-      this.sockets.sendMessage('nodeservers',
+      this.sockets.sendMessage(
+        'nodeservers',
         {
           removenode: {
-            address: i.address, profileNum: this.selectedNodeServer.profileNum
+            address: i.address,
+            profileNum: this.selectedNodeServer.profileNum
           }
-        }, false, true);
+        },
+        false,
+        true
+      )
     } else {
-      this.showDisconnected();
+      this.showDisconnected()
     }
   }
 
   deleteNodeServer(nodeServer, confirmed) {
     if (this.mqttConnected) {
-      this.sockets.sendMessage('nodeservers', {delns: {profileNum: nodeServer.profileNum}})
+      this.sockets.sendMessage('nodeservers', { delns: { profileNum: nodeServer.profileNum } })
       this.router.navigate(['/dashboard'])
     } else {
-      this.showDisconnected();
+      this.showDisconnected()
     }
   }
 
   showControl(type) {
-    if (this.currentlyEnabled === type) { return this.currentlyEnabled = null }
+    if (this.currentlyEnabled === type) {
+      return (this.currentlyEnabled = null)
+    }
     this.currentlyEnabled = type
 
     if (type === 'log') {
@@ -131,7 +148,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
         this.sockets.sendMessage('log', { start: this.selectedNodeServer.profileNum })
         this.getLog()
       } else {
-        this.showDisconnected();
+        this.showDisconnected()
       }
     } else {
       if (this.logConn) {
@@ -146,80 +163,81 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   showDisconnected() {
     this.flashMessage.show('Error not connected to Polyglot.', {
       cssClass: 'alert-danger',
-      timeout: 3000})
-  }
-
-  getNodeServers() {
-    this.subNodeServers = this.sockets.nodeServerData.subscribe(nodeServers => {
-      this.nodeServers = nodeServers
-      for (const nodeServer of this.nodeServers) {
-        if (nodeServer.profileNum === this.profileNum) {
-          this.selectedNodeServer = nodeServer
-          // If notices is an object, convert to array of values
-          if (nodeServer.notices != null && !Array.isArray(nodeServer.notices)) {
-            nodeServer.notices = Object.keys(nodeServer.notices).map(key => nodeServer.notices[key]);
-          }
-          for (const node of nodeServer.nodes) {
-            if (Array.isArray(node.hint)) {
-              node.hint = node.hint.join('.');
-            }
-          }
-          if (!this.uptimeInterval && this.selectedNodeServer.timeStarted) {
-            this.uptimeInterval = setInterval(() => {
-              this.calculateUptime()
-            }, 1000)
-          }
-          if (!Array.isArray(nodeServer.typedParams)) {
-            nodeServer.typedParams = [];
-          }
-          const keys = Object.keys(nodeServer.customParams).sort();
-          if (!this.customParamsChangePending
-              && JSON.stringify(this.arrayOfKeys) !== JSON.stringify(keys)) {
-            this.setCustomParams(nodeServer, keys);
-          }
-          if (JSON.stringify(this.typedParams)
-            !== JSON.stringify(nodeServer.typedParams)) {
-            this.setTypedCustomData(nodeServer);
-          }
-        }
-      }
+      timeout: 3000
     })
   }
 
+  getNodeServers() {
+    // this.subNodeServers = this.sockets.nodeServerData.subscribe(nodeServers => {
+    //   this.nodeServers = nodeServers
+    //   for (const nodeServer of this.nodeServers) {
+    //     if (nodeServer.profileNum === this.profileNum) {
+    //       this.selectedNodeServer = nodeServer
+    //       // If notices is an object, convert to array of values
+    //       if (nodeServer.notices != null && !Array.isArray(nodeServer.notices)) {
+    //         nodeServer.notices = Object.keys(nodeServer.notices).map(key => nodeServer.notices[key]);
+    //       }
+    //       for (const node of nodeServer.nodes) {
+    //         if (Array.isArray(node.hint)) {
+    //           node.hint = node.hint.join('.');
+    //         }
+    //       }
+    //       if (!this.uptimeInterval && this.selectedNodeServer.timeStarted) {
+    //         this.uptimeInterval = setInterval(() => {
+    //           this.calculateUptime()
+    //         }, 1000)
+    //       }
+    //       if (!Array.isArray(nodeServer.typedParams)) {
+    //         nodeServer.typedParams = [];
+    //       }
+    //       const keys = Object.keys(nodeServer.customParams).sort();
+    //       if (!this.customParamsChangePending
+    //           && JSON.stringify(this.arrayOfKeys) !== JSON.stringify(keys)) {
+    //         this.setCustomParams(nodeServer, keys);
+    //       }
+    //       if (JSON.stringify(this.typedParams)
+    //         !== JSON.stringify(nodeServer.typedParams)) {
+    //         this.setTypedCustomData(nodeServer);
+    //       }
+    //     }
+    //   }
+    // })
+  }
+
   setCustomParams(nodeServer, keys) {
-    this.customParams = JSON.parse(JSON.stringify(nodeServer.customParams));
-    this.arrayOfKeys = keys;
+    this.customParams = JSON.parse(JSON.stringify(nodeServer.customParams))
+    this.arrayOfKeys = keys
   }
 
   setTypedCustomData(nodeServer) {
     if (nodeServer.typedCustomData === null) {
-        nodeServer.typedCustomData = {};
+      nodeServer.typedCustomData = {}
     }
-    this.typedParams = JSON.parse(JSON.stringify(nodeServer.typedParams));
-    this.typedCustomData = JSON.parse(JSON.stringify(nodeServer.typedCustomData));
+    this.typedParams = JSON.parse(JSON.stringify(nodeServer.typedParams))
+    this.typedCustomData = JSON.parse(JSON.stringify(nodeServer.typedCustomData))
   }
 
   calculateUptime() {
     // var seconds = Math.floor(()/1000)
-    let d = Math.abs(+ new Date() - this.selectedNodeServer.timeStarted) / 1000
+    let d = Math.abs(+new Date() - this.selectedNodeServer.timeStarted) / 1000
     const r = {}
     const s = {
-        'Year(s)': 31536000,
-        'Month(s)': 2592000,
-        'Week(s)': 604800,
-        'Day(s)': 86400,
-        'Hour(s)': 3600,
-        'Minute(s)': 60,
-        'Second(s)': 1
+      'Year(s)': 31536000,
+      'Month(s)': 2592000,
+      'Week(s)': 604800,
+      'Day(s)': 86400,
+      'Hour(s)': 3600,
+      'Minute(s)': 60,
+      'Second(s)': 1
     }
 
-    Object.keys(s).forEach(function(key) {
-        r[key] = Math.floor(d / s[key])
-        d -= r[key] * s[key]
+    Object.keys(s).forEach(function (key) {
+      r[key] = Math.floor(d / s[key])
+      d -= r[key] * s[key]
     })
     let uptime = ''
     for (const key in r) {
-      if (r[key] !== 0 ) {
+      if (r[key] !== 0) {
         uptime += `${r[key]} ${key} `
       }
     }
@@ -227,8 +245,8 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   }
 
   savePolls(shortPoll, longPoll) {
-    shortPoll = parseInt(shortPoll, 10);
-    longPoll = parseInt(longPoll, 10);
+    shortPoll = parseInt(shortPoll, 10)
+    longPoll = parseInt(longPoll, 10)
     if (typeof shortPoll === 'number' && typeof longPoll === 'number') {
       if (shortPoll < longPoll) {
         if (this.mqttConnected) {
@@ -238,7 +256,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
           }
           const updatedPolls = JSON.parse(JSON.stringify(message))
           updatedPolls['profileNum'] = this.selectedNodeServer.profileNum
-          this.sockets.sendMessage('nodeservers', {polls: updatedPolls}, false, true)
+          this.sockets.sendMessage('nodeservers', { polls: updatedPolls }, false, true)
         } else {
           this.badValidate('Websockets not connected to Polyglot. Poll Parameters not saved.')
         }
@@ -253,7 +271,8 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   badValidate(message) {
     this.flashMessage.show(message, {
       cssClass: 'alert-danger',
-      timeout: 5000})
+      timeout: 5000
+    })
     window.scrollTo(0, 0)
   }
 
@@ -273,11 +292,10 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
       // Deepcopy hack
       const updatedParams = JSON.parse(JSON.stringify(this.customParams))
       updatedParams['profileNum'] = this.selectedNodeServer.profileNum
-      this.sockets.sendMessage('nodeservers', { customparams: updatedParams },
-        false, true)
+      this.sockets.sendMessage('nodeservers', { customparams: updatedParams }, false, true)
       this.customParamsChangePending = false
     } else {
-      this.badValidate('Websockets not connected to Polyglot. Custom Parameters not saved.');
+      this.badValidate('Websockets not connected to Polyglot. Custom Parameters not saved.')
     }
   }
 
@@ -285,58 +303,61 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     if (this.sockets.connected) {
       const data = JSON.parse(JSON.stringify(this.typedCustomData))
       data['profileNum'] = this.selectedNodeServer.profileNum
-      this.sockets.sendMessage('nodeservers', { typedcustomdata: data },
-        false, true)
+      this.sockets.sendMessage('nodeservers', { typedcustomdata: data }, false, true)
     } else {
-      this.badValidate('Websockets not connected to Polyglot. Typed Custom Parameters not saved.');
+      this.badValidate('Websockets not connected to Polyglot. Typed Custom Parameters not saved.')
     }
   }
 
   getLog() {
-    if (this.logConn) { return }
-    this.logConn = this.sockets.logData.subscribe(data => {
-      try {
-        const message = data
-        if (message.hasOwnProperty('node')) {
-          if (message.node === 'polyglot') {
-            this.logData.push(data.log)
-            if (this.autoScroll) { setTimeout(() => { this.scrollToBottom() }, 100); }
-          }
-        }
-      } catch (e) { }
-    })
+    // if (this.logConn) { return }
+    // this.logConn = this.sockets.logData.subscribe(data => {
+    //   try {
+    //     const message = data
+    //     if (message.hasOwnProperty('node')) {
+    //       if (message.node === 'polyglot') {
+    //         this.logData.push(data.log)
+    //         if (this.autoScroll) { setTimeout(() => { this.scrollToBottom() }, 100); }
+    //       }
+    //     }
+    //   } catch (e) { }
+    // })
   }
 
   sendControl(command) {
     if (this.mqttConnected) {
       const cmd = {
-        node: this.selectedNodeServer.profileNum,
+        node: this.selectedNodeServer.profileNum
       }
-      cmd[command] = '';
+      cmd[command] = ''
       this.sockets.sendMessage(this.selectedNodeServer.profileNum, cmd, false, false)
-      this.flashMessage.show(`Sent ${command} command to NodeServer ${this.selectedNodeServer.name}.`, {
-        cssClass: 'alert-success',
-        timeout: 5000})
+      this.flashMessage.show(
+        `Sent ${command} command to NodeServer ${this.selectedNodeServer.name}.`,
+        {
+          cssClass: 'alert-success',
+          timeout: 5000
+        }
+      )
       window.scrollTo(0, 0)
     }
   }
 
   getNodeServerResponses() {
-    this.subResponses = this.sockets.nodeServerResponse.subscribe(response => {
-      if (response.hasOwnProperty('success')) {
-        if (response.success) {
-          this.flashMessage.show(response.msg, {
-            cssClass: 'alert-success',
-            timeout: 5000})
-          window.scrollTo(0, 0)
-        } else {
-          this.flashMessage.show(response.msg, {
-            cssClass: 'alert-danger',
-            timeout: 5000})
-          window.scrollTo(0, 0)
-        }
-      }
-    })
+    // this.subResponses = this.sockets.nodeServerResponse.subscribe(response => {
+    //   if (response.hasOwnProperty('success')) {
+    //     if (response.success) {
+    //       this.flashMessage.show(response.msg, {
+    //         cssClass: 'alert-success',
+    //         timeout: 5000})
+    //       window.scrollTo(0, 0)
+    //     } else {
+    //       this.flashMessage.show(response.msg, {
+    //         cssClass: 'alert-danger',
+    //         timeout: 5000})
+    //       window.scrollTo(0, 0)
+    //     }
+    //   }
+    // })
   }
 
   scrollToTop() {
@@ -346,5 +367,4 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   scrollToBottom() {
     this.logScrollContainer.nativeElement.scrollTop = this.logScrollContainer.nativeElement.scrollHeight
   }
-
 }

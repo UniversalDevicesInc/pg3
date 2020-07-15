@@ -5,15 +5,13 @@ import { WebsocketsService } from '../../services/websockets.service'
 import { AddnodeService } from '../../services/addnode.service'
 import { Router } from '@angular/router'
 import { FlashMessagesService } from 'angular2-flash-messages'
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-
+import { FormBuilder, FormGroup, Validators } from '@angular/forms'
 
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.css']
 })
-
 export class SettingsComponent implements OnInit, OnDestroy {
   //@ViewChild('file', { static: false }) file
   public mqttConnected: boolean = false
@@ -52,9 +50,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.subConnected) { this.subConnected.unsubscribe() }
-    if (this.subSettings) { this.subSettings.unsubscribe() }
-    if (this.subResponses) { this.subResponses.unsubscribe() }
+    if (this.subConnected) {
+      this.subConnected.unsubscribe()
+    }
+    if (this.subSettings) {
+      this.subSettings.unsubscribe()
+    }
+    if (this.subResponses) {
+      this.subResponses.unsubscribe()
+    }
   }
 
   getConnected() {
@@ -64,38 +68,38 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   getSettings() {
-    this.subSettings = this.sockets.settingsData.subscribe(settings => {
-      this.settingsService.storeSettings(settings)
-      this.addNodeService.getPolyglotVersion()
-      this.settingsForm.patchValue({
-        listenPort: settings.listenPort,
-        isyHost: settings.isyHost,
-        isyPort: settings.isyPort,
-        isyUsername: settings.isyUsername,
-        isyHttps: settings.isyHttps,
-        mqttHost: settings.mqttHost,
-        mqttPort: settings.mqttPort,
-        useBeta: settings.useBeta || false,
-      })
-    })
+    // this.subSettings = this.sockets.settingsData.subscribe(settings => {
+    //   this.settingsService.storeSettings(settings)
+    //   this.addNodeService.getPolyglotVersion()
+    //   this.settingsForm.patchValue({
+    //     listenPort: settings.listenPort,
+    //     isyHost: settings.isyHost,
+    //     isyPort: settings.isyPort,
+    //     isyUsername: settings.isyUsername,
+    //     isyHttps: settings.isyHttps,
+    //     mqttHost: settings.mqttHost,
+    //     mqttPort: settings.mqttPort,
+    //     useBeta: settings.useBeta || false,
+    //   })
+    // })
   }
 
   getSettingResponses() {
-    this.subResponses = this.sockets.settingsResponse.subscribe(response => {
-      if (response.hasOwnProperty('success')) {
-        if (response.success) {
-          this.flashMessage.show('Settings saved successfully. If you changed the Polyglot Web Port, please restart Polyglot.', {
-            cssClass: 'alert-success',
-            timeout: 10000})
-          window.scrollTo(0, 0)
-        } else {
-          this.flashMessage.show(response.msg, {
-            cssClass: 'alert-danger',
-            timeout: 5000})
-          window.scrollTo(0, 0)
-        }
-      }
-    })
+    // this.subResponses = this.sockets.settingsResponse.subscribe(response => {
+    //   if (response.hasOwnProperty('success')) {
+    //     if (response.success) {
+    //       this.flashMessage.show('Settings saved successfully. If you changed the Polyglot Web Port, please restart Polyglot.', {
+    //         cssClass: 'alert-success',
+    //         timeout: 10000})
+    //       window.scrollTo(0, 0)
+    //     } else {
+    //       this.flashMessage.show(response.msg, {
+    //         cssClass: 'alert-danger',
+    //         timeout: 5000})
+    //       window.scrollTo(0, 0)
+    //     }
+    //   }
+    // })
   }
 
   sendSettingsREST(settings) {
@@ -103,12 +107,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
       if (data['success']) {
         this.flashMessage.show('Settings saved successfully.', {
           cssClass: 'alert-success',
-          timeout: 5000})
+          timeout: 5000
+        })
         window.scrollTo(0, 0)
       } else {
         this.flashMessage.show(data['msg'], {
           cssClass: 'alert-danger',
-          timeout: 5000})
+          timeout: 5000
+        })
         window.scrollTo(0, 0)
       }
     })
@@ -116,7 +122,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
   getDirtyValues(cg) {
     const dirtyValues = {}
-    Object.keys(cg.controls).forEach((c) => {
+    Object.keys(cg.controls).forEach(c => {
       const currentControl = cg.get(c)
 
       if (currentControl.dirty) {
@@ -133,17 +139,19 @@ export class SettingsComponent implements OnInit, OnDestroy {
   saveSettings(settings) {
     if (this.mqttConnected) {
       if (JSON.stringify(settings) !== '{}') {
-        this.sockets.sendMessage('settings', {updatesettings: settings}, false, true)
+        this.sockets.sendMessage('settings', { updatesettings: settings }, false, true)
       } else {
         this.flashMessage.show('No Settings Changed.', {
           cssClass: 'alert-danger',
-          timeout: 5000})
+          timeout: 5000
+        })
         window.scrollTo(0, 0)
       }
     } else {
       this.flashMessage.show('Not connected to Polyglot. Settings not saved.', {
         cssClass: 'alert-danger',
-        timeout: 5000})
+        timeout: 5000
+      })
       window.scrollTo(0, 0)
     }
   }
@@ -162,19 +170,25 @@ export class SettingsComponent implements OnInit, OnDestroy {
       formData.append('file', this.file)
       this.flashMessage.show('Restore starting. This may take some time, please wait...', {
         cssClass: 'alert-success',
-        timeout: 10000})
+        timeout: 10000
+      })
       window.scrollTo(0, 0)
       this.settingsService.restoreBackup(formData).subscribe(data => {
         if (data['success']) {
-          this.flashMessage.show('Restore Completed Sucessfully. Polyglot Restarting in 5 seconds.', {
-            cssClass: 'alert-success',
-            timeout: 5000})
+          this.flashMessage.show(
+            'Restore Completed Sucessfully. Polyglot Restarting in 5 seconds.',
+            {
+              cssClass: 'alert-success',
+              timeout: 5000
+            }
+          )
           window.scrollTo(0, 0)
           this.logout()
         } else {
           this.flashMessage.show(data['msg'], {
             cssClass: 'alert-danger',
-            timeout: 5000})
+            timeout: 5000
+          })
           window.scrollTo(0, 0)
         }
         this.file = null

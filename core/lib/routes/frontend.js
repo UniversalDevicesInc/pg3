@@ -1,6 +1,6 @@
 const Router = require('@koa/router')
 
-const logger = require('../modules/logger')
+// const logger = require('../modules/logger')
 const config = require('../config/config')
 
 /**
@@ -31,6 +31,13 @@ router.get('/settings', ctx => {
     global: config.globalsettings
   }
   ctx.response.body = settings
+})
+
+router.get('/ispolisy', ctx => {
+  const ispolisy = {
+    isPolisy: config.globalsettings.polisy
+  }
+  ctx.response.body = ispolisy
 })
 
 module.exports = router

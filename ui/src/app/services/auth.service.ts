@@ -16,9 +16,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private settingsService: SettingsService,
-    //private sockets: WebsocketsService
-  ) { }
+    private settingsService: SettingsService //private sockets: WebsocketsService
+  ) {}
 
   /*
   registerUser(user){
@@ -33,14 +32,14 @@ export class AuthService {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     })
-    return this.http.post(`${environment.PG_URI}/frontend/authenticate`, user, {headers: headers})
-    .pipe(
+    return this.http.post(`${environment.PG_URI}/auth`, user, { headers: headers }).pipe(
       tap((response: Response) => {
-        let data = {success: false, msg: response['msg'] }
+        let data = { success: false, msg: response['msg'] }
         let token = response['token']
         if (token) {
+          console.log(response)
           this.authToken = token
-          this.storeUserData(token, response['user'].username)
+          this.storeUserData(token, response['user'])
           this.settingsService.storeSettings(response['settings'])
           data.success = true
           this.isLoggedIn.next(true)
@@ -56,19 +55,19 @@ export class AuthService {
       Authorization: this.authToken,
       'Content-Type': 'application/json'
     })
-    return this.http.get(`${environment.PG_URI}/frontend/profile`, {headers: headers})
+    return this.http.get(`${environment.PG_URI}/frontend/profile`, { headers: headers })
   }
 
   storeUserData(token, user) {
     localStorage.setItem('id_token', token)
-    //localStorage.setItem('user', JSON.stringify(user))
+    localStorage.setItem('profile', JSON.stringify({ ...user, preferredIsy: 'none' }))
     this.authToken = token
-    this.user = user
+    this.user = user.name
   }
 
   loadToken() {
-    const token = localStorage.getItem('id_token')
-    this.authToken = token
+    this.authToken = localStorage.getItem('id_token')
+    this.user = JSON.parse(localStorage.getItem('profile')).name
   }
 
   loggedIn() {
@@ -83,10 +82,9 @@ export class AuthService {
     //this.sockets.stop()
   }
 
-  tokenNotExpired(tokenName, jwt?:string): boolean {
-    const token: string = jwt || localStorage.getItem(tokenName);
-    const jwtHelper = new JwtHelper();
-    return token != null && !jwtHelper.isTokenExpired(token);
+  tokenNotExpired(tokenName, jwt?: string): boolean {
+    const token: string = jwt || localStorage.getItem(tokenName)
+    const jwtHelper = new JwtHelper()
+    return token != null && !jwtHelper.isTokenExpired(token)
   }
-
 }

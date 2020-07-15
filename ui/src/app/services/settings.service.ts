@@ -1,30 +1,29 @@
 import { Injectable } from '@angular/core'
 import { HttpClient, HttpHeaders } from '@angular/common/http'
 import { environment } from '../../environments/environment'
-import { Title }     from '@angular/platform-browser'
+import { Title } from '@angular/platform-browser'
 
-import { Observable } from 'rxjs'
+import { Observable, BehaviorSubject } from 'rxjs'
 
-
-import { finalize, tap } from 'rxjs/operators';
+import { finalize, tap } from 'rxjs/operators'
 
 import { saveAs } from 'file-saver'
 
 //import { NodeServer } from '../models/nodeserver.model'
 
-
 @Injectable()
 export class SettingsService {
+  public authToken: any
+  public settings: any
+  public currentNode: any
+  public isPolisy: boolean = false
+  public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
+  public currentNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
+  public isys
+  public nodeServers
+  public availableNodeServerSlots = []
 
-  authToken: any
-  settings: any
-  currentNode: any
-  isPolisy: boolean = false
-
-  constructor(
-    private http: HttpClient,
-    private titleService: Title
-    ) { }
+  constructor(private http: HttpClient, private titleService: Title) {}
 
   loadToken() {
     const token = localStorage.getItem('id_token')
@@ -33,13 +32,25 @@ export class SettingsService {
 
   async savePackage(id) {
     var headers = new HttpHeaders().set('Authorization', localStorage.getItem('id_token'))
-    const file = await this.http.get(`${environment.PG_URI}/frontend/log/package/${id}`, { observe: 'response', responseType: "blob", headers: headers }).toPromise()
+    const file = await this.http
+      .get(`${environment.PG_URI}/frontend/log/package/${id}`, {
+        observe: 'response',
+        responseType: 'blob',
+        headers: headers
+      })
+      .toPromise()
     this.saveToFileSystem(file)
   }
 
   async downloadLog(id) {
     var headers = new HttpHeaders().set('Authorization', localStorage.getItem('id_token'))
-    const file = await this.http.get(`${environment.PG_URI}/frontend/log/${id}`, { observe: 'response', responseType: "blob", headers: headers }).toPromise()
+    const file = await this.http
+      .get(`${environment.PG_URI}/frontend/log/${id}`, {
+        observe: 'response',
+        responseType: 'blob',
+        headers: headers
+      })
+      .toPromise()
     this.saveToFileSystem(file)
   }
 
@@ -51,29 +62,31 @@ export class SettingsService {
     saveAs(blob, filename)
   }
 
-  getSettings () {
+  getSettings() {
     this.loadToken()
     const headers = new HttpHeaders({
       Authorization: this.authToken,
       'Content-Type': 'application/json'
     })
-    this.http.get(`${environment.PG_URI}/frontend/settings`, {headers: headers})
-    .subscribe(settings => {
-      this.storeSettings(settings)
-    })
+    this.http
+      .get(`${environment.PG_URI}/frontend/settings`, { headers: headers })
+      .subscribe(settings => {
+        this.storeSettings(settings)
+      })
   }
 
   getPolisy() {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
     })
-    this.http.get(`${environment.PG_URI}/frontend/ispolisy`, {headers: headers})
-    .subscribe(payload => {
-      if (payload && payload.hasOwnProperty('isPolisy')) {
-        this.isPolisy = payload['isPolisy']
-        this.titleService.setTitle(`${this.isPolisy ? 'Polisy' : 'Polyglot'}`)
-      }
-    })
+    this.http
+      .get(`${environment.PG_URI}/frontend/ispolisy`, { headers: headers })
+      .subscribe(payload => {
+        if (payload && payload.hasOwnProperty('isPolisy')) {
+          this.isPolisy = payload['isPolisy'] ? true : false
+          this.titleService.setTitle(`${this.isPolisy ? 'Polisy' : 'Polyglot'}`)
+        }
+      })
   }
 
   setSettings(settings) {
@@ -82,7 +95,7 @@ export class SettingsService {
       Authorization: this.authToken,
       'Content-Type': 'application/json'
     })
-    return this.http.post(`${environment.PG_URI}/frontend/settings`, settings, {headers: headers})
+    return this.http.post(`${environment.PG_URI}/frontend/settings`, settings, { headers: headers })
   }
 
   setProfile(profile) {
@@ -91,7 +104,7 @@ export class SettingsService {
       Authorization: this.authToken,
       'Content-Type': 'application/json'
     })
-    return this.http.post(`${environment.PG_URI}/frontend/settings`, profile, {headers: headers})
+    return this.http.post(`${environment.PG_URI}/frontend/settings`, profile, { headers: headers })
   }
 
   storeSettings(settings) {
@@ -111,8 +124,14 @@ export class SettingsService {
 
   async downloadBackup() {
     this.loadToken()
-    var headers = new HttpHeaders({'Authorization': this.authToken})
-    const file = await this.http.get(`${environment.PG_URI}/frontend/backup`, { observe: 'response', responseType: "blob", headers: headers }).toPromise()
+    var headers = new HttpHeaders({ Authorization: this.authToken })
+    const file = await this.http
+      .get(`${environment.PG_URI}/frontend/backup`, {
+        observe: 'response',
+        responseType: 'blob',
+        headers: headers
+      })
+      .toPromise()
     this.saveToFileSystem(file)
   }
 

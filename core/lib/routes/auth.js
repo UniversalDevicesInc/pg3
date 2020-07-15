@@ -16,7 +16,7 @@ const User = require('../models/user')
  Body: {"username": "admin", "password": "admin"}
  Response: {"success": true, "token": "JWT TOKEN", "user": {"username": "e42"}}
  * @name authenticate
- * @route {POST} //authenticate
+ * @route {POST} /auth
  */
 const router = new Router()
 
@@ -52,8 +52,7 @@ router.post('/auth', async ctx => {
         role: gotUser.role,
         groups: gotUser.groups
       },
-      polisy: config.globalsettings.polisy
-      // settings: cleanSettings
+      settings: config.globalsettings
     }
   } catch (err) {
     logger.error(`Invalid user: ${err}`)

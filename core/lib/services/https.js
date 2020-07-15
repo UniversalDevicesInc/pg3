@@ -62,11 +62,11 @@ async function start() {
       jwt({
         secret: config.globalsettings.id
       }).unless({
-        path: [/^\/auth/, '/']
+        path: [/^\/auth/, '/', /^\/frontend\/ispolisy/]
       })
     )
     app.use(authRoutes.routes())
-    app.use(frontendRoutes.allowedMethods())
+    app.use(authRoutes.allowedMethods())
     app.use(frontendRoutes.routes())
     app.use(frontendRoutes.allowedMethods())
     try {

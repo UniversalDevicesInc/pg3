@@ -1,31 +1,80 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
-    <span class="navbar-brand" href="#">{{settings.isPolisy ? 'Polisy' : 'Polyglot'}}</span>
-    <button class="navbar-toggler" type="button" (click)="isCollapsed = !isCollapsed" data-target="#navbar"
-            [attr.aria-expanded]="!isCollapsed" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-brand" href="#">{{ settings.isPolisy ? 'Polisy' : 'Polyglot' }}</span>
+    <button
+      class="navbar-toggler"
+      type="button"
+      (click)="isCollapsed = !isCollapsed"
+      data-target="#navbar"
+      [attr.aria-expanded]="!isCollapsed"
+      aria-controls="navbar"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div id="navbar" class="collapse navbar-collapse" [ngbCollapse]="!isCollapsed">
       <ul class="nav mr-auto">
-        <li class="nav-item" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}">
+        <li
+          class="nav-item"
+          [routerLinkActive]="['active']"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
           <a class="nav-link" [routerLink]="['/']" (click)="isCollapsed = !isCollapsed">Home</a>
         </li>
       </ul>
 
       <ul class="nav ml-auto">
-
-        <li class="nav-item" *ngIf="authService.loggedIn()" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}">
-          <a class="nav-link" [routerLink]="['/dashboard']" (click)="isCollapsed = !isCollapsed">Dashboard</a>
+        <li
+          *ngIf="authService.loggedIn()"
+          class="nav-item"
+          [routerLinkActive]="['active']"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <a class="nav-link" [routerLink]="['/dashboard']" (click)="isCollapsed = !isCollapsed">{{
+            dashboard
+          }}</a>
+        </li>
+        <li *ngIf="authService.loggedIn() && isys !== null" class="nav-item">
+          <div ngbDropdown>
+            <span class="nav-link text-light" id="nsMenu" ngbDropdownToggle>ISYs</span>
+            <div ngbDropdownMenu aria-labelledby="nsMenu">
+              <button
+                *ngFor="let isy of settings.isys"
+                class="dropdown-item"
+                (click)="updateCurrentIsy(isy)"
+              >
+                {{ isy.uuid }}
+              </button>
+              <button class="dropdown-item" (click)="refreshIsys()">Refresh ISY's</button>
+            </div>
+          </div>
         </li>
 
         <li class="nav-item" *ngIf="authService.loggedIn()">
           <div ngbDropdown>
             <span class="nav-link text-light" id="nsMenu" ngbDropdownToggle>NodeServers</span>
             <div ngbDropdownMenu aria-labelledby="nsMenu">
-              <button class="dropdown-item" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}" [routerLink]="['/addnode']" (click)="isCollapsed = !isCollapsed">Add NodeServer</button>
+              <button
+                class="dropdown-item"
+                [routerLinkActive]="['active']"
+                [routerLinkActiveOptions]="{ exact: true }"
+                [routerLink]="['/addnode']"
+                (click)="isCollapsed = !isCollapsed"
+              >
+                Add NodeServer
+              </button>
               <li class="dropdown-divider"></li>
-              <button class="dropdown-item" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}" [routerLink]="['/getns']" (click)="isCollapsed = !isCollapsed">NodeServer Store</button>
+              <button
+                class="dropdown-item"
+                [routerLinkActive]="['active']"
+                [routerLinkActiveOptions]="{ exact: true }"
+                [routerLink]="['/getns']"
+                (click)="isCollapsed = !isCollapsed"
+              >
+                NodeServer Store
+              </button>
             </div>
           </div>
         </li>
@@ -35,12 +84,36 @@
             <span class="nav-link text-light" id="setMenu" ngbDropdownToggle>Settings</span>
             <div ngbDropdownMenu aria-labelledby="setMenu">
               <div *ngIf="settings.isPolisy">
-                <button class="dropdown-item" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}" [routerLink]="['/polisyconf']" (click)="isCollapsed = !isCollapsed">Polisy Configuration</button>
+                <button
+                  class="dropdown-item"
+                  [routerLinkActive]="['active']"
+                  [routerLinkActiveOptions]="{ exact: true }"
+                  [routerLink]="['/polisyconf']"
+                  (click)="isCollapsed = !isCollapsed"
+                >
+                  Polisy Configuration
+                </button>
                 <li class="dropdown-divider"></li>
               </div>
-              <button class="dropdown-item" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}" [routerLink]="['/settings']" (click)="isCollapsed = !isCollapsed">Polyglot Settings</button>
+              <button
+                class="dropdown-item"
+                [routerLinkActive]="['active']"
+                [routerLinkActiveOptions]="{ exact: true }"
+                [routerLink]="['/settings']"
+                (click)="isCollapsed = !isCollapsed"
+              >
+                Polyglot Settings
+              </button>
               <li class="dropdown-divider"></li>
-              <button class="dropdown-item" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}" [routerLink]="['/profile']" (click)="isCollapsed = !isCollapsed">Profile</button>
+              <button
+                class="dropdown-item"
+                [routerLinkActive]="['active']"
+                [routerLinkActiveOptions]="{ exact: true }"
+                [routerLink]="['/profile']"
+                (click)="isCollapsed = !isCollapsed"
+              >
+                Profile
+              </button>
             </div>
           </div>
         </li>
@@ -54,37 +127,61 @@
               <button class="dropdown-item" (click)="showConfirm()">Reboot ISY</button>
               <div *ngIf="settings.isPolisy">
                 <li class="dropdown-divider"></li>
-                <button class="dropdown-item" (click)="upgradecheck()">Check for Polisy Updates</button>
+                <button class="dropdown-item" (click)="upgradecheck()">
+                  Check for Polisy Updates
+                </button>
                 <li class="dropdown-divider"></li>
-                <button class="dropdown-item" (click)="confirmSystem('upgrade')">Update Polisy</button>
+                <button class="dropdown-item" (click)="confirmSystem('upgrade')">
+                  Update Polisy
+                </button>
                 <li class="dropdown-divider"></li>
-                <button class="dropdown-item" (click)="confirmSystem('reboot')">Reboot Polisy</button>
+                <button class="dropdown-item" (click)="confirmSystem('reboot')">
+                  Reboot Polisy
+                </button>
                 <li class="dropdown-divider"></li>
-                <button class="dropdown-item" (click)="confirmSystem('shutdown')">Shutdown Polisy</button>
+                <button class="dropdown-item" (click)="confirmSystem('shutdown')">
+                  Shutdown Polisy
+                </button>
               </div>
             </div>
           </div>
         </li>
 
-        <li class="nav-item" *ngIf="authService.loggedIn()" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}">
+        <li
+          class="nav-item"
+          *ngIf="authService.loggedIn()"
+          [routerLinkActive]="['active']"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
           <a class="nav-link" [routerLink]="['/log']" (click)="isCollapsed = !isCollapsed">Log</a>
         </li>
 
-        <li class="nav-item" *ngIf="!authService.loggedIn()" [routerLinkActive] = "['active']" [routerLinkActiveOptions] = "{exact:true}">
-          <a class="nav-link" [routerLink]="['/login']" (click)="isCollapsed = !isCollapsed">Login</a>
+        <li
+          class="nav-item"
+          *ngIf="!authService.loggedIn()"
+          [routerLinkActive]="['active']"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <a class="nav-link" [routerLink]="['/login']" (click)="isCollapsed = !isCollapsed"
+            >Login</a
+          >
         </li>
 
         <li class="nav-item" *ngIf="authService.loggedIn()">
           <a class="nav-link" (click)="onLogoutClick()" href="#">Logout</a>
         </li>
-
       </ul>
-    </div><!--/.nav-collapse -->
-  </div><!-- container -->
+    </div>
+    <!--/.nav-collapse -->
+  </div>
+  <!-- container -->
 </nav>
 
 <div *ngIf="authService.loggedIn()">
   <div *ngIf="!mqttConnected" class="alert alert-dismissible alert-danger text-center">
-    <p>Not connected to server... Try refreshing the page. This will disappear once the connection is re-established.</p>
+    <p>
+      Not connected to server... Try refreshing the page. This will disappear once the connection is
+      re-established.
+    </p>
   </div>
 </div>

@@ -1,5 +1,6 @@
 /* eslint callback-return: "error" */
 const Aedes = require('aedes')
+const jwt = require('jsonwebtoken')
 // const fs = require('fs')
 
 const logger = require('../modules/logger')
@@ -92,8 +93,14 @@ async function start() {
         return callback(null, password.toString() === config.mqttClientKey)
       if (username === 'debug') return callback(null, true)
       // Frontend
-      if (client.id.startsWith('pg3frontend'))
-        return callback(null, user.checkPassword(username, password.toString()))
+      if (client.id.startsWith('pg3frontend')) {
+        try {
+          const decoded = jwt.verify(password.toString(), config.globalsettings.id)
+          return callback(null, true)
+        } catch (err) {
+          return callback(null, false)
+        }
+      }
       // NodeServers
       const userParts = username.split('_')
       if (userParts.length < 2) return callback(error, null)
@@ -113,6 +120,8 @@ async function start() {
           !packet.topic.includes(`udi/pg3/frontend/clients/`)
         )
           return callback(null)
+        if (packet.topic.includes(`polisy/`) || packet.topic.includes(`config/`))
+          return callback(null)
         return callback(error)
       }
       if (packet.topic.includes(`udi/pg3/ns/`) && !packet.topic.includes(`udi/pg3/ns/clients/`))
@@ -127,7 +136,10 @@ async function start() {
         if (client.id === config.mqttClientId) return callback(null, sub)
         const { username } = client
         if (client.id.startsWith('pg3frontend')) {
-          if (sub.topic === `udi/pg3/frontend/clients/${username}`) return callback(null, sub)
+          if (sub.topic.startsWith(`udi/pg3/frontend/clients/${username}`))
+            return callback(null, sub)
+          if (sub.topic.includes('sconfig') || sub.topic.includes('spolisy'))
+            return callback(null, sub)
           return callback(error, null)
         }
         if (sub.topic === `udi/pg3/ns/clients/${client.id}`) return callback(null, sub)

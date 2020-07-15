@@ -9,7 +9,6 @@ import { Router } from '@angular/router'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
 
-
 @Component({
   selector: 'app-addnode',
   templateUrl: './addnode.component.html',
@@ -26,7 +25,7 @@ export class AddnodeComponent implements OnInit, OnDestroy {
   private subNodeServers: any
   private subNsTypes: any
   public nsTypes: string[] = []
-  public indexes: number[] = Array.from({ length: 25 }, (value, key) => key + 1);
+  public indexes: number[] = Array.from({ length: 25 }, (value, key) => key + 1)
   public types: string[] = ['Local (Co-Resident with Polyglot)', 'Remote']
   public typeSet: string[] = ['local', 'remote']
   public received = false
@@ -54,7 +53,6 @@ export class AddnodeComponent implements OnInit, OnDestroy {
     this.selectedNS = this.nsTypes[index]
   }
 
-
   ngOnInit() {
     // if (!this.sockets.connected) this.sockets.start()
     this.getConnected()
@@ -63,39 +61,45 @@ export class AddnodeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.subConnected) { this.subConnected.unsubscribe() }
-    if (this.subNsTypes) { this.subNsTypes.unsubscribe() }
-    if (this.subNodeServers) { this.subNodeServers.unsubscribe() }
+    if (this.subConnected) {
+      this.subConnected.unsubscribe()
+    }
+    if (this.subNsTypes) {
+      this.subNsTypes.unsubscribe()
+    }
+    if (this.subNodeServers) {
+      this.subNodeServers.unsubscribe()
+    }
   }
 
   getConnected() {
     this.subConnected = this.sockets.mqttConnected.subscribe(connected => {
       this.mqttConnected = connected
       if (connected) {
-        this.sockets.sendMessage('nodeservers', { 'nodetypes': '' })
+        this.sockets.sendMessage('nodeservers', { nodetypes: '' })
       }
     })
   }
 
   getNodeServers() {
-    this.subNodeServers = this.sockets.nodeServerData.subscribe(nodeServers => {
-      this.nodeServers = nodeServers
-      this.nodeServers.forEach((ns) => {
-        const ind = this.indexes.indexOf(parseInt(ns.profileNum, 10));
-        if (ind > -1) {
-          this.indexes.splice(ind, 1)
-        }
-      })
-      this.profileNum = this.indexes[0]
-    })
+    // this.subNodeServers = this.sockets.nodeServerData.subscribe(nodeServers => {
+    //   this.nodeServers = nodeServers
+    //   this.nodeServers.forEach((ns) => {
+    //     const ind = this.indexes.indexOf(parseInt(ns.profileNum, 10));
+    //     if (ind > -1) {
+    //       this.indexes.splice(ind, 1)
+    //     }
+    //   })
+    //   this.profileNum = this.indexes[0]
+    // })
   }
 
   getNsTypes() {
-    this.subNsTypes = this.sockets.nsTypeResponse.subscribe(nsTypes => {
-      this.received = true
-      this.nsTypes = nsTypes.notInUse
-      this.selectedNS = this.nsTypes[0]
-    })
+    // this.subNsTypes = this.sockets.nsTypeResponse.subscribe(nsTypes => {
+    //   this.received = true
+    //   this.nsTypes = nsTypes.notInUse
+    //   this.selectedNS = this.nsTypes[0]
+    // })
   }
 
   showConfirm() {
@@ -104,61 +108,68 @@ export class AddnodeComponent implements OnInit, OnDestroy {
     modalRef.componentInstance.body = `Typically it is only necessary to restart the admin console by
  closing and re-opening it. If this doesn't show your new NodeServer, use the
  Reboot ISY button on the navigation bar above.`
-    modalRef.result.then((isConfirmed) => {
+    modalRef.result
+      .then(isConfirmed => {
         this.onRegisterSubmit(isConfirmed)
-    }).catch((error) => {})
+      })
+      .catch(error => {})
   }
 
   showDisconnected() {
     this.flashMessage.show('Error not connected to Polyglot.', {
       cssClass: 'alert-danger',
-      timeout: 3000})
+      timeout: 3000
+    })
   }
 
   onRegisterSubmit(confirmed) {
-    if (!confirmed) { return }
-    let name: string, path: string;
-    if (!this.sockets.isyConnected) {
-      this.flashMessage.show('ISY not connected to Polyglot. Can\'t add NodeServers.',
-        { cssClass: 'alert-danger', timeout: 5000 });
-      window.scrollTo(0, 0)
+    if (!confirmed) {
+      return
+    }
+    let name: string, path: string
+    if (this.selectedType === 'local') {
+      name = this.selectedNS['name']
+      path = this.selectedNS['_folder']
     } else {
-      if (this.selectedType === 'local') {
-        name = this.selectedNS['name']
-        path = this.selectedNS['_folder']
-      } else {
-        name = this.name
-      }
-      const node = {
-        name: name || this.name,
-        profileNum: this.profileNum,
-        type: this.selectedType,
-        path: path || ''
-      }
-      if (!this.validateService.validateRegister(node)) {
-        this.flashMessage.show('Please fill in all fields', {cssClass: 'alert-danger', timeout: 3000})
-        return false
-      }
+      name = this.name
+    }
+    const node = {
+      name: name || this.name,
+      profileNum: this.profileNum,
+      type: this.selectedType,
+      path: path || ''
+    }
+    if (!this.validateService.validateRegister(node)) {
+      this.flashMessage.show('Please fill in all fields', {
+        cssClass: 'alert-danger',
+        timeout: 3000
+      })
+      return false
+    }
 
-      if (!this.validateService.validateProfileNum(node.profileNum)) {
-        this.flashMessage.show('Please use 1 through 10 for Node Server Number.',
-          {cssClass: 'alert-danger', timeout: 3000})
-        return false
-      }
+    if (!this.validateService.validateProfileNum(node.profileNum)) {
+      this.flashMessage.show('Please use 1 through 10 for Node Server Number.', {
+        cssClass: 'alert-danger',
+        timeout: 3000
+      })
+      return false
+    }
 
-      if (this.sockets.connected) {
-        this.sockets.sendMessage('nodeservers', {addns: node}, false, true)
-        this.flashMessage.show(`Successfully submitted ${node.type} NodeServer
+    if (this.sockets.connected) {
+      this.sockets.sendMessage('nodeservers', { addns: node }, false, true)
+      this.flashMessage.show(
+        `Successfully submitted ${node.type} NodeServer
  ${node.name} at slot ${node.profileNum}`,
-          {cssClass: 'alert-success', timeout: 3000})
-        window.scrollTo(0, 0)
-        this.router.navigate(['/dashboard'])
-      } else {
-        this.flashMessage.show('Websockets not connected to Polyglot. Node not added.', {
-          cssClass: 'alert-danger',
-          timeout: 5000})
-        window.scrollTo(0, 0)
-      }
+        { cssClass: 'alert-success', timeout: 3000 }
+      )
+      window.scrollTo(0, 0)
+      this.router.navigate(['/dashboard'])
+    } else {
+      this.flashMessage.show('Websockets not connected to Polyglot. Node not added.', {
+        cssClass: 'alert-danger',
+        timeout: 5000
+      })
+      window.scrollTo(0, 0)
     }
   }
 }
