@@ -79,6 +79,7 @@ export class WebsocketsService {
       this.client.subscribe(`udi/pg3/frontend/clients/${this.authService.user}/#`, null)
       this.client.subscribe('sconfig/#')
       this.client.subscribe('spolisy/#')
+      this.addSubscribers()
       this.sendMessage('system', { getIsys: {} })
     })
 
@@ -146,6 +147,29 @@ export class WebsocketsService {
   connectionState(newState: boolean) {
     this.connected = newState
     this.mqttConnected.next(newState)
+  }
+
+  addSubscribers() {
+    // currentIsy Subscriber
+    this.settingsService.currentIsy.subscribe(currentIsy => {
+      if (currentIsy !== null) {
+        this.sendMessage('command', { getNodeServers: { uuid: currentIsy['uuid'] } })
+      }
+    })
+
+    // getNodeServers Subscriber
+    this.getNodeServers.subscribe((nodeservers: any[]) => {
+      if (nodeservers !== null) {
+        this.settingsService.currentNodeServers.next(nodeservers)
+        this.settingsService.availableNodeServerSlots = []
+        for (let slot = 1; slot <= 25; slot++) {
+          this.settingsService.availableNodeServerSlots.push(slot)
+        }
+        nodeservers.map(item => {
+          this.settingsService.availableNodeServerSlots.splice(item.profileNum - 1, 1)
+        })
+      }
+    })
   }
 
   processNodeServers(message) {

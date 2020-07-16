@@ -19,7 +19,7 @@ async function nsget(id, cmd, data) {
   return servicens.getNs(data)
 }
 
-async function nsgetall(id, cmd, data) {
+async function getNodeServers(id, cmd, data) {
   return servicens.getAllNs(data)
 }
 
@@ -40,9 +40,9 @@ const API = {
     props: ['uuid', 'profileNum'],
     func: nsget
   },
-  nsgetall: {
+  getNodeServers: {
     props: ['uuid'],
-    func: nsgetall
+    func: getNodeServers
   }
 }
 

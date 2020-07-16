@@ -34,9 +34,9 @@ export class FooterComponent implements OnInit, OnDestroy {
   public uptime: any
   public mqttConnected: any
   public uptimeInterval: any
-  private upgrading: boolean = false
+  public upgrading: boolean = false
   public year = new Date().getFullYear()
-  version: string = environment.VERSION
+  public version: string = environment.VERSION
   stage: string = environment.STAGE
   private progress = {
     percent: 0
@@ -61,6 +61,7 @@ export class FooterComponent implements OnInit, OnDestroy {
     this.getPolyVersion()
     this.getUpgrade()
     if (this.authService.loggedIn()) if (!this.sockets.connected) this.sockets.start()
+    this.calculateUptime()
   }
 
   ngOnDestroy() {
@@ -234,7 +235,7 @@ export class FooterComponent implements OnInit, OnDestroy {
 
   calculateUptime() {
     //var seconds = Math.floor(()/1000)
-    var d = Math.abs(+new Date() - this.timeStarted) / 1000
+    var d = Math.abs(+new Date() - this.settings.settings.timeStarted) / 1000
     var r = {}
     var s = {
       'Year(s)': 31536000,

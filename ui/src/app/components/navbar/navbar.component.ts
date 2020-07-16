@@ -2,11 +2,11 @@ import { Component, OnInit, OnDestroy } from '@angular/core'
 import { AuthService } from '../../services/auth.service'
 import { SettingsService } from '../../services/settings.service'
 import { Router } from '@angular/router'
-import { FlashMessagesService } from 'angular2-flash-messages'
 import { WebsocketsService } from '../../services/websockets.service'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { Subscription } from 'rxjs'
+import { ToastrService } from 'ngx-toastr'
 
 import { environment } from '../../../environments/environment'
 
@@ -29,9 +29,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     public authService: AuthService,
     private router: Router,
     private modal: NgbModal,
-    private flashMessage: FlashMessagesService,
     public sockets: WebsocketsService,
-    public settings: SettingsService
+    public settings: SettingsService,
+    private toastr: ToastrService
   ) {
     this.environment = environment
   }
@@ -56,11 +56,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
               selectedIsy = profile.preferredIsy
             }
           } else selectedIsy = currentIsy
-          localStorage.setItem('currentIsy', selectedIsy)
           this.settings.isys.map(item => {
             if (item.uuid === selectedIsy) {
-              this.settings.currentIsy.next(item)
-              this.dashboard = item.uuid ? `${selectedIsy} Dashboard` : 'Dashboard'
+              this.updateCurrentIsy(item)
             }
           })
         }
@@ -74,12 +72,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   updateCurrentIsy(isy) {
     if (isy && isy.hasOwnProperty('uuid')) {
-      if (this.settings.currentIsy.value['uuid'] === isy.uuid) {
+      if (this.settings.currentIsy.value && this.settings.currentIsy.value['uuid'] === isy.uuid) {
         return
       }
       localStorage.setItem('currentIsy', isy.uuid)
       this.settings.currentIsy.next(isy)
-      this.dashboard = this.settings.currentIsy ? `${isy.uuid} Dashboard` : 'Dashboard'
+      this.dashboard = isy ? `${isy.name || isy.uuid} Dashboard` : 'Dashboard'
     }
   }
 
@@ -121,44 +119,35 @@ export class NavbarComponent implements OnInit, OnDestroy {
   restartClick() {
     if (this.mqttConnected) {
       this.sockets.sendMessage('nodeservers', { restartPolyglot: {} })
-      this.flashMessage.show(
-        'Sent Restart command to Polyglot. Please wait till this message disappears to attempt to login again.',
-        {
-          cssClass: 'alert-success',
-          timeout: 20000
-        }
+      this.toastr.warning(
+        'Sent Restart command to Polyglot. You will be logged out. Please wait till this message disappears to attempt to login again.',
+        null,
+        { timeOut: 20000 }
       )
       setTimeout(() => {
         this.onLogoutClick()
       }, 2000)
-    } else this.showDisconnected()
+    }
   }
 
   rebootClick() {
     if (this.mqttConnected) {
-      this.sockets.sendMessage('nodeservers', { rebootISY: {} })
-      this.flashMessage.show('Sent Reboot command to ISY.', {
-        cssClass: 'alert-success',
-        timeout: 3000
+      this.sockets.sendMessage('system', {
+        reboot: { uuid: this.settings.currentIsy.value['uuid'] }
       })
+      this.toastr.success(`Sent Reboot command to ISY.`)
     } else this.showDisconnected()
   }
 
   showDisconnected() {
-    this.flashMessage.show('Error not connected to Polyglot.', {
-      cssClass: 'alert-danger',
-      timeout: 3000
-    })
+    this.toastr.error(`Not connected to PG3`)
   }
 
   onLogoutClick() {
     this.authService.logout()
     this.subscription.unsubscribe()
     this.sockets.stop()
-    this.flashMessage.show('You are logged out.', {
-      cssClass: 'alert-success',
-      timeout: 3000
-    })
+    this.toastr.success(`Logged out`)
     this.router.navigate(['/login'])
   }
 
@@ -184,14 +173,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.sockets.sendMessage(`polisy/${type}`, null)
       window.scrollTo(0, 0)
       if (type === 'upgrade') {
-        this.flashMessage.show(`Sent ${type} command to Polisy. Please wait...`, {
-          cssClass: 'alert-success',
-          timeout: 20000
+        this.toastr.success(`Sent ${type} command to Polisy. Please wait...`, null, {
+          timeOut: 20000
         })
       } else {
-        this.flashMessage.show(
+        this.toastr.success(
           `Sent ${type} command to Polisy. Please wait till this message disappears to attempt to login again.`,
-          { cssClass: 'alert-success', timeout: 30000 }
+          null,
+          { timeOut: 30000 }
         )
         setTimeout(() => {
           this.onLogoutClick()
@@ -202,10 +191,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   upgradecheck() {
     this.sockets.sendMessage(`polisy/upgrade/check`, null)
-    this.flashMessage.show(
-      `Sent upgrade check command to Polisy. This could take a few minutes. A notice will display when it is complete.`,
-      { cssClass: 'alert-success', timeout: 10000 }
-    )
+    // this.flashMessage.show(
+    //   `Sent upgrade check command to Polisy. This could take a few minutes. A notice will display when it is complete.`,
+    //   { cssClass: 'alert-success', timeout: 10000 }
+    // )
     window.scrollTo(0, 0)
   }
 }

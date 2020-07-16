@@ -38,11 +38,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private sockets: WebsocketsService,
-    private flashMessage: FlashMessagesService,
     private addNodeService: AddnodeService,
     private modal: NgbModal,
     private router: Router,
-    private settingsService: SettingsService
+    public settingsService: SettingsService
   ) {
     this.subscription.add(
       this.sockets.mqttConnected.subscribe(connected => {
@@ -126,20 +125,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return (this.selectedNode = null)
     }
     if (nodeServer.nodes.length === 0) {
-      this.flashMessage.show('This NodeServer has no nodes defined.', {
-        cssClass: 'alert-danger',
-        timeout: 3000
-      })
+      // this.flashMessage.show('This NodeServer has no nodes defined.', {
+      //   cssClass: 'alert-danger',
+      //   timeout: 3000
+      // })
       return window.scrollTo(0, 0)
     }
     this.selectedNode = nodeServer
   }
 
   showDisconnected() {
-    this.flashMessage.show('Error not connected to Polyglot.', {
-      cssClass: 'alert-danger',
-      timeout: 3000
-    })
+    // this.flashMessage.show('Error not connected to Polyglot.', {
+    //   cssClass: 'alert-danger',
+    //   timeout: 3000
+    // })
   }
 
   redirect(profileNum) {

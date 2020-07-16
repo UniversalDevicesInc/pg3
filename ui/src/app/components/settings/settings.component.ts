@@ -103,21 +103,21 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   sendSettingsREST(settings) {
-    this.settingsService.setSettings(settings).subscribe(data => {
-      if (data['success']) {
-        this.flashMessage.show('Settings saved successfully.', {
-          cssClass: 'alert-success',
-          timeout: 5000
-        })
-        window.scrollTo(0, 0)
-      } else {
-        this.flashMessage.show(data['msg'], {
-          cssClass: 'alert-danger',
-          timeout: 5000
-        })
-        window.scrollTo(0, 0)
-      }
-    })
+    // this.settingsService.setSettings(settings).subscribe(data => {
+    //   if (data['success']) {
+    //     this.flashMessage.show('Settings saved successfully.', {
+    //       cssClass: 'alert-success',
+    //       timeout: 5000
+    //     })
+    //     window.scrollTo(0, 0)
+    //   } else {
+    //     this.flashMessage.show(data['msg'], {
+    //       cssClass: 'alert-danger',
+    //       timeout: 5000
+    //     })
+    //     window.scrollTo(0, 0)
+    //   }
+    // })
   }
 
   getDirtyValues(cg) {

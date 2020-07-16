@@ -1,28 +1,45 @@
-
 <footer class="footer">
-  <br>
+  <br />
   <div *ngIf="this.authService.loggedIn()" class="container text-center">
-    <div class="card" style="max-width:800px;margin-left:auto; margin-right:auto;">
-        <div class="card-body">
-          <div *ngIf="upgrading">
-            <h3>Upgrading... Please wait.</h3>
-            <div class="progress">
-              <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" [style.width]="(Math.round(progress.percent*100)) + '%'">{{Math.round(progress.percent*100)}}%</div>
+    <div class="card" style="max-width: 800px; margin-left: auto; margin-right: auto;">
+      <div class="card-body">
+        <div *ngIf="upgrading">
+          <h3>Upgrading... Please wait.</h3>
+          <div class="progress">
+            <div
+              class="progress-bar progress-bar-striped progress-bar-animated"
+              role="progressbar"
+              [style.width]="Math.round(progress.percent * 100) + '%'"
+            >
+              {{ Math.round(progress.percent * 100) }}%
             </div>
           </div>
-          <p align="center">Version <b>{{pgVersion}}</b> Status: <span class='badge badge-secondary'>{{mqttConnected ? 'Connected' : 'Disconnected'}}</span>
-            <br />Frontend Version: <b>{{version}}</b>
-            <br />ISY Version: <b>{{isyVersion}}</b>
-            <br />Uptime: <strong>{{mqttConnected ? uptime : 'Not Connected'}}</strong>
-            <br>(c) {{year}} UDI<br>
-            <span *ngIf="settings.isPolisy">Running on Polisy<br></span>
-            <a href="https://www.universal-devices.com/polisy" *ngIf="settings.isPolisy">Documentation</a>
-            <a href="https://github.com/UniversalDevicesInc/polyglot-v2/blob/master/README.md" *ngIf="!settings.isPolisy">Documentation</a><br>
-          </p>
-          <div *ngIf="updateAvail && !upgrading">
-            <button class="btn btn-primary" (click)=showConfirm()> Upgrade Available Click here to update to {{currentVersion}} </button>
-          </div>
         </div>
+        <p align="center">
+          Version <b>{{ settings.settings.pg3Version }}</b> <br />Status:
+          <span class="badge badge-secondary">{{
+            mqttConnected ? 'Connected' : 'Disconnected'
+          }}</span>
+          <br />Frontend Version: <b>{{ version }}</b> <br />ISY Version:
+          <b>{{ (settings.currentIsy | async)?.version }}</b> <br />Uptime:
+          <strong>{{ mqttConnected ? uptime : 'Not Connected' }}</strong> <br />(c)
+          {{ year }} UDI<br />
+          <span *ngIf="settings.isPolisy">Running on Polisy<br /></span>
+          <a href="https://www.universal-devices.com/polisy" *ngIf="settings.isPolisy"
+            >Documentation</a
+          >
+          <a
+            href="https://github.com/UniversalDevicesInc/polyglot-v2/blob/master/README.md"
+            *ngIf="!settings.isPolisy"
+            >Documentation</a
+          ><br />
+        </p>
+        <div *ngIf="updateAvail && !upgrading">
+          <button class="btn btn-primary" (click)="showConfirm()">
+            Upgrade Available Click here to update to {{ currentVersion }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </footer>

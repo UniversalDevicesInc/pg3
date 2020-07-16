@@ -19,9 +19,9 @@ export class SettingsService {
   public isPolisy: boolean = false
   public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
   public currentNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
-  public isys
-  public nodeServers
-  public availableNodeServerSlots = []
+  public isys: any[] = []
+  public nodeServers: any[] = []
+  public availableNodeServerSlots: any[] = []
 
   constructor(private http: HttpClient, private titleService: Title) {}
 
@@ -62,19 +62,6 @@ export class SettingsService {
     saveAs(blob, filename)
   }
 
-  getSettings() {
-    this.loadToken()
-    const headers = new HttpHeaders({
-      Authorization: this.authToken,
-      'Content-Type': 'application/json'
-    })
-    this.http
-      .get(`${environment.PG_URI}/frontend/settings`, { headers: headers })
-      .subscribe(settings => {
-        this.storeSettings(settings)
-      })
-  }
-
   getPolisy() {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
@@ -87,24 +74,6 @@ export class SettingsService {
           this.titleService.setTitle(`${this.isPolisy ? 'Polisy' : 'Polyglot'}`)
         }
       })
-  }
-
-  setSettings(settings) {
-    this.loadToken()
-    const headers = new HttpHeaders({
-      Authorization: this.authToken,
-      'Content-Type': 'application/json'
-    })
-    return this.http.post(`${environment.PG_URI}/frontend/settings`, settings, { headers: headers })
-  }
-
-  setProfile(profile) {
-    this.loadToken()
-    const headers = new HttpHeaders({
-      Authorization: this.authToken,
-      'Content-Type': 'application/json'
-    })
-    return this.http.post(`${environment.PG_URI}/frontend/settings`, profile, { headers: headers })
   }
 
   storeSettings(settings) {

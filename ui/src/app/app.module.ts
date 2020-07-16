@@ -105,7 +105,13 @@ const appRoutes: Routes = [
     TooltipModule.forRoot(),
     CommonModule,
     BrowserAnimationsModule, // required animations module
-    ToastrModule.forRoot() // ToastrModule added
+    ToastrModule.forRoot({
+      positionClass: 'toast-bottom-right',
+      progressBar: true,
+      enableHtml: true,
+      closeButton: true,
+      timeOut: 5000
+    }) // ToastrModule added
   ],
   entryComponents: [
     ConfirmComponent,

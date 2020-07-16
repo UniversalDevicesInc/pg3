@@ -1,37 +1,84 @@
 <div *ngIf="gotSettings">
   <div *ngIf="!isyConnected" class="alert alert-dismissible alert-danger text-center">
     <button type="button" class="close" data-dismiss="alert">&times;</button>
-    <p *ngIf="isyFound">ISY automatically discovered at {{isyHttps ? 'https' : 'http'}}://{{isyHost}}:{{isyPort}} however the username and password need to be set in the settings menu.</p>
-    <p *ngIf="!isyFound">ISY was not automatically discovered on your local network. Please configure it in the settings menu now.</p>
+    <p *ngIf="isyFound">
+      ISY automatically discovered at {{ isyHttps ? 'https' : 'http' }}://{{ isyHost }}:{{
+        isyPort
+      }}
+      however the username and password need to be set in the settings menu.
+    </p>
+    <p *ngIf="!isyFound">
+      ISY was not automatically discovered on your local network. Please configure it in the
+      settings menu now.
+    </p>
   </div>
 </div>
 
 <div class="container">
   <h2 align="center" class="text-white">NodeServers</h2>
   <div class="row card-group">
-    <div *ngFor="let nodeServer of nodeServers" class="col-6">
-      <div *ngIf="nodeServer.type === 'local'" class="mt-2">
+    <div *ngFor="let nodeServer of settingsService.currentNodeServers | async" class="col-6">
+      <div *ngIf="nodeServer.type !== 'unmanaged'" class="mt-2">
         <div class="card p-1 pt-2">
-            <h4 class="align-top" align="center" class="card-title">{{nodeServer.name}}({{nodeServer.profileNum}})</h4>
-            <p align="center" class="card-text">Current Status:
-              <span *ngIf="nodeServer.isConnected" class='badge badge-success'>Connected</span>
-              <span *ngIf="!nodeServer.isConnected" class='badge badge-danger'>Disconnected</span>
-            </p>
-            <div class="btn-group btn-group-justified py-0" role="group">
-              <button class="btn btn-primary btn-sm" (click)=showNodes(nodeServer) style="width: 33%" role="button">Nodes <span style="vertical-align: top" class="badge badge-secondary">{{nodeServer.nodes.length}}</span></button>
-              <button class="btn btn-primary btn-sm" (click)=redirect(nodeServer.profileNum) style="width: 34%" role="button">Details <span *ngIf="nodeServer.notices.length > 0" style="vertical-align: top" class="badge badge-info">New Message</span></button>
-              <button class="btn btn-primary btn-sm" (click)=showConfirm(nodeServer) style="width: 33%" role="button">Delete</button>
-            </div>
+          <h4 class="align-top" align="center" class="card-title">
+            {{ nodeServer.name }}({{ nodeServer.profileNum }})
+          </h4>
+          <p align="center" class="card-text">
+            Current Status:
+            <span *ngIf="nodeServer.isConnected" class="badge badge-success">Connected</span>
+            <span *ngIf="!nodeServer.isConnected" class="badge badge-danger">Disconnected</span>
+          </p>
+          <div class="btn-group btn-group-justified py-0" role="group">
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="showNodes(nodeServer)"
+              style="width: 33%;"
+              role="button"
+            >
+              Nodes
+              <span style="vertical-align: top;" class="badge badge-secondary">{{
+                nodeServer.nodes.length
+              }}</span>
+            </button>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="redirect(nodeServer.profileNum)"
+              style="width: 34%;"
+              role="button"
+            >
+              Details
+              <span
+                *ngIf="nodeServer.notices.length > 0"
+                style="vertical-align: top;"
+                class="badge badge-info"
+                >New Message</span
+              >
+            </button>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="showConfirm(nodeServer)"
+              style="width: 33%;"
+              role="button"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
       <div *ngIf="nodeServer.type === 'unmanaged'" class="mt-2">
         <div class="card p-1 pt-2">
           <div class="card-body px-1 py-1">
-              <h5 class="align-top py-0" align="center">{{nodeServer.name}}({{nodeServer.profileNum}})</h5>
-              <p align="center" class="py-0">Current Status: <span class='badge badge-primary'>Unmanaged</span></p>
+            <h5 class="align-top py-0" align="center">
+              {{ nodeServer.name }}({{ nodeServer.profileNum }})
+            </h5>
+            <p align="center" class="py-0">
+              Current Status: <span class="badge badge-primary">Unmanaged</span>
+            </p>
           </div>
           <div class="btn-group btn-group-justified py-0" role="group">
-            <button type="button" class="btn btn-primary btn-sm" style="width: 100%">No Details Available</button>
+            <button type="button" class="btn btn-primary btn-sm" style="width: 100%;">
+              No Details Available
+            </button>
           </div>
         </div>
       </div>
