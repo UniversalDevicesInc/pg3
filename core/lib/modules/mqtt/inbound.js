@@ -10,8 +10,8 @@ const nscommand = require('../nodeserver/command')
 const nssystem = require('../nodeserver/system')
 const nscustom = require('../nodeserver/custom')
 
-const frontendcommand = require('../frontend/command')
-const frontendsettings = require('../frontend/settings')
+const frontendns = require('../frontend/ns')
+const frontendisy = require('../frontend/isy')
 const frontendsystem = require('../frontend/system')
 
 const apiSwitch = {
@@ -23,9 +23,9 @@ const apiSwitch = {
     props: []
   },
   frontend: {
-    command: frontendcommand.API,
+    isy: frontendisy.API,
     system: frontendsystem.API,
-    settings: frontendsettings.API,
+    ns: frontendns.API,
     props: []
   }
 }
@@ -60,10 +60,10 @@ async function processMessage(topic, message) {
             })
         )
     )
-    logger.debug(`MQTT Results: [${id}] :: ${JSON.stringify(results)}`)
+    logger.debug(`MQTT Results: [${type}/${target}/${id}] :: ${JSON.stringify(results)}`)
     if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
       nscore.nsMessage(id[0], id[1], { id: message.id, ...results })
-    else frontcore.frontendMessage(id, { id: message.id, ...results })
+    else frontcore.frontendMessage(results)
   } catch (err) {
     logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }

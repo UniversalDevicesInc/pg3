@@ -19,6 +19,13 @@ if ('PG3WORKDIR' in process.env) {
   process.env.PG3WORKDIR = workDir
 }
 
+/**
+ * Create workDir folder if it does not exist
+ */
+if (!fs.existsSync(`${workDir}`)) {
+  fs.mkdirSync(`${workDir}`)
+}
+
 const logger = require('../lib/modules/logger')
 // These must be loaded after logger (they import logger, and logger needs workDir on first run)
 const db = require('../lib/services/db')

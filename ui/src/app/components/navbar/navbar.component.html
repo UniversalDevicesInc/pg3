@@ -45,7 +45,7 @@
                 class="dropdown-item"
                 (click)="updateCurrentIsy(isy)"
               >
-                {{ isy.uuid }}
+                {{ isy.name ? isy.name : 'ISY' }} - {{ isy.uuid }}
               </button>
               <button class="dropdown-item" (click)="refreshIsys()">Refresh ISY's</button>
             </div>

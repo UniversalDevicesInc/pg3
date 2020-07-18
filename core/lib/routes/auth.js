@@ -35,7 +35,6 @@ router.post('/auth', async ctx => {
       ctx.response.body = `User Disabled`
       return
     }
-    console.log(await User.checkPassword(username, password))
     if (!(await User.checkPassword(username, password))) {
       ctx.status = 401
       ctx.response.body = `Bad username or password`

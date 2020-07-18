@@ -19,6 +19,7 @@ export class SettingsService {
   public isPolisy: boolean = false
   public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
   public currentNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
+  public globalSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public isys: any[] = []
   public nodeServers: any[] = []
   public availableNodeServerSlots: any[] = []

@@ -25,8 +25,8 @@
           </h4>
           <p align="center" class="card-text">
             Current Status:
-            <span *ngIf="nodeServer.isConnected" class="badge badge-success">Connected</span>
-            <span *ngIf="!nodeServer.isConnected" class="badge badge-danger">Disconnected</span>
+            <span *ngIf="nodeServer.connected" class="badge badge-success">Connected</span>
+            <span *ngIf="!nodeServer.connected" class="badge badge-danger">Disconnected</span>
           </p>
           <div class="btn-group btn-group-justified py-0" role="group">
             <button
@@ -37,7 +37,7 @@
             >
               Nodes
               <span style="vertical-align: top;" class="badge badge-secondary">{{
-                nodeServer.nodes.length
+                nodeServer.nodeCount
               }}</span>
             </button>
             <button
@@ -48,7 +48,7 @@
             >
               Details
               <span
-                *ngIf="nodeServer.notices.length > 0"
+                *ngIf="isArray(nodeServer.notices) && nodeServer.notices.length > 0"
                 style="vertical-align: top;"
                 class="badge badge-info"
                 >New Message</span

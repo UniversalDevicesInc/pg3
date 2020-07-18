@@ -36,7 +36,6 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     this.authSub = this.authService.authenticateUser(user).subscribe(
       data => {
-        console.log(data)
         if (data === null) {
           return
         }

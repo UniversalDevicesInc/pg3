@@ -3,11 +3,12 @@ import { WebsocketsService } from '../../services/websockets.service'
 import { AuthService } from '../../services/auth.service'
 import { SettingsService } from '../../services/settings.service'
 import { AddnodeService } from '../../services/addnode.service'
-import { FlashMessagesService } from 'angular2-flash-messages'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { Router } from '@angular/router'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { environment } from '../../../environments/environment'
+import { ToastrService } from 'ngx-toastr'
+import { Subscription } from 'rxjs'
 
 @Component({
   selector: 'app-footer',
@@ -16,9 +17,7 @@ import { environment } from '../../../environments/environment'
 })
 export class FooterComponent implements OnInit, OnDestroy {
   Math: any
-  private subConnected: any
-  private subLoggedIn: any
-  private subSettings: any
+  private subscription: Subscription = new Subscription()
   private subPolyVersion: any
   private subUpgrade: any
   private gotPackage: boolean = false
@@ -45,55 +44,41 @@ export class FooterComponent implements OnInit, OnDestroy {
   constructor(
     private modal: NgbModal,
     private addNodeService: AddnodeService,
-    private flashMessage: FlashMessagesService,
     private router: Router,
     private sockets: WebsocketsService,
     public settings: SettingsService,
-    public authService: AuthService
+    public authService: AuthService,
+    private toastr: ToastrService
   ) {
     this.Math = Math
   }
 
   ngOnInit() {
-    this.getConnected()
-    this.getLoggedIn()
-    this.getSettings()
+    this.subscription.add(
+      this.sockets.mqttConnected.subscribe(connected => {
+        this.mqttConnected = connected
+      })
+    )
+    this.subscription.add(
+      this.authService.isLoggedIn.subscribe(state => {
+        this.loggedIn = state
+        if (state) if (!this.sockets.connected) this.sockets.start()
+        if (!state) this.cleanup()
+      })
+    )
+    this.subscription.add(
+      this.settings.globalSettings.subscribe(settings => {
+        if (settings) this.calculateUptime(settings)
+      })
+    )
+
     this.getPolyVersion()
     this.getUpgrade()
     if (this.authService.loggedIn()) if (!this.sockets.connected) this.sockets.start()
-    this.calculateUptime()
   }
 
   ngOnDestroy() {
     this.cleanup()
-  }
-
-  getConnected() {
-    this.subConnected = this.sockets.mqttConnected.subscribe(connected => {
-      this.mqttConnected = connected
-    })
-  }
-
-  getLoggedIn() {
-    this.subLoggedIn = this.authService.isLoggedIn.subscribe(state => {
-      this.loggedIn = state
-      if (state) if (!this.sockets.connected) this.sockets.start()
-      if (!state) this.cleanup()
-    })
-  }
-
-  getSettings() {
-    // this.subSettings = this.sockets.settingsData.subscribe(settings => {
-    //   this.isyVersion = settings.isyVersion
-    //   this.pgVersion = settings.pgVersion
-    //   this.timeStarted = settings.timeStarted
-    //   this.calculateUptime()
-    //   if (!this.uptimeInterval) {
-    //     this.uptimeInterval = setInterval(() => {
-    //       this.calculateUptime()
-    //     }, 1000)
-    //   }
-    // })
   }
 
   getPolyVersion() {
@@ -166,21 +151,12 @@ export class FooterComponent implements OnInit, OnDestroy {
     this.pgVersion = null
     this.authService.logout()
     this.sockets.stop()
-    this.flashMessage.show('You are logged out.', {
-      cssClass: 'alert-success',
-      timeout: 3000
-    })
+    this.toastr.success(`Logged out.`)
     this.router.navigate(['/login'])
   }
 
   cleanup() {
-    if (this.subConnected) {
-      this.subConnected.unsubscribe()
-    }
-    //if (this.subPolyglot) { this.subPolyglot.unsubscribe() }
-    if (this.subSettings) {
-      this.subSettings.unsubscribe()
-    }
+    this.subscription.unsubscribe()
     if (this.subPolyVersion) {
       this.subPolyVersion.unsubscribe()
     }
@@ -233,9 +209,9 @@ export class FooterComponent implements OnInit, OnDestroy {
     this.sockets.sendMessage('upgrade', { start: '' })
   }
 
-  calculateUptime() {
+  calculateUptime(settings) {
     //var seconds = Math.floor(()/1000)
-    var d = Math.abs(+new Date() - this.settings.settings.timeStarted) / 1000
+    var d = Math.abs(+new Date() - settings.timeStarted) / 1000
     var r = {}
     var s = {
       'Year(s)': 31536000,

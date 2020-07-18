@@ -21,8 +21,15 @@ async function publish(topic, message) {
  * @param {string} command - Command to send, e.g 'status', etc.
  * @param {object} message - Dictionary object of message to send. JSON format.
  */
-async function frontendMessage(username, message) {
-  return publish(`udi/pg3/frontend/clients/${username}`, message)
+async function frontendMessage(message) {
+  // if (uuid && type === 'isy')
+  //   return publish(`udi/pg3/frontend/clients/${config.globalsettings.id}/${uuid}`, message)
+  // if (uuid && profileNum && type === 'ns')
+  //   return publish(
+  //     `udi/pg3/frontend/clients/${config.globalsettings.id}/${uuid}/${profileNum}`,
+  //     message
+  //   )
+  return publish(`udi/pg3/frontend/clients/${config.globalsettings.id}`, message)
 }
 
 module.exports = {

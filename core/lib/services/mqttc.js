@@ -51,9 +51,9 @@ function addSubscriptions() {
     'udi/pg3/ns/command/#',
     'udi/pg3/ns/system/#',
     'udi/pg3/ns/custom/#',
-    'udi/pg3/frontend/command/#',
+    'udi/pg3/frontend/isy/#',
     'udi/pg3/frontend/system/#',
-    'udi/pg3/frontend/settings/#'
+    'udi/pg3/frontend/ns/#'
   ]
   config.mqttClient.subscribe(subscriptions, (err, granted) => {
     granted.map(grant => logger.debug(`MQTTC: Subscribed to ${grant.topic} QoS ${grant.qos}`))

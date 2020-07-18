@@ -14,6 +14,8 @@ export class WebsocketsService {
   public mqttConnected: ReplaySubject<boolean> = new ReplaySubject(1)
   public getIsys: BehaviorSubject<object> = new BehaviorSubject(null)
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
+  public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
+  public setSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public nsUpdate: BehaviorSubject<object> = new BehaviorSubject(null)
   public notification: BehaviorSubject<object> = new BehaviorSubject(null)
   public polisyNicsData: ReplaySubject<any> = new ReplaySubject(1)
@@ -51,9 +53,11 @@ export class WebsocketsService {
     }
     let options = {
       rejectUnauthorized: false,
+      keepalive: 5,
       clientId: this.id,
       clean: false,
-      // reconnectPeriod: 5000,
+      reconnectPeriod: 5000,
+      resubscribe: true,
       // connectTimeout: 30 * 1000,
       username: this.authService.user,
       password: localStorage.getItem('id_token')
@@ -75,34 +79,33 @@ export class WebsocketsService {
     this.client.on('connect', () => {
       console.log(`MQTT connected to ${this.url}`)
       this.connectionState(true)
-      this.client.subscribe(`udi/pg3/frontend/clients/${this.authService.user}`, null)
-      this.client.subscribe(`udi/pg3/frontend/clients/${this.authService.user}/#`, null)
+      console.log(this.settingsService.settings.id)
+      this.client.subscribe(`udi/pg3/frontend/clients/${this.settingsService.settings.id}`, null)
+      this.client.subscribe(`udi/pg3/frontend/clients/${this.settingsService.settings.id}/#`, null)
       this.client.subscribe('sconfig/#')
       this.client.subscribe('spolisy/#')
       this.addSubscribers()
-      this.sendMessage('system', { getIsys: {} })
+      this.sendMessage('system', { getIsys: {}, getSettings: {} })
     })
 
     this.client.on('message', (topic, message, packet) => {
       const msg = JSON.parse(message.toString())
+      console.log(`${topic} :: ${message.toString()}`)
       if (topic.startsWith('sconfig') || topic.startsWith('spolisy')) {
         this.processSconfig(topic, msg)
       }
       Object.keys(msg).map(key => {
         if (this[key]) this[key].next(msg[key])
       })
-      if (topic.endsWith(this.authService.user)) {
-        // this.polyglotData.next(msg)
-      } else if (topic === 'udi/polyglot/frontend/nodeservers') {
-        this.processNodeServers(msg)
-      } else if (topic === 'udi/polyglot/frontend/settings') {
-        this.processSettings(msg)
-      } else if (topic === 'udi/polyglot/frontend/log/' + this.id) {
-        // this.logData.next(msg)
-      }
     })
 
     this.client.on('reconnect', () => {
+      console.log(`MQTT reconnect`)
+      this.connectionState(false)
+    })
+
+    this.client.on('disconnect', () => {
+      console.log(`MQTT disconnected`)
       this.connectionState(false)
     })
 
@@ -153,13 +156,14 @@ export class WebsocketsService {
     // currentIsy Subscriber
     this.settingsService.currentIsy.subscribe(currentIsy => {
       if (currentIsy !== null) {
-        this.sendMessage('command', { getNodeServers: { uuid: currentIsy['uuid'] } })
+        this.sendMessage('isy', { getNodeServers: { uuid: currentIsy['uuid'] } })
       }
     })
 
     // getNodeServers Subscriber
     this.getNodeServers.subscribe((nodeservers: any[]) => {
       if (nodeservers !== null) {
+        console.log(nodeservers)
         this.settingsService.currentNodeServers.next(nodeservers)
         this.settingsService.availableNodeServerSlots = []
         for (let slot = 1; slot <= 25; slot++) {
@@ -169,6 +173,19 @@ export class WebsocketsService {
           this.settingsService.availableNodeServerSlots.splice(item.profileNum - 1, 1)
         })
       }
+    })
+
+    // getSettings Subscriber
+    this.getSettings.subscribe(settings => {
+      if (!settings) return
+      this.settingsService.globalSettings.next(settings)
+      this.settingsService.storeSettings(settings)
+    })
+    // setSettings Subscriber
+    this.setSettings.subscribe(settings => {
+      if (!settings) return
+      this.settingsService.globalSettings.next(settings)
+      this.settingsService.storeSettings(settings)
     })
   }
 

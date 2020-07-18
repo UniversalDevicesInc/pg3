@@ -9,6 +9,7 @@ import { ConfirmComponent } from '../confirm/confirm.component'
 import { NodepopComponent } from '../nodepop/nodepop.component'
 import { SettingsService } from '../../services/settings.service'
 import { Subscription } from 'rxjs'
+import { ToastrService } from 'ngx-toastr'
 
 @Component({
   selector: 'app-dashboard',
@@ -41,7 +42,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private addNodeService: AddnodeService,
     private modal: NgbModal,
     private router: Router,
-    public settingsService: SettingsService
+    public settingsService: SettingsService,
+    private toastr: ToastrService
   ) {
     this.subscription.add(
       this.sockets.mqttConnected.subscribe(connected => {
@@ -124,25 +126,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.selectedNode === nodeServer) {
       return (this.selectedNode = null)
     }
-    if (nodeServer.nodes.length === 0) {
-      // this.flashMessage.show('This NodeServer has no nodes defined.', {
-      //   cssClass: 'alert-danger',
-      //   timeout: 3000
-      // })
+    if (nodeServer.nodeCount === 0) {
+      this.toastr.error(`This NodeServer has no nodes defined.`)
       return window.scrollTo(0, 0)
     }
     this.selectedNode = nodeServer
   }
 
   showDisconnected() {
-    // this.flashMessage.show('Error not connected to Polyglot.', {
-    //   cssClass: 'alert-danger',
-    //   timeout: 3000
-    // })
+    this.toastr.error(`Not connected to Polyglot`)
   }
 
   redirect(profileNum) {
     //this.settingsService.currentNode = profileNum
     this.router.navigate(['/nsdetails', profileNum])
+  }
+
+  isArray(obj: any) {
+    return Array.isArray(obj)
   }
 }

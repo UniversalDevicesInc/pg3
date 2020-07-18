@@ -30,6 +30,7 @@ TABLE[0] = `
     log TEXT NOT NULL,
     logLevel TEXT NOT NULL,
     enabled INTEGER NOT NULL CHECK (enabled IN (0,1)),
+    connected INTEGER NOT NULL CHECK (connected IN (0,1)),
     devMode INTEGER NOT NULL CHECK (devMode IN (0,1)),
     type TEXT NOT NULL,
     executable TEXT NOT NULL,
@@ -56,6 +57,7 @@ class DEFAULTS {
     this.id = uuid()
     this.token = encryption.randomString()
     this.enabled = 1
+    this.connected = 0
     this.timeAdded = Date.now()
     this.timeModified = Date.now()
     this.log = 'logs/debug.log'
@@ -89,6 +91,7 @@ const MUTABLE = [
   'log',
   'logLevel',
   'enabled',
+  'connected',
   'devMode',
   'shortPoll',
   'longPoll',
@@ -118,7 +121,10 @@ async function getColumn(key, profileNum, columnKey) {
 async function get(key, profileNum) {
   if (!key || !profileNum) throw new Error(`${TABLENAME} get requires a uuid and profileNum`)
   const value = config.db
-    .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
+    // .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
+    .prepare(
+      `SELECT nodeserver.*, COUNT(node.address) as nodeCount FROM nodeserver LEFT OUTER JOIN node USING (uuid, profileNum) WHERE (uuid, profileNum) is (?, ?) GROUP by nodeserver.profileNum`
+    )
     .get(key, profileNum)
   if (!value) return value
   Object.keys(value).forEach(item => {
@@ -129,7 +135,11 @@ async function get(key, profileNum) {
 
 async function getIsy(key) {
   if (!key) throw new Error(`${TABLENAME} getIsy requires a uuid`)
-  const items = config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid) is (?)`).all(key)
+  const items = config.db
+    .prepare(
+      `SELECT nodeserver.*, COUNT(node.address) as nodeCount FROM nodeserver LEFT OUTER JOIN node USING (uuid, profileNum) WHERE (uuid) is (?) GROUP by nodeserver.profileNum`
+    )
+    .all(key)
   items.map(value => {
     if (!value) return value
     Object.keys(value).map(item => {
@@ -142,8 +152,64 @@ async function getIsy(key) {
   return items
 }
 
+async function getFull(key, profileNum) {
+  if (!key || !profileNum) throw new Error(`${TABLENAME} getFull requires a uuid and profileNum`)
+  const value = config.db
+    .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
+    .get(key, profileNum)
+  if (!value) return value
+  Object.keys(value).forEach(item => {
+    if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
+  })
+  value.nodes =
+    config.db
+      .prepare(`SELECT * FROM node WHERE (uuid, profileNum) is (?, ?)`)
+      .all(key, profileNum) || []
+  value.nodes.map(node => {
+    // eslint-disable-next-line no-param-reassign
+    node.drivers =
+      config.db
+        .prepare(`SELECT * FROM driver WHERE (uuid, profileNum, address) is (?, ?, ?)`)
+        .all(key, profileNum, node.address) || []
+    return node
+  })
+  return value
+}
+
+async function getIsyFull(key) {
+  if (!key) throw new Error(`${TABLENAME} getIsyFull requires a uuid`)
+  const items = config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid) is (?)`).all(key)
+  items.map(value => {
+    if (!value) return value
+    Object.keys(value).map(item => {
+      // eslint-disable-next-line
+      if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
+      return item
+    })
+    // eslint-disable-next-line no-param-reassign
+    value.nodes =
+      config.db
+        .prepare(`SELECT * FROM node WHERE (uuid, profileNum) is (?, ?)`)
+        .all(key, value.profileNum) || []
+    value.nodes.map(node => {
+      // eslint-disable-next-line no-param-reassign
+      node.drivers =
+        config.db
+          .prepare(`SELECT * FROM driver WHERE (uuid, profileNum, address) is (?, ?, ?)`)
+          .all(key, value.profileNum, node.address) || []
+      return node
+    })
+    return value
+  })
+  return items
+}
+
 async function getAll() {
   return config.db.prepare(`SELECT * FROM ${TABLENAME}`).all()
+}
+
+async function getAllInstalled() {
+  return config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (type) IS NOT (?)`).all('unmanaged')
 }
 
 async function add(obj) {
@@ -232,4 +298,17 @@ async function remove(key, profileNum) {
 //   return valid
 // }
 
-module.exports = { TABLE, DEFAULTS, getColumn, get, getAll, getIsy, add, update, remove }
+module.exports = {
+  TABLE,
+  DEFAULTS,
+  getColumn,
+  get,
+  getAll,
+  getAllInstalled,
+  getIsy,
+  getFull,
+  getIsyFull,
+  add,
+  update,
+  remove
+}

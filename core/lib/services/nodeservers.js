@@ -8,9 +8,11 @@ const logger = require('../modules/logger')
 const config = require('../config/config')
 const utils = require('../utils/utils')
 const ns = require('../models/nodeserver')
+const nodes = require('../models/node')
 const isyns = require('../modules/isy/nodeserver')
 const isysystem = require('../modules/isy/system')
 const nscore = require('../modules/nodeserver/core')
+const frontendcore = require('../modules/frontend/core')
 
 const VALID_TYPES = ['node', 'python3', 'python', 'binary']
 
@@ -40,16 +42,19 @@ function spawn(name, command, args, opts) {
  * @method
  */
 async function start() {
-  logger.info(`Checking ISY's for installed NodeServers...`)
-  await verifyNodeServers()
-  setInterval(verifyNodeServers, 5 * 60000) // 5 Minutes
-  logger.info(`Starting installed NodeServers...`)
-  const nodeservers = await ns.getAll()
-  return Promise.allSettled(
-    nodeservers.map(async nodeServer => {
-      await startNs(nodeServer)
-    })
-  )
+  setTimeout(async () => {
+    logger.info(`Checking ISY's for installed NodeServers...`)
+    await verifyNodeServers()
+    setInterval(verifyNodeServers, 5 * 60000) // 5 Minutes
+    const nodeservers = await ns.getAllInstalled()
+    if (nodeservers.length < 1) return logger.info(`No installed NodeServers found`)
+    logger.info(`Starting installed NodeServers...`)
+    return Promise.allSettled(
+      nodeservers.map(async nodeServer => {
+        await startNs(nodeServer)
+      })
+    )
+  }, 1000)
 }
 
 /**
@@ -61,8 +66,8 @@ async function stop() {
   logger.info(`Stopping running NodeServers...`)
   const nodeservers = await ns.getAll()
   return Promise.allSettled(
-    nodeservers.map(async nodeServer => {
-      if (!nodeServer.type.toLowerCase() === 'unmanaged') stopNs(nodeServer)
+    nodeservers.map(nodeServer => {
+      if (nodeServer.type.toLowerCase() !== 'unmanaged') return stopNs(nodeServer)
     })
   )
 }
@@ -271,7 +276,8 @@ async function startNs(nodeServer) {
         logLevel: nodeServer.logLevel,
         token: nodeServer.token,
         mqttHost: config.globalsettings.mqttHost,
-        mqttPort: config.globalsettings.mqttPort
+        mqttPort: config.globalsettings.mqttPort,
+        secure: config.globalsettings.secure
       })
     ).toString('base64')
     const opts = {
@@ -395,6 +401,26 @@ async function getAllNs(nodeServer) {
   return { error: 'Not found' }
 }
 
+async function getNodes(nodeServer) {
+  const { uuid, profileNum } = nodeServer
+  try {
+    const result = await nodes.getAllNodeServer(uuid, profileNum)
+    if (result) return result
+  } catch (err) {
+    logger.error(`getNodes: ${err.stack}`)
+  }
+  return { error: 'Not found' }
+}
+
+async function sendFrontendUpdate(uuid) {
+  try {
+    const result = await getAllNs({ uuid })
+    await frontendcore.frontendMessage({ getNodeServers: result })
+  } catch (err) {
+    logger.error(`sendFrontendUpdate: ${err.stack}`)
+  }
+}
+
 // API
 module.exports = {
   start,
@@ -410,5 +436,7 @@ module.exports = {
   stopPolls,
   startPolls,
   getNs,
-  getAllNs
+  getAllNs,
+  getNodes,
+  sendFrontendUpdate
 }

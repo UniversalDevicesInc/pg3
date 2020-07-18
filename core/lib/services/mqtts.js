@@ -1,4 +1,5 @@
 /* eslint callback-return: "error" */
+/* eslint-disable no-use-before-define */
 const Aedes = require('aedes')
 const jwt = require('jsonwebtoken')
 // const fs = require('fs')
@@ -8,6 +9,7 @@ const config = require('../config/config')
 // const utils = require('../utils/utils')
 const encryption = require('../modules/security/encryption')
 const ns = require('../models/nodeserver')
+const nsservice = require('./nodeservers')
 const user = require('../models/user')
 
 /**
@@ -26,7 +28,7 @@ async function start() {
       // connectTimeout: 3 * 10000 // Default is 30 seconds
     })
 
-    config.aedes.on('client', client => {
+    config.aedes.on('client', async client => {
       logger.info(`MQTTS: Client Connected: ${client.id}`)
       // console.log(Object.keys(config.aedes.clients))
       config.aedes.publish({
@@ -34,11 +36,13 @@ async function start() {
         payload: JSON.stringify(Object.keys(config.aedes.clients)),
         retain: true
       })
+      await updateConnected(client.id, 1)
       // config.mqttClientDisconnectCallbacks[client.id] = []
     })
 
-    config.aedes.on('clientDisconnect', client => {
+    config.aedes.on('clientDisconnect', async client => {
       logger.info(`MQTTS: Client Disconnected: ${client.id}`)
+      await updateConnected(client.id, 0)
       // console.log(Object.keys(config.aedes.clients))
       // if (utils.isIn(config.mqttClientTails, client.id)) {
       //   config.mqttClientTails[client.id].unwatch()
@@ -95,7 +99,7 @@ async function start() {
       // Frontend
       if (client.id.startsWith('pg3frontend')) {
         try {
-          const decoded = jwt.verify(password.toString(), config.globalsettings.id)
+          jwt.verify(password.toString(), config.globalsettings.id)
           return callback(null, true)
         } catch (err) {
           return callback(null, false)
@@ -103,9 +107,13 @@ async function start() {
       }
       // NodeServers
       const userParts = username.split('_')
-      if (userParts.length < 2) return callback(error, null)
+      if (userParts.length !== 2) return callback(error, null)
       const nodeserver = await ns.get(userParts[0], userParts[1])
-      if (nodeserver && client.id === username && password.toString() === nodeserver.token)
+      if (
+        nodeserver &&
+        nodeserver.uuid === userParts[0] &&
+        password.toString() === nodeserver.token
+      )
         return callback(null, true)
       return callback(error, false)
     }
@@ -134,9 +142,8 @@ async function start() {
       try {
         if (client.id === 'debug') return callback(null, sub)
         if (client.id === config.mqttClientId) return callback(null, sub)
-        const { username } = client
         if (client.id.startsWith('pg3frontend')) {
-          if (sub.topic.startsWith(`udi/pg3/frontend/clients/${username}`))
+          if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}`))
             return callback(null, sub)
           if (sub.topic.includes('sconfig') || sub.topic.includes('spolisy'))
             return callback(null, sub)
@@ -190,6 +197,25 @@ async function stop() {
     logger.info('Aedes MQTT Broker Service: Stopping')
     config.mqttServer.close()
     config.mqttServer = null
+  }
+}
+
+async function updateConnected(id, state) {
+  try {
+    if (id.includes(':') && id.includes('_')) {
+      const clientParts = id.split('_')
+      await Promise.allSettled(
+        config.isys.map(isy => {
+          if (id.includes(isy.uuid)) {
+            return ns.update(clientParts[0], clientParts[1], { connected: state })
+          }
+          return isy
+        })
+      )
+      await nsservice.sendFrontendUpdate(clientParts[0])
+    }
+  } catch (err) {
+    logger.error(`Couldn't update connected status for ${id} :: ${err.stack}`)
   }
 }
 

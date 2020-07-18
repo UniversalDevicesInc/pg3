@@ -77,13 +77,25 @@ async function getAll() {
 }
 
 async function getAllIsy(key) {
-  return config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid) is (?)`).run(key)
+  return config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid) is (?)`).all(key)
 }
 
 async function getAllNodeServer(key, profileNum) {
-  return config.db
+  if (!key || !profileNum)
+    throw new Error(`${TABLENAME} getAllNodeServer requires a uuid and profileNum`)
+  const nodes = config.db
     .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
-    .run(key, profileNum)
+    .all(key, profileNum)
+  if (!nodes) return nodes
+  nodes.map(node => {
+    // eslint-disable-next-line no-param-reassign
+    node.drivers =
+      config.db
+        .prepare(`SELECT * FROM driver WHERE (uuid, profileNum, address) is (?, ?, ?)`)
+        .all(key, profileNum, node.address) || []
+    return node
+  })
+  return nodes
 }
 
 async function add(obj) {

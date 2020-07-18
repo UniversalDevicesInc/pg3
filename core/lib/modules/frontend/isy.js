@@ -6,39 +6,31 @@
 
 const servicens = require('../../services/nodeservers')
 
-async function nsinstall(id, cmd, data) {
+async function installNs(id, cmd, data) {
   return servicens.createNs(data)
 }
-async function nsremove(id, cmd, data) {
+async function removeNs(id, cmd, data) {
   return servicens.removeNs(data)
 }
 
-async function nschangebranch(id, cmd, data) {}
-
-async function nsget(id, cmd, data) {
-  return servicens.getNs(data)
-}
+async function changeNsBranch(id, cmd, data) {}
 
 async function getNodeServers(id, cmd, data) {
   return servicens.getAllNs(data)
 }
 
 const API = {
-  nsinstall: {
+  installNs: {
     props: ['uuid', 'name', 'profileNum', 'url'],
-    func: nsinstall
+    func: installNs
   },
-  nsremove: {
+  removeNs: {
     props: ['uuid', 'name', 'profileNum'],
-    func: nsremove
+    func: removeNs
   },
-  nschangebranch: {
+  changeNsBranch: {
     props: ['uuid', 'profileNum', 'branch'],
-    func: nschangebranch
-  },
-  nsget: {
-    props: ['uuid', 'profileNum'],
-    func: nsget
+    func: changeNsBranch
   },
   getNodeServers: {
     props: ['uuid'],
