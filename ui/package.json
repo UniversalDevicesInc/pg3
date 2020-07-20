@@ -55,6 +55,10 @@
     "@angular-devkit/build-angular": "~0.901.11",
     "@angular/cli": "9.1.11",
     "@types/node": "^12.11.1",
+<<<<<<< HEAD
+=======
+    "lodash": "^4.17.19",
+>>>>>>> abcbe888f865b78d3433e54069f0dfc55cbf11ba
     "ts-node": "^8.5.4",
     "tslint": "^5.20.1",
     "typescript": "~3.7.5"
