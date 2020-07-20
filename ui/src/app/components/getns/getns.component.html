@@ -1,46 +1,114 @@
 <div style="text-align: center;">
   <h1>Polyglot NodeServer Store</h1>
-  <h4 *ngIf="nsList">Current NodeServers: <span style="vertical-align: top" class="badge badge-secondary">{{nsList.length}}</span></h4>
-  <button (click)=getNSList() class="btn btn-primary">Refresh</button>
-  <button (click)=addNS() class="btn btn-primary">Add New NodeServer</button>
-</div><br />
+  <h4 *ngIf="nsList">
+    Current NodeServers:
+    <span style="vertical-align: top;" class="badge badge-secondary">{{ nsList.length }}</span>
+  </h4>
+  <button (click)="getNSList()" class="btn btn-primary">Refresh</button>
+  <button (click)="addNS()" class="btn btn-primary">Add New NodeServer</button>
+</div>
+<br />
 
 <div *ngIf="received">
   <table class="table table-striped table-bordered table-hover" style="font-size: 12px;">
     <table class="table table-striped table-bordered table-hover">
-     <thead>
-       <tr>
-         <th width="10%">Name</th>
-         <th width="5%">Version</th>
-         <th width="10%">Author</th>
-         <th width="6%">Language</th>
-         <th width="50%">Description</th>
-         <th width="7%">Update</th>
-         <th width="7%"></th>
-       </tr>
-     </thead>
-     <tbody>
-       <tr *ngFor="let ns of nsList; let i = index"  [class.active]="i == selectedRow" text-align="center">
-         <td style="vertical-align:middle"><a href={{ns.url}}>{{ns.name}}</a></td>
-         <td style="vertical-align:middle">{{ns.version}}</td>
-         <td style="vertical-align:middle">{{ns.author}}</td>
-         <td style="vertical-align:middle">{{ns.language}}</td>
-         <td style="vertical-align:middle">{{ns.desc}}</td>
-         <td style="text-align: center; vertical-align:middle; margin: auto;">
-            <button *ngIf="updateAvailable(ns) && isInstalled(ns)" (click)=updateNS(ns) class="btn btn-primary btn-sm">Update</button>
-         </td>
-         <td *ngIf="!isInstalled(ns)" style="text-align: center; vertical-align:middle; margin: auto;">
-           <button (click)=addConfirm(ns) class="btn btn-primary btn-sm">Install</button>
-         </td>
-         <td *ngIf="isInstalled(ns)" style="text-align: center; vertical-align:middle; margin: auto;">
-             <button (click)=delConfirm(ns) class="btn btn-primary btn-sm">Uninstall</button>
-         </td>
-       </tr>
-     </tbody>
+      <thead>
+        <tr>
+          <th width="10%">Name</th>
+          <th width="5%">Version</th>
+          <th width="10%">Author</th>
+          <th width="6%">Language</th>
+          <th width="50%">Description</th>
+          <th width="15%" style="text-align: center; vertical-align: middle; margin: auto;">
+            Installed
+          </th>
+          <th width="7%"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let ns of nsList; let i = index"
+          [class.active]="i == selectedRow"
+          text-align="center"
+        >
+          <td style="vertical-align: middle;">
+            <a href="{{ ns.url }}">{{ ns.name }}</a>
+          </td>
+          <td style="vertical-align: middle;">{{ ns.version }}</td>
+          <td style="vertical-align: middle;">{{ ns.author }}</td>
+          <td style="vertical-align: middle;">{{ ns.language }}</td>
+          <td style="vertical-align: middle;">{{ ns.desc }}</td>
+          <td style="text-align: center; vertical-align: middle; margin: auto;">
+            <ng-container
+              *ngIf="
+                (settingsService.currentNodeServers | async | filter: 'name':ns.name).length <= 0;
+                else listInstalled
+              "
+            >
+              None
+            </ng-container>
+            <ng-template #listInstalled>
+              <ng-container
+                *ngFor="
+                  let nodeServer of settingsService.currentNodeServers
+                    | async
+                    | filter: 'name':ns.name
+                "
+                >{{ nodeServer?.nickname || nodeServer?.name }}({{ nodeServer?.profileNum }})
+              </ng-container>
+            </ng-template>
+          </td>
+          <td style="text-align: center; vertical-align: middle; margin: auto;">
+            <button (click)="open(install, ns)" class="btn btn-primary btn-sm">
+              Install
+            </button>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </table>
 </div>
 
 <p *ngIf="!received">
   Getting installable NodeServer list from Polyglot Store. Standby....
-</p><br />
+</p>
+<br />
+
+<!-- install Modal -->
+<ng-template #install let-modal>
+  <!-- Header -->
+  <div class="modal-header">
+    <h4 class="modal-title text-white">Install {{ current.name }}?</h4>
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
+      <span aria-hidden="true"><fa-icon class="fa-1x" [icon]="faWindowClose"></fa-icon></span>
+    </button>
+  </div>
+  <!-- Body -->
+  <div class="modal-body text-white">
+    Installing on:
+    <b
+      >{{ settingsService.currentIsy.value['name'] }} -
+      {{ settingsService.currentIsy.value['uuid'] }}</b
+    >
+    <br /><br />
+    Please choose the slot to install
+    {{ current.name }} to: <br />
+    <select
+      [(ngModel)]="selectedSlot"
+      class="button"
+      class="btn btn-primary dropdown-toggle btn-block"
+    >
+      <option [ngValue]="0" hidden>Select Slot</option>
+      <option *ngFor="let slot of settingsService.availableNodeServerSlots">{{ slot }}</option>
+    </select>
+  </div>
+  <!-- Buttons -->
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary" (click)="modal.close()">
+      Install
+    </button>
+    <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">
+      Cancel
+    </button>
+  </div>
+</ng-template>

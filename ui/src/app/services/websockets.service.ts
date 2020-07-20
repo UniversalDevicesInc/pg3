@@ -6,12 +6,15 @@ import { ToastrService } from 'ngx-toastr'
 
 import { SettingsService } from './settings.service'
 import { AuthService } from './auth.service'
+import { ThrowStmt } from '@angular/compiler'
 // import { NodeServer } from '../models/nodeserver.model'
 // import { Mqttmessage } from '../models/mqttmessage.model'
 
 @Injectable()
 export class WebsocketsService {
   public mqttConnected: ReplaySubject<boolean> = new ReplaySubject(1)
+  public installNs: BehaviorSubject<object> = new BehaviorSubject(null)
+  public removeNs: BehaviorSubject<object> = new BehaviorSubject(null)
   public getIsys: BehaviorSubject<object> = new BehaviorSubject(null)
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
   public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
@@ -163,7 +166,6 @@ export class WebsocketsService {
     // getNodeServers Subscriber
     this.getNodeServers.subscribe((nodeservers: any[]) => {
       if (nodeservers !== null) {
-        console.log(nodeservers)
         this.settingsService.currentNodeServers.next(nodeservers)
         this.settingsService.availableNodeServerSlots = []
         for (let slot = 1; slot <= 25; slot++) {
@@ -186,6 +188,36 @@ export class WebsocketsService {
       if (!settings) return
       this.settingsService.globalSettings.next(settings)
       this.settingsService.storeSettings(settings)
+    })
+
+    // ISY Command returns
+    this.installNs.subscribe(ns => {
+      if (!ns) return
+      if (ns.hasOwnProperty('success') && ns['success']) {
+        this.toastr.success(
+          `NodeServer ${ns['name']} was installed into slot ${ns['profileNum']} successfully!`
+        )
+        this.sendMessage('isy', {
+          getNodeServers: { uuid: this.settingsService.currentIsy.value['uuid'] }
+        })
+      } else {
+        this.toastr.error(`NodeServer install of ${ns['name']} failed with message: ${ns['error']}`)
+      }
+    })
+    this.removeNs.subscribe(ns => {
+      if (!ns) return
+      if (ns.hasOwnProperty('success') && ns['success']) {
+        this.toastr.success(
+          `NodeServer ${ns['name']} was removed from slot ${ns['profileNum']} successfully!`
+        )
+        this.sendMessage('isy', {
+          getNodeServers: { uuid: this.settingsService.currentIsy.value['uuid'] }
+        })
+      } else {
+        this.toastr.error(
+          `Failed to remove NodeServer ${ns['name']} from slot ${ns['profileNum']}: ${ns['error']}`
+        )
+      }
     })
   }
 

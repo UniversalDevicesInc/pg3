@@ -18,7 +18,7 @@ export class SettingsService {
   public currentNode: any
   public isPolisy: boolean = false
   public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
-  public currentNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
+  public currentNodeServers: BehaviorSubject<object> = new BehaviorSubject([])
   public globalSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public isys: any[] = []
   public nodeServers: any[] = []

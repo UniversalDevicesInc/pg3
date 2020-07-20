@@ -83,9 +83,14 @@ async function addUnManaged(isy, nodeServer) {
     version: '0.0.0',
     home: 'none',
     type: 'unmanaged',
-    executable: 'none'
+    executable: 'none',
+    url: 'none'
   }
-  await ns.add(addObj)
+  try {
+    await ns.add(addObj)
+  } catch (err) {
+    logger.error(`addUnManaged: ${err.stack}`)
+  }
 }
 
 async function verifyNodeServers() {
@@ -154,7 +159,8 @@ async function createNs(nodeServer) {
       type: serverJson.type,
       executable: serverJson.executable,
       devMode: serverJson.testMode,
-      branch: (await git(localDir).status()).current
+      branch: (await git(localDir).status()).current,
+      url
     }
     await ns.add(addObj)
     const newNs = await ns.get(uuid, profileNum)

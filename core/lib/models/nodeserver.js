@@ -20,12 +20,14 @@ TABLE[0] = `
     uuid TEXT NOT NULL,
     token BLOB NOT NULL,
     name TEXT NOT NULL,
+    nickname TEXT,
     profileNum INTEGER NOT NULL CHECK (profileNum BETWEEN 0 AND 25),
     timeAdded INTEGER NOT NULL,
     timeStarted INTEGER,
     timeModified INTEGER,
     version TEXT NOT NULL,
     branch TEXT NOT NULL,
+    url TEXT NOT NULL,
     home TEXT NOT NULL,
     log TEXT NOT NULL,
     logLevel TEXT NOT NULL,
@@ -70,7 +72,7 @@ class DEFAULTS {
   }
 }
 
-const REQUIRED = ['uuid', 'name', 'profileNum', 'version', 'home', 'type', 'executable']
+const REQUIRED = ['uuid', 'name', 'profileNum', 'version', 'home', 'type', 'executable', 'url']
 const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion']
 const ENCRYPTED = [
   'customparams',
@@ -82,7 +84,7 @@ const ENCRYPTED = [
 const MUTABLE = [
   'uuid',
   'token',
-  'name',
+  'nickname',
   'profileNum',
   'version',
   'branch',

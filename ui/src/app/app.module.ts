@@ -11,6 +11,7 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap'
 import { CommonModule } from '@angular/common'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { ToastrModule } from 'ngx-toastr'
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome'
 
 import { SettingsService } from './services/settings.service'
 import { WebsocketsService } from './services/websockets.service'
@@ -49,6 +50,7 @@ import { CustomparamsetComponent } from './components/params/customparamset/cust
 import { CustomparamlistComponent } from './components/params/customparamlist/customparamlist.component'
 import { SafePipe } from './pipes/safe.pipe'
 import { PolisyconfComponent } from './components/polisyconf/polisyconf.component'
+import { FilterPipe } from './pipes/filter.pipe'
 
 const appRoutes: Routes = [
   { path: '', component: HomeComponent },
@@ -91,7 +93,8 @@ const appRoutes: Routes = [
     CustomparamsetComponent,
     CustomparamlistComponent,
     SafePipe,
-    PolisyconfComponent
+    PolisyconfComponent,
+    FilterPipe
   ],
   imports: [
     BrowserModule,
@@ -111,7 +114,8 @@ const appRoutes: Routes = [
       enableHtml: true,
       closeButton: true,
       timeOut: 5000
-    }) // ToastrModule added
+    }), // ToastrModule added
+    FontAwesomeModule
   ],
   entryComponents: [
     ConfirmComponent,

@@ -1,13 +1,18 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
 import { AddnodeService } from '../../services/addnode.service'
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+import { NgbModal, NgbModalOptions } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { ModalNsUpdateComponent } from '../modal-ns-update/modal-ns-update.component'
 import { ModalNsAddComponent } from '../modal-ns-add/modal-ns-add.component'
-import { FlashMessagesService } from 'angular2-flash-messages'
 import { SettingsService } from '../../services/settings.service'
 import { WebsocketsService } from '../../services/websockets.service'
-import _ from 'lodash'
+import { Subscription } from 'rxjs'
+import { ToastrService } from 'ngx-toastr'
+import {
+  faAngleDoubleDown,
+  faAngleDoubleUp,
+  faWindowClose
+} from '@fortawesome/free-solid-svg-icons'
 
 @Component({
   selector: 'app-getns',
@@ -17,85 +22,72 @@ import _ from 'lodash'
 export class GetnsComponent implements OnInit, OnDestroy {
   Math: any
   public mqttConnected: boolean = false
-  private subConnected: any
   public nsList: any
-  private subResponses: any
   public received: boolean = false
-  private subNsTypes: any
-  public installedTypes: any
+  faAngleDoubleDown = faAngleDoubleDown
+  faAngleDoubleUp = faAngleDoubleUp
+  faWindowClose = faWindowClose
+  selectedSlot = 0
+  private modalOptions: NgbModalOptions
+  current: Object = {}
+  private subscription: Subscription = new Subscription()
+  selectedRow: any
 
   constructor(
     private addNodeService: AddnodeService,
     private sockets: WebsocketsService,
-    private settingsService: SettingsService,
-    private flashMessage: FlashMessagesService,
-    private modal: NgbModal
+    public settingsService: SettingsService,
+    private modal: NgbModal,
+    private toastr: ToastrService
   ) {
     this.Math = Math
+    this.modalOptions = {
+      centered: true,
+      backdrop: 'static',
+      backdropClass: 'customBackdrop'
+    }
   }
 
   ngOnInit() {
     this.getConnected()
-    // this.getNSList()
-    // this.getNsTypes()
-    // this.getNodeServerResponses()
+    this.getNSList()
   }
 
   ngOnDestroy() {
-    if (this.subConnected) {
-      this.subConnected.unsubscribe()
-    }
-    if (this.subResponses) {
-      this.subResponses.unsubscribe()
-    }
-    if (this.subNsTypes) {
-      this.subNsTypes.unsubscribe()
-    }
+    this.subscription.unsubscribe()
   }
 
   getConnected() {
-    this.subConnected = this.sockets.mqttConnected.subscribe(connected => {
-      this.mqttConnected = connected
-      if (connected) this.sockets.sendMessage('nodeservers', { nodetypes: '' })
-    })
+    this.subscription.add(
+      this.sockets.mqttConnected.subscribe(connected => {
+        this.mqttConnected = connected
+        if (connected) this.sockets.sendMessage('nodeservers', { nodetypes: '' })
+      })
+    )
   }
 
   getNSList() {
-    //   this.addNodeService.getNSList().subscribe(nsList => {
-    //     this.nsList = nsList
-    //     this.received = true
-    //   })
-    //   this.flashMessage.show(`Refreshed NodeServers List from Server.`, {
-    //     cssClass: 'alert-success',
-    //     timeout: 3000
-    //   })
+    this.addNodeService.getNSList().subscribe(nsList => {
+      if (!nsList) return
+      this.nsList = nsList
+      this.received = true
+      this.toastr.success(`Refreshed NodeServers List from Server.`)
+    })
   }
 
-  getNodeServerResponses() {
-    //   this.subResponses = this.sockets.nodeServerResponse.subscribe(response => {
-    //     if (response.hasOwnProperty('success')) {
-    //       if (response.success) {
-    //         this.flashMessage.show(response.msg, {
-    //           cssClass: 'alert-success',
-    //           timeout: 5000
-    //         })
-    //         window.scrollTo(0, 0)
-    //       } else {
-    //         this.flashMessage.show(response.msg, {
-    //           cssClass: 'alert-danger',
-    //           timeout: 5000
-    //         })
-    //         window.scrollTo(0, 0)
-    //       }
-    //     }
-    //   })
-  }
-
-  getNsTypes() {
-    //   this.subNsTypes = this.sockets.nsTypeResponse.subscribe(nsTypes => {
-    //     this.received = true
-    //     this.installedTypes = nsTypes.installed
-    //   })
+  async open(content, item) {
+    try {
+      this.current = item || {}
+      await this.modal.open(content, this.modalOptions).result
+      if (this.selectedSlot === 0) {
+        return this.toastr.error(`Nodeserver Slot not selected. Try again.`)
+      }
+      this.installNS()
+    } catch (err) {
+      // This catches the modal cancel
+      this.selectedSlot = 0
+      this.current = {}
+    }
   }
 
   addNS() {
@@ -107,27 +99,14 @@ export class GetnsComponent implements OnInit, OnDestroy {
         if (nslink) {
           this.addNodeService.submitNewNS(nslink).subscribe(
             response => {
-              this.flashMessage.show(
-                `Submitted new NodeServer for approval to the Polyglot team.`,
-                {
-                  cssClass: 'alert-success',
-                  timeout: 5000
-                }
-              )
+              this.toastr.success(`Submitted new NodeServer for approval to the Polyglot team.`)
             },
             err => {
               try {
-                this.flashMessage.show(`Error submitting new NodeServer. ${err.error.error}`, {
-                  cssClass: 'alert-danger',
-                  timeout: 5000
-                })
+                this.toastr.error(`Error submitting new NodeServer. ${err.error.error}`)
               } catch (err) {
-                this.flashMessage.show(
-                  `Error submitting new NodeServer. Unable to parse response from server.`,
-                  {
-                    cssClass: 'alert-danger',
-                    timeout: 5000
-                  }
+                this.toastr.error(
+                  `Error submitting new NodeServer. Unable to parse response from server.`
                 )
               }
             }
@@ -137,91 +116,58 @@ export class GetnsComponent implements OnInit, OnDestroy {
       .catch(error => {})
   }
 
-  installNS(ns) {
+  installNS() {
     if (this.mqttConnected) {
-      this.sockets.sendMessage('nodeservers', { installns: ns }, false, true)
-      this.flashMessage.show(`Installing ${ns.name} please wait...`, {
-        cssClass: 'alert-success',
-        timeout: 5000
-      })
+      this.current['uuid'] = this.settingsService.currentIsy.value['uuid']
+      this.current['profileNum'] = this.selectedSlot
+      console.log(this.current, this.selectedSlot)
+      this.sockets.sendMessage('isy', { installNs: this.current }, false, false)
+      this.toastr.success(`Installing ${this.current['name']} please wait...`)
+      this.selectedSlot = 0
+      this.current = {}
     } else this.showDisconnected()
-  }
-
-  updateNS(ns) {
-    const modalRef = this.modal.open(ModalNsUpdateComponent, { centered: true })
-    modalRef.componentInstance.title = 'Upload profile to ISY?'
-    modalRef.componentInstance.body = `Do you want to re-upload the profile.zip for ${ns.name} to ISY? This will NOT automatically reboot the ISY. Typically only a restart of the admin console is necessary. However, if your expected changes do not appear, please restart the ISY with the 'Reboot ISY' button above. 'No' will proceed with the update WITHOUT uploading the profile.`
-    modalRef.result
-      .then(isConfirmed => {
-        if (isConfirmed !== null) {
-          if (isConfirmed) {
-            ns['updateProfile'] = isConfirmed
-          }
-          if (this.mqttConnected) {
-            this.sockets.sendMessage('nodeservers', { updatens: ns }, false, true)
-            delete ns.updateProfile
-            this.flashMessage.show(`Updating ${ns.name} please wait...`, {
-              cssClass: 'alert-success',
-              timeout: 5000
-            })
-          } else this.showDisconnected()
-        }
-      })
-      .catch(error => {})
   }
 
   uninstallNS(ns) {
     if (this.mqttConnected) {
-      this.sockets.sendMessage('nodeservers', { uninstallns: ns }, false, true)
-      this.flashMessage.show(`Uninstalling ${ns.name} please wait...`, {
-        cssClass: 'alert-success',
-        timeout: 5000
-      })
+      this.sockets.sendMessage('nodeservers', { removeNs: ns }, false, true)
+      this.toastr.success(`Uninstalling ${ns.name} please wait...`)
     } else this.showDisconnected()
   }
 
-  updateAvailable(ns) {
-    let version = '0'
-    if (this.installedTypes) {
-      let idx = this.installedTypes.findIndex(n => n.name === ns.name)
-      if (idx > -1) version = this.installedTypes[idx].credits[0].version
-    }
-    return this.compareVersions(version, '<', ns.version)
-  }
+  // updateAvailable(ns) {
+  //   let version = '0'
+  //   if (this.installedTypes) {
+  //     let idx = this.installedTypes.findIndex(n => n.name === ns.name)
+  //     if (idx > -1) version = this.installedTypes[idx].credits[0].version
+  //   }
+  //   return this.compareVersions(version, '<', ns.version)
+  // }
 
-  isInstalled(ns) {
-    let idx = -1
-    if (this.installedTypes) idx = this.installedTypes.findIndex(n => n.name === ns.name)
-    return idx > -1
-  }
+  // addConfirm(ns) {
+  //   const modalRef = this.modal.open(ConfirmComponent, { centered: true })
+  //   modalRef.componentInstance.title = 'Install NodeServer?'
+  //   modalRef.componentInstance.body = `Do you really want to install the NodeServer named ${ns.name}? This will clone the repository from: ${ns.url}`
+  //   modalRef.result
+  //     .then(isConfirmed => {
+  //       if (isConfirmed) this.installNS(ns)
+  //     })
+  //     .catch(error => {})
+  // }
 
-  addConfirm(ns) {
-    const modalRef = this.modal.open(ConfirmComponent, { centered: true })
-    modalRef.componentInstance.title = 'Install NodeServer?'
-    modalRef.componentInstance.body = `Do you really want to install the NodeServer named ${ns.name}? This will clone the repository from: ${ns.url}`
-    modalRef.result
-      .then(isConfirmed => {
-        if (isConfirmed) this.installNS(ns)
-      })
-      .catch(error => {})
-  }
-
-  delConfirm(ns) {
-    const modalRef = this.modal.open(ConfirmComponent, { centered: true })
-    modalRef.componentInstance.title = 'Uninstall NodeServer?'
-    modalRef.componentInstance.body = `Do you really want to uninstall the NodeServer named ${ns.name}? This will completely delete the NodeServer folder from Polyglot. CANNOT BE UNDONE.`
-    modalRef.result
-      .then(isConfirmed => {
-        if (isConfirmed) this.uninstallNS(ns)
-      })
-      .catch(error => {})
-  }
+  // delConfirm(ns) {
+  //   const modalRef = this.modal.open(ConfirmComponent, { centered: true })
+  //   modalRef.componentInstance.title = 'Uninstall NodeServer?'
+  //   modalRef.componentInstance.body = `Do you really want to uninstall the NodeServer named ${ns.name}? This will completely delete the NodeServer folder from Polyglot. CANNOT BE UNDONE.`
+  //   modalRef.result
+  //     .then(isConfirmed => {
+  //       if (isConfirmed) this.uninstallNS(ns)
+  //     })
+  //     .catch(error => {})
+  // }
 
   showDisconnected() {
-    this.flashMessage.show('Error not connected to Polyglot.', {
-      cssClass: 'alert-danger',
-      timeout: 3000
-    })
+    this.toastr.error('Error not connected to Polyglot.')
   }
 
   compareVersions(v1, comparator, v2) {

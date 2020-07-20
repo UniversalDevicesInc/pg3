@@ -101,12 +101,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   deleteNodeServer(nodeServer) {
-    this.sockets.sendMessage(
-      'nodeservers',
-      { delns: { profileNum: nodeServer.profileNum } },
-      false,
-      true
-    )
+    this.sockets.sendMessage('isy', { removeNs: nodeServer }, false, false)
+    this.toastr.success(`Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.slot}`)
   }
 
   showConfirm(nodeServer) {
