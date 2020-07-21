@@ -44,9 +44,19 @@
                 *ngFor="let isy of settings.isys"
                 class="dropdown-item"
                 (click)="updateCurrentIsy(isy)"
+                [disabled]="isy.uuid === settings.currentIsy.value['uuid']"
               >
+                <fa-icon
+                  [icon]="faCheck"
+                  *ngIf="isy.uuid === settings.currentIsy.value['uuid']"
+                ></fa-icon>
                 {{ isy.name ? isy.name : 'ISY' }} - {{ isy.uuid }}
               </button>
+              <li class="dropdown-divider"></li>
+              <button class="dropdown-item">Edit Current ISY</button>
+              <button class="dropdown-item">Add New Isy</button>
+              <li class="dropdown-divider"></li>
+              <button class="dropdown-item" (click)="discoverIsys()">Auto Discover ISY's</button>
               <button class="dropdown-item" (click)="refreshIsys()">Refresh ISY's</button>
             </div>
           </div>
@@ -56,7 +66,7 @@
           <div ngbDropdown>
             <span class="nav-link text-light" id="nsMenu" ngbDropdownToggle>NodeServers</span>
             <div ngbDropdownMenu aria-labelledby="nsMenu">
-              <button
+              <!-- <button
                 class="dropdown-item"
                 [routerLinkActive]="['active']"
                 [routerLinkActiveOptions]="{ exact: true }"
@@ -65,7 +75,7 @@
               >
                 Add NodeServer
               </button>
-              <li class="dropdown-divider"></li>
+              <li class="dropdown-divider"></li> -->
               <button
                 class="dropdown-item"
                 [routerLinkActive]="['active']"

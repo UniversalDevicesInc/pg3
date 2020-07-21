@@ -13,12 +13,14 @@ import { ThrowStmt } from '@angular/compiler'
 @Injectable()
 export class WebsocketsService {
   public mqttConnected: ReplaySubject<boolean> = new ReplaySubject(1)
-  public installNs: BehaviorSubject<object> = new BehaviorSubject(null)
-  public removeNs: BehaviorSubject<object> = new BehaviorSubject(null)
+  public installNs: Subject<object> = new Subject()
+  public removeNs: Subject<object> = new Subject()
+  public discoverIsys: Subject<object> = new Subject()
   public getIsys: BehaviorSubject<object> = new BehaviorSubject(null)
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
   public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public setSettings: BehaviorSubject<object> = new BehaviorSubject(null)
+  public reboot: Subject<object> = new Subject()
   public nsUpdate: BehaviorSubject<object> = new BehaviorSubject(null)
   public notification: BehaviorSubject<object> = new BehaviorSubject(null)
   public polisyNicsData: ReplaySubject<any> = new ReplaySubject(1)
@@ -190,7 +192,7 @@ export class WebsocketsService {
       this.settingsService.storeSettings(settings)
     })
 
-    // ISY Command returns
+    // System returns
     this.installNs.subscribe(ns => {
       if (!ns) return
       if (ns.hasOwnProperty('success') && ns['success']) {
@@ -217,6 +219,37 @@ export class WebsocketsService {
         this.toastr.error(
           `Failed to remove NodeServer ${ns['name']} from slot ${ns['profileNum']}: ${ns['error']}`
         )
+      }
+    })
+    this.reboot.subscribe(msg => {
+      if (!msg) return
+      if (msg.hasOwnProperty('success') && msg['success']) {
+        this.toastr.success(
+          `Reboot command successful for ${this.settingsService.currentIsy.value['name']}(${this.settingsService.currentIsy.value['uuid']})`
+        )
+      } else {
+        this.toastr.error(
+          `Failed to send reboot to ${this.settingsService.currentIsy.value['name']}(${this.settingsService.currentIsy.value['uuid']}): ${msg['error']}`
+        )
+      }
+    })
+    this.discoverIsys.subscribe(msg => {
+      if (!msg) return
+      if (msg.hasOwnProperty('success') && msg['success']) {
+        this.toastr.success(
+          `Discovery successful! Found ISY at ${msg['ip']} with the UUID of ${msg['uuid']}`
+        )
+        this.sendMessage('system', { getIsys: {} })
+      } else {
+        this.toastr.error(`${msg['error']}`)
+      }
+    })
+    this.getIsys.subscribe(msg => {
+      if (!msg) return
+      if (Array.isArray(msg)) {
+        this.toastr.success(`Successfully retrieved ISY's from database`)
+      } else {
+        this.toastr.error(`${msg['error']}`)
       }
     })
   }

@@ -98,6 +98,7 @@ const appRoutes: Routes = [
   ],
   imports: [
     BrowserModule,
+    FontAwesomeModule,
     CollapseModule.forRoot(),
     FlashMessagesModule,
     FormsModule,
@@ -114,8 +115,7 @@ const appRoutes: Routes = [
       enableHtml: true,
       closeButton: true,
       timeOut: 5000
-    }), // ToastrModule added
-    FontAwesomeModule
+    }) // ToastrModule added
   ],
   entryComponents: [
     ConfirmComponent,

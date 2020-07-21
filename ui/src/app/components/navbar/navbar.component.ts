@@ -9,6 +9,7 @@ import { Subscription } from 'rxjs'
 import { ToastrService } from 'ngx-toastr'
 
 import { environment } from '../../../environments/environment'
+import { faEdit, faMinus, faPlus, faCheck } from '@fortawesome/free-solid-svg-icons'
 
 @Component({
   selector: 'app-navbar',
@@ -18,6 +19,10 @@ import { environment } from '../../../environments/environment'
 export class NavbarComponent implements OnInit, OnDestroy {
   private subscription: Subscription = new Subscription()
   isCollapsed: boolean = true
+  faEdit = faEdit
+  faMinus = faMinus
+  faPlus = faPlus
+  faCheck = faCheck
   public mqttConnected: boolean = false
   private subConnected: any
   username: string
@@ -66,6 +71,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     )
   }
 
+  onclick() {
+    alert('Clicked')
+  }
+
   ngOnDestroy() {
     this.subscription.unsubscribe()
   }
@@ -73,7 +82,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   updateCurrentIsy(isy) {
     if (isy && isy.hasOwnProperty('uuid')) {
       if (this.settings.currentIsy.value && this.settings.currentIsy.value['uuid'] === isy.uuid) {
-        return
+        return // this.toastr.error(`${isy.uuid} already selected`)
       }
       localStorage.setItem('currentIsy', isy.uuid)
       this.settings.currentIsy.next(isy)
@@ -83,6 +92,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   refreshIsys() {
     this.sockets.sendMessage('system', { getIsys: {} })
+  }
+
+  discoverIsys() {
+    this.sockets.sendMessage('system', { discoverIsys: {} })
   }
 
   showConfirm() {

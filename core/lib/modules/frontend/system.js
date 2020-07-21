@@ -1,7 +1,9 @@
 /* eslint-disable
   no-use-before-define,
   no-underscore-dangle,
-  no-param-reassign
+  no-param-reassign,
+  array-callback-return,
+  no-unused-vars
   */
 
 const config = require('../../config/config')
@@ -10,6 +12,8 @@ const logger = require('../logger')
 const isy = require('../../models/isy')
 const settings = require('../../models/globalsettings')
 const isySystem = require('../isy/system')
+const isyDiscover = require('../isy/discover')
+const encryption = require('../security/encryption')
 
 async function reboot(id, cmd, data) {
   const { uuid } = data
@@ -18,7 +22,7 @@ async function reboot(id, cmd, data) {
   } catch (err) {
     logger.error(`reboot: ${err.stack}`)
   }
-  return { error: 'Failed, check log for details.' }
+  return { success: false, error: 'Failed, check log for details.' }
 }
 
 async function getIsys(id, cmd, data) {
@@ -31,8 +35,8 @@ async function getIsys(id, cmd, data) {
     return results
   } catch (err) {
     logger.error(`getAllNs: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
   }
-  return { error: 'Not found' }
 }
 
 async function getSettings(id, cmd, data) {
@@ -41,7 +45,7 @@ async function getSettings(id, cmd, data) {
   } catch (err) {
     logger.error(`getSettings: ${err.stack}`)
   }
-  return { error: 'failed to get settings' }
+  return { success: false, error: 'failed to get settings' }
 }
 
 async function setSettings(id, cmd, data) {
@@ -58,10 +62,42 @@ async function setSettings(id, cmd, data) {
   } catch (err) {
     logger.error(`setSettings: ${err.stack}`)
   }
-  return { error: 'Nothing updated' }
+  return { success: false, error: 'Nothing updated' }
+}
+
+async function discoverIsys(id, cmd, data) {
+  try {
+    logger.info(`Attempting ISY Auto-Discovery...`)
+    const discoveredIsy = await isyDiscover.find()
+    const result = { success: true }
+    if (discoveredIsy.discovered === 1) {
+      const exists = config.isys.filter(it => it.uuid === discoveredIsy.uuid)
+      if (exists.length <= 0) {
+        const newEntry = new isy.DEFAULTS()
+        newEntry.password = encryption.encryptText(newEntry.password)
+        Object.assign(newEntry, discoveredIsy)
+        await isy.add(newEntry)
+        config.isys = await isy.getAll()
+        logger.info(
+          `Discovered ISY Version ${newEntry.version} with ID: ${newEntry.uuid} at ${newEntry.ip}:${newEntry.port} successfully. Database version ${newEntry.dbVersion}`
+        )
+        Object.assign(result, discoveredIsy)
+      } else {
+        throw new Error(`No new ISY discovered.`)
+      }
+    } else throw new Error(`No ISY Discovered`)
+    return result
+  } catch (err) {
+    logger.error(`discoverIsys: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
 }
 
 const API = {
+  discoverIsys: {
+    props: [],
+    func: discoverIsys
+  },
   reboot: {
     props: ['uuid', 'name', 'profileNum', 'url'],
     func: reboot

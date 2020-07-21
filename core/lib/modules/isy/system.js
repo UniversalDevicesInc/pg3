@@ -29,7 +29,7 @@ async function reboot(uuid) {
     }
     logger.debug(`ISY: ${result.message}`)
   } catch (err) {
-    result.message = `Reboot command not sent to ISY successfully.`
+    result.error = `Reboot command not sent to ISY successfully.`
     logger.error(`ISY: ${result.message} ${err}`)
   }
   return result
