@@ -112,6 +112,8 @@ async function update(key, updateObject) {
     if (u.isIn(updateObject, item)) {
       if (typeof updateObject[item] === 'boolean')
         updated += `${item} = '${updateObject[item] ? 1 : 0}',`
+      // eslint-disable-next-line no-param-reassign
+      else if (updateObject[item] === null || updateObject[item] === '') delete updateObject[item]
       else updated += `${item} = '${updateObject[item]}',`
     }
   })

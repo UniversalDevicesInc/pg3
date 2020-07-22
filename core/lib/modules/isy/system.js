@@ -1,4 +1,5 @@
 const convert = require('xml2js')
+const axios = require('axios')
 
 const logger = require('../logger')
 const core = require('./core')
@@ -100,4 +101,26 @@ async function getExistingNodeServers(uuid) {
   return found
 }
 
-module.exports = { reboot, groupNodes, getExistingNodeServers }
+async function getUuid(isy) {
+  const { ip, port, secure } = isy
+  const url = `${secure === 1 ? 'https' : 'http'}://${ip}:${port}/desc`
+  try {
+    const result = { success: true }
+    const response = await axios.get(url)
+    const opts = {
+      trim: true,
+      async: true,
+      mergeAttrs: true,
+      explicitArray: false
+    }
+    const converted = await convert.parseStringPromise(response.data, opts)
+    result.version = converted.root.device.modelVersion
+    result.uuid = converted.root.device.UDN.slice(5)
+    return result
+  } catch (err) {
+    logger.error(`getUuid :: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
+module.exports = { reboot, groupNodes, getExistingNodeServers, getUuid }

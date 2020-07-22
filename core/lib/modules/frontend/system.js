@@ -5,7 +5,6 @@
   array-callback-return,
   no-unused-vars
   */
-
 const config = require('../../config/config')
 const u = require('../../utils/utils')
 const logger = require('../logger')
@@ -93,6 +92,32 @@ async function discoverIsys(id, cmd, data) {
   }
 }
 
+async function addIsy(id, cmd, data) {
+  try {
+    const { ip, port, username, password, secure } = data
+    const result = await isySystem.getUuid(data)
+    if (result.success) {
+      await isy.add({ uuid: result.uuid, version: result.version, ...data })
+    }
+    return result
+  } catch (err) {
+    logger.error(`updateIsy: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
+async function updateIsy(id, cmd, data) {
+  try {
+    const { uuid } = data
+    const result = { uuid, success: true }
+    await isy.update(uuid, data)
+    return result
+  } catch (err) {
+    logger.error(`updateIsy: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
 const API = {
   discoverIsys: {
     props: [],
@@ -113,6 +138,14 @@ const API = {
   setSettings: {
     props: [],
     func: setSettings
+  },
+  addIsy: {
+    props: ['ip', 'port', 'username', 'password', 'secure'],
+    func: addIsy
+  },
+  updateIsy: {
+    props: ['uuid'],
+    func: updateIsy
   }
 }
 

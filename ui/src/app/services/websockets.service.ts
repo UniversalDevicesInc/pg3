@@ -17,6 +17,8 @@ export class WebsocketsService {
   public removeNs: Subject<object> = new Subject()
   public discoverIsys: Subject<object> = new Subject()
   public getIsys: BehaviorSubject<object> = new BehaviorSubject(null)
+  public addIsy: Subject<object> = new Subject()
+  public updateIsy: Subject<object> = new Subject()
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject(null)
   public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public setSettings: BehaviorSubject<object> = new BehaviorSubject(null)
@@ -248,6 +250,25 @@ export class WebsocketsService {
       if (!msg) return
       if (Array.isArray(msg)) {
         this.toastr.success(`Successfully retrieved ISY's from database`)
+      } else {
+        this.toastr.error(`${msg['error']}`)
+      }
+    })
+    this.addIsy.subscribe(msg => {
+      if (!msg) return
+      console.log(msg)
+      if (msg.hasOwnProperty('success') && msg['success']) {
+        this.toastr.success(`ISY add successful! Added: ${msg['name']}(${msg['uuid']})`)
+        this.sendMessage('system', { getIsys: {} })
+      } else {
+        this.toastr.error(`${msg['error']}`)
+      }
+    })
+    this.updateIsy.subscribe(msg => {
+      if (!msg) return
+      if (msg.hasOwnProperty('success') && msg['success']) {
+        this.toastr.success(`ISY update successful! Updated: ${msg['uuid']}`)
+        this.sendMessage('system', { getIsys: {} })
       } else {
         this.toastr.error(`${msg['error']}`)
       }

@@ -53,8 +53,11 @@
                 {{ isy.name ? isy.name : 'ISY' }} - {{ isy.uuid }}
               </button>
               <li class="dropdown-divider"></li>
-              <button class="dropdown-item">Edit Current ISY</button>
-              <button class="dropdown-item">Add New Isy</button>
+              <button class="dropdown-item" (click)="openAdd(addIsyModal)">Add New Isy</button>
+              <button class="dropdown-item" (click)="openUpdate('updateIsyForm', updateIsyModal)">
+                Edit Current ISY
+              </button>
+              <button class="dropdown-item">Delete Current Isy</button>
               <li class="dropdown-divider"></li>
               <button class="dropdown-item" (click)="discoverIsys()">Auto Discover ISY's</button>
               <button class="dropdown-item" (click)="refreshIsys()">Refresh ISY's</button>
@@ -195,3 +198,153 @@
     </p>
   </div>
 </div>
+
+<!-- UpdateISY Modal -->
+<ng-template #updateIsyModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title text-white">Update ISY</h4>
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
+      <span aria-hidden="true"><fa-icon class="fa-1x" [icon]="faWindowClose"></fa-icon></span>
+    </button>
+  </div>
+  <div class="modal-body text-white">
+    <!-- Input Form -->
+    <form [formGroup]="updateIsyForm" (ngSubmit)="updateIsy(getDirtyValues(updateIsyForm))">
+      <!-- UUID -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">UUID</label>
+        <div class="col-sm-10 d-flex align-items-center text-white">
+          {{ settings.currentIsy.value['uuid'] }}
+        </div>
+      </div>
+      <!-- Name -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Name</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="name" />
+        </div>
+      </div>
+      <!-- IP -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">IP</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="ip" />
+        </div>
+      </div>
+      <!-- Port -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Port</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="port" />
+        </div>
+      </div>
+      <!-- Username -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Username</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="username" />
+        </div>
+      </div>
+      <!-- Password -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Password</label>
+        <div class="col-sm-10">
+          <input type="password" class="form-control" formControlName="password" />
+        </div>
+      </div>
+      <!-- secure -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">HTTP/S</label>
+        <div class="col-sm-10 btn-group btn-group-toggle" ngbRadioGroup formControlName="secure">
+          <label ngbButtonLabel class="btn-primary">
+            <input ngbButton type="radio" [value]="0" />
+            HTTP
+          </label>
+          <label ngbButtonLabel class="btn-primary">
+            <input ngbButton type="radio" [value]="1" />
+            HTTPS
+          </label>
+        </div>
+      </div>
+      <!-- Buttons -->
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</ng-template>
+
+<!-- addIsy Modal -->
+<ng-template #addIsyModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title text-white">Add New ISY</h4>
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
+      <span aria-hidden="true"><fa-icon class="fa-1x" [icon]="faWindowClose"></fa-icon></span>
+    </button>
+  </div>
+  <div class="modal-body text-white">
+    All Fields required: <br />
+    <!-- Input Form -->
+    <form [formGroup]="addIsyForm" (ngSubmit)="addNewIsy(addIsyForm)">
+      <!-- Name -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Name</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="name" />
+        </div>
+      </div>
+      <!-- IP -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">IP</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="ip" />
+        </div>
+      </div>
+      <!-- Port -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Port</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="port" />
+        </div>
+      </div>
+      <!-- Username -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Username</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" formControlName="username" />
+        </div>
+      </div>
+      <!-- Password -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Password</label>
+        <div class="col-sm-10">
+          <input type="password" class="form-control" formControlName="password" />
+        </div>
+      </div>
+      <!-- secure -->
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">HTTP/S</label>
+        <div class="col-sm-10 btn-group btn-group-toggle" ngbRadioGroup formControlName="secure">
+          <label ngbButtonLabel class="btn-primary">
+            <input ngbButton type="radio" [value]="0" />
+            HTTP
+          </label>
+          <label ngbButtonLabel class="btn-primary">
+            <input ngbButton type="radio" [value]="1" />
+            HTTPS
+          </label>
+        </div>
+      </div>
+      <!-- Buttons -->
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Add</button>
+        <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</ng-template>

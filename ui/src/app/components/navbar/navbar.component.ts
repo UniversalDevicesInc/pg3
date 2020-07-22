@@ -1,15 +1,17 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
-import { AuthService } from '../../services/auth.service'
-import { SettingsService } from '../../services/settings.service'
+import { FormGroup, FormControl, Validators, FormBuilder } from '@angular/forms'
 import { Router } from '@angular/router'
-import { WebsocketsService } from '../../services/websockets.service'
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
-import { ConfirmComponent } from '../confirm/confirm.component'
+import { NgbModal, NgbModalOptions } from '@ng-bootstrap/ng-bootstrap'
 import { Subscription } from 'rxjs'
 import { ToastrService } from 'ngx-toastr'
+import { faEdit, faMinus, faPlus, faCheck, faWindowClose } from '@fortawesome/free-solid-svg-icons'
 
+import { AuthService } from '../../services/auth.service'
+import { SettingsService } from '../../services/settings.service'
+import { WebsocketsService } from '../../services/websockets.service'
+import { ConfirmComponent } from '../confirm/confirm.component'
 import { environment } from '../../../environments/environment'
-import { faEdit, faMinus, faPlus, faCheck } from '@fortawesome/free-solid-svg-icons'
+import { threadId } from 'worker_threads'
 
 @Component({
   selector: 'app-navbar',
@@ -23,22 +25,49 @@ export class NavbarComponent implements OnInit, OnDestroy {
   faMinus = faMinus
   faPlus = faPlus
   faCheck = faCheck
+  faWindowClose = faWindowClose
   public mqttConnected: boolean = false
   private subConnected: any
   username: string
   environment: any
   isys = []
   dashboard = 'Dashboard'
+  updateIsyForm: FormGroup
+  addIsyForm: FormGroup
+  modalOptions: NgbModalOptions
 
   constructor(
     public authService: AuthService,
     private router: Router,
     private modal: NgbModal,
+    private fb: FormBuilder,
     public sockets: WebsocketsService,
     public settings: SettingsService,
     private toastr: ToastrService
   ) {
     this.environment = environment
+    this.modalOptions = {
+      centered: true,
+      backdrop: 'static',
+      backdropClass: 'customBackdrop'
+    }
+    this.updateIsyForm = this.fb.group({
+      uuid: ['', Validators.required],
+      name: ['', Validators.required],
+      ip: ['0.0.0.0', Validators.required],
+      port: [80, Validators.required],
+      username: ['admin', Validators.required],
+      password: [''],
+      secure: ['', Validators.required]
+    })
+    this.addIsyForm = this.fb.group({
+      name: ['', Validators.required],
+      ip: ['', Validators.required],
+      port: [80, Validators.required],
+      username: ['admin', Validators.required],
+      password: ['', Validators.required],
+      secure: ['', Validators.required]
+    })
   }
 
   ngOnInit() {
@@ -81,9 +110,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   updateCurrentIsy(isy) {
     if (isy && isy.hasOwnProperty('uuid')) {
-      if (this.settings.currentIsy.value && this.settings.currentIsy.value['uuid'] === isy.uuid) {
-        return // this.toastr.error(`${isy.uuid} already selected`)
-      }
+      // if (this.settings.currentIsy.value && this.settings.currentIsy.value['uuid'] === isy.uuid) {
+      //   return // this.toastr.error(`${isy.uuid} already selected`)
+      // }
       localStorage.setItem('currentIsy', isy.uuid)
       this.settings.currentIsy.next(isy)
       this.dashboard = isy ? `${isy.name || isy.uuid} Dashboard` : 'Dashboard'
@@ -119,6 +148,70 @@ export class NavbarComponent implements OnInit, OnDestroy {
         if (isConfirmed) this.restartClick()
       })
       .catch(error => {})
+  }
+
+  async openUpdate(form, content) {
+    try {
+      this[`${form}`].reset()
+      if (this.settings.currentIsy.value) {
+        this[`${form}`].patchValue(this.settings.currentIsy.value)
+      }
+      await this.modal.open(content, this.modalOptions).result
+    } catch (err) {
+      // This catches the modal cancel
+    }
+  }
+
+  async openAdd(content) {
+    try {
+      this.addIsyForm.reset({ ip: '0.0.0.0', port: 80, username: 'admin', secure: 0 })
+      await this.modal.open(content, this.modalOptions).result
+    } catch {
+      // This catches the modal cancel
+    }
+  }
+
+  getDirtyValues(cg) {
+    const dirtyValues = {}
+    Object.keys(cg.controls).forEach(c => {
+      const currentControl = cg.get(c)
+
+      if (currentControl.dirty) {
+        if (currentControl.controls) {
+          dirtyValues[c] = this.getDirtyValues(currentControl)
+        } else {
+          dirtyValues[c] = currentControl.value
+        }
+      }
+    })
+    return dirtyValues
+  }
+
+  async updateIsy(updates) {
+    this.modal.dismissAll()
+    if (Object.keys(updates).length <= 0) return this.toastr.error(`Nothing updated`)
+    this.sockets.sendMessage('system', {
+      updateIsy: { uuid: this.settings.currentIsy.value['uuid'], ...updates }
+    })
+    this.toastr.success(
+      `Updating ${this.settings.currentIsy.value['name']} - ${
+        this.settings.currentIsy.value['uuid']
+      }: ${Object.keys(updates)}`
+    )
+  }
+
+  async addNewIsy() {
+    this.modal.dismissAll()
+    console.log(this.addIsyForm.valid, this.addIsyForm.value)
+    if (!this.addIsyForm.valid) {
+      return this.toastr.error(`Missing or invalid required field`)
+    }
+    const isy = this.addIsyForm.value
+    this.sockets.sendMessage('system', {
+      addIsy: isy
+    })
+    this.toastr.success(`Adding new ISY: ${isy['name']} @ ${isy['ip']}:${isy['port']}`)
+    this.addIsyForm.reset()
   }
 
   getConnected() {
