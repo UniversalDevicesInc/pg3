@@ -17,7 +17,7 @@ export class WebsocketsService {
   public installNs: Subject<object> = new Subject()
   public removeNs: Subject<object> = new Subject()
   public discoverIsys: Subject<object> = new Subject()
-  public getIsys: BehaviorSubject<any[]> = new BehaviorSubject([])
+  public getIsys: BehaviorSubject<any[]> = new BehaviorSubject(null)
   public addIsy: Subject<object> = new Subject()
   public updateIsy: Subject<object> = new Subject()
   public removeIsy: Subject<object> = new Subject()
@@ -198,13 +198,15 @@ export class WebsocketsService {
       this.getNodeServers.subscribe((nodeservers: any[]) => {
         if (Array.isArray(nodeservers)) {
           this.settingsService.currentNodeServers.next(nodeservers)
-          this.settingsService.availableNodeServerSlots = []
-          for (let slot = 1; slot <= 25; slot++) {
-            this.settingsService.availableNodeServerSlots.push(slot)
-          }
-          nodeservers.map(item => {
-            this.settingsService.availableNodeServerSlots.splice(item.profileNum - 1, 1)
-          })
+          // this.settingsService.availableNodeServerSlots = {}
+          // nodeservers.map(item => {
+          //   if (!u.isIn(this.settingsService.availableNodeServerSlots, item.uuid)) {
+          //     this.settingsService.availableNodeServerSlots[item.uuid] = []
+          //   }
+          // })
+          // nodeservers.map(item => {
+          //   this.settingsService.availableNodeServerSlots.splice(item.profileNum - 1, 1)
+          // })
         }
       })
     )

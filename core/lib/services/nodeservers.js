@@ -416,8 +416,7 @@ async function getNs(nodeServer) {
   return { error: 'Not found' }
 }
 
-async function getAllNs(nodeServer) {
-  const { uuid } = nodeServer
+async function getAllNs() {
   try {
     const result = await ns.getAll()
     if (result) return result
@@ -446,9 +445,9 @@ async function sendFrontend401(uuid) {
   }
 }
 
-async function sendFrontendUpdate(uuid) {
+async function sendFrontendUpdate() {
   try {
-    const result = await getAllNs({ uuid })
+    const result = await getAllNs()
     await frontendcore.frontendMessage({ getNodeServers: result })
   } catch (err) {
     logger.error(`sendFrontendUpdate: ${err.stack}`)

@@ -212,7 +212,7 @@ async function updateConnected(id, state) {
           return isy
         })
       )
-      await nsservice.sendFrontendUpdate(clientParts[0])
+      await nsservice.sendFrontendUpdate()
     }
   } catch (err) {
     logger.error(`Couldn't update connected status for ${id} :: ${err.stack}`)

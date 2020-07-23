@@ -50,7 +50,8 @@ import { CustomparamsetComponent } from './components/params/customparamset/cust
 import { CustomparamlistComponent } from './components/params/customparamlist/customparamlist.component'
 import { SafePipe } from './pipes/safe.pipe'
 import { PolisyconfComponent } from './components/polisyconf/polisyconf.component'
-import { FilterPipe } from './pipes/filter.pipe'
+import { FilterPipe } from './pipes/filter.pipe';
+import { ReversefilterPipe } from './pipes/reversefilter.pipe'
 
 const appRoutes: Routes = [
   { path: '', component: HomeComponent },
@@ -94,7 +95,8 @@ const appRoutes: Routes = [
     CustomparamlistComponent,
     SafePipe,
     PolisyconfComponent,
-    FilterPipe
+    FilterPipe,
+    ReversefilterPipe
   ],
   imports: [
     BrowserModule,

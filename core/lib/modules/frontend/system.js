@@ -73,13 +73,13 @@ async function discoverIsys(id, cmd, data) {
     if (discoveredIsy.discovered === 1) {
       const exists = config.isys.filter(it => it.uuid === discoveredIsy.uuid)
       if (exists.length <= 0) {
-        const newEntry = new isy.DEFAULTS()
-        newEntry.password = encryption.encryptText(newEntry.password)
-        Object.assign(newEntry, discoveredIsy)
-        await isy.add(newEntry)
+        // const newEntry = new isy.DEFAULTS()
+        // newEntry.password = encryption.encryptText(newEntry.password)
+        // Object.assign(newEntry, discoveredIsy)
+        await isy.add(discoveredIsy)
         config.isys = await isy.getAll()
         logger.info(
-          `Discovered ISY Version ${newEntry.version} with ID: ${newEntry.uuid} at ${newEntry.ip}:${newEntry.port} successfully. Database version ${newEntry.dbVersion}`
+          `Discovered ISY Version ${discoveredIsy.version} with ID: ${discoveredIsy.uuid} at ${discoveredIsy.ip}:${discoveredIsy.port} successfully.`
         )
         Object.assign(result, discoveredIsy)
         await ns.verifyNodeServers()
@@ -100,6 +100,7 @@ async function addIsy(id, cmd, data) {
     const result = await isySystem.getUuid(data)
     if (result.success) {
       await isy.add({ uuid: result.uuid, version: result.version, ...data })
+      await ns.verifyNodeServers()
     }
     return result
   } catch (err) {
@@ -127,6 +128,7 @@ async function removeIsy(id, cmd, data) {
     const result = { uuid, success: true }
     await ns.removeAllNs(uuid)
     await isy.remove(uuid)
+    await ns.verifyNodeServers()
     return result
   } catch (err) {
     logger.error(`updateIsy: ${err.stack}`)

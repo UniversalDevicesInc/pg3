@@ -207,7 +207,11 @@ async function getIsyFull(key) {
 }
 
 async function getAll() {
-  return config.db.prepare(`SELECT * FROM ${TABLENAME}`).all()
+  const all = []
+  config.isys.map(async isy => {
+    all.push(...(await getIsy(isy.uuid)))
+  })
+  return all
 }
 
 async function getAllInstalled() {

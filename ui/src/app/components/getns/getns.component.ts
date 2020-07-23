@@ -32,6 +32,8 @@ export class GetnsComponent implements OnInit, OnDestroy {
   current: Object = {}
   private subscription: Subscription = new Subscription()
   selectedRow: any
+  maxNodeServers: Number = 25
+  nsArray: any[] = new Array(this.maxNodeServers).fill(1).map((x, i) => i + 1)
 
   constructor(
     private addNodeService: AddnodeService,
