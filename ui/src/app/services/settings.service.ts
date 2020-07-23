@@ -18,10 +18,10 @@ export class SettingsService {
   public currentNode: any
   public isPolisy: boolean = false
   public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
-  public currentNodeServers: BehaviorSubject<object> = new BehaviorSubject([])
+  public currentNodeServers: BehaviorSubject<any[]> = new BehaviorSubject([])
   public globalSettings: BehaviorSubject<object> = new BehaviorSubject(null)
-  public isys: any[] = []
-  public nodeServers: any[] = []
+  // public isys: any[] = []
+  // public nodeServers: any[] = []
   public availableNodeServerSlots: any[] = []
 
   constructor(private http: HttpClient, private titleService: Title) {}

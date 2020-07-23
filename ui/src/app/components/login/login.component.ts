@@ -51,7 +51,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       },
       err => {
         console.log(err)
-        this.toastr.error(err['error'])
+        this.toastr.error(err['message'])
         this.router.navigate(['/login'])
       }
     )

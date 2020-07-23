@@ -94,12 +94,14 @@ async function add(obj) {
     if (typeof newIsy[key] === 'boolean') newIsy[key] = newIsy[key] ? 1 : 0
   })
   newIsy.password = encryption.encryptText(newIsy.password)
-  return config.db
+  const result = config.db
     .prepare(
       `INSERT INTO ${TABLENAME} (${Object.keys(newIsy)})
     VALUES (${Object.keys(newIsy).fill('?')})`
     )
     .run(Object.values(newIsy))
+  config.isys = await this.getAll()
+  return result
 }
 
 async function update(key, updateObject) {
@@ -121,18 +123,22 @@ async function update(key, updateObject) {
     updated += `password = '${await encryption.encryptText(updateObject.password)}',`
   if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
   updated += `timeModified = ${Date.now()}`
-  return config.db
+  const result = config.db
     .prepare(
       `UPDATE ${TABLENAME} SET
     ${updated}
     WHERE uuid is (?)`
     )
     .run(key)
+  config.isys = await this.getAll()
+  return result
 }
 
 async function remove(key) {
   if (!key) throw new Error(`remove ${TABLENAME} requires uuid parameter`)
-  return config.db.prepare(`DELETE FROM ${TABLENAME} WHERE (uuid) is (?)`).run(key)
+  const result = config.db.prepare(`DELETE FROM ${TABLENAME} WHERE (uuid) is (?)`).run(key)
+  config.isys = await this.getAll()
+  return result
 }
 
 async function TEST() {

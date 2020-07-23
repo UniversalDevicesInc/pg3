@@ -96,7 +96,13 @@ async function addUnManaged(isy, nodeServer) {
 async function verifyNodeServers() {
   return Promise.allSettled(
     config.isys.map(async isy => {
-      let nodeServers = await isysystem.getExistingNodeServers(isy.uuid)
+      let nodeServers
+      try {
+        nodeServers = await isysystem.getExistingNodeServers(isy.uuid)
+      } catch (err) {
+        logger.error(`getExistingNodeServers :: ${err.message}`)
+        sendFrontend401(isy.uuid)
+      }
       const installed = []
       if (!Array.isArray(nodeServers)) nodeServers = [nodeServers]
       await Promise.allSettled(
@@ -219,6 +225,20 @@ async function installNs(nodeServer, serverJson = null) {
     )
   } catch (err) {
     return logger.error(`installNs: ${err.stack}`)
+  }
+}
+
+async function removeAllNs(uuid) {
+  try {
+    const nodeServers = await ns.getIsy(uuid)
+    return Promise.all(
+      nodeServers.map(async nodeServer => {
+        if (nodeServer.type !== 'unmanaged') await removeNs(nodeServer)
+      })
+    )
+  } catch (err) {
+    logger.error(`removeAllNs: ${err.stack}`)
+    return { success: false, error: err.message }
   }
 }
 
@@ -399,7 +419,7 @@ async function getNs(nodeServer) {
 async function getAllNs(nodeServer) {
   const { uuid } = nodeServer
   try {
-    const result = await ns.getIsy(uuid)
+    const result = await ns.getAll()
     if (result) return result
   } catch (err) {
     logger.error(`getAllNs: ${err.stack}`)
@@ -416,6 +436,14 @@ async function getNodes(nodeServer) {
     logger.error(`getNodes: ${err.stack}`)
   }
   return { error: 'Not found' }
+}
+
+async function sendFrontend401(uuid) {
+  try {
+    await frontendcore.frontendMessage({ invalidCredentials: { uuid } })
+  } catch (err) {
+    logger.error(`sendFrontend401: ${err.stack}`)
+  }
 }
 
 async function sendFrontendUpdate(uuid) {
@@ -436,6 +464,7 @@ module.exports = {
   createNs,
   installNs,
   removeNs,
+  removeAllNs,
   startNs,
   stopNs,
   restartNs,
@@ -444,5 +473,6 @@ module.exports = {
   getNs,
   getAllNs,
   getNodes,
-  sendFrontendUpdate
+  sendFrontendUpdate,
+  verifyNodeServers
 }

@@ -80,25 +80,22 @@ async function groupNodes(uuid, profileNum, address, primary) {
 }
 
 async function getExistingNodeServers(uuid) {
-  let found = null
-  try {
-    const response = await core.isyGet(
-      uuid,
-      'system',
-      core.makeSystemUrl(uuid, ['rest/profiles/ns/0/connection'])
-    )
-    const opts = {
-      trim: true,
-      async: true,
-      mergeAttrs: true,
-      explicitArray: false
-    }
-    const converted = await convert.parseStringPromise(response.data, opts)
-    found = converted.connections.connection
-  } catch (err) {
-    logger.error(`getExistingNodeServers :: ${err.stack}`)
+  const response = await core.isyGet(
+    uuid,
+    'system',
+    core.makeSystemUrl(uuid, ['rest/profiles/ns/0/connection'])
+  )
+  const opts = {
+    trim: true,
+    async: true,
+    mergeAttrs: true,
+    explicitArray: false
   }
-  return found
+  if (response.status !== 200) {
+    throw new Error(`Received ${response.status} from the ISY. Check your credentials`)
+  }
+  const converted = await convert.parseStringPromise(response.data, opts)
+  return converted.connections.connection
 }
 
 async function getUuid(isy) {

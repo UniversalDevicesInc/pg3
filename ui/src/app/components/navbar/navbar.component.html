@@ -32,32 +32,41 @@
           [routerLinkActive]="['active']"
           [routerLinkActiveOptions]="{ exact: true }"
         >
-          <a class="nav-link" [routerLink]="['/dashboard']" (click)="isCollapsed = !isCollapsed">{{
-            dashboard
-          }}</a>
+          <a class="nav-link" [routerLink]="['/dashboard']" (click)="isCollapsed = !isCollapsed">
+            {{ (settings.currentIsy | async)?.name }} Dashboard
+          </a>
         </li>
-        <li *ngIf="authService.loggedIn() && isys !== null" class="nav-item">
+        <li *ngIf="authService.loggedIn()" class="nav-item">
           <div ngbDropdown>
             <span class="nav-link text-light" id="nsMenu" ngbDropdownToggle>ISYs</span>
             <div ngbDropdownMenu aria-labelledby="nsMenu">
-              <button
-                *ngFor="let isy of settings.isys"
-                class="dropdown-item"
-                (click)="updateCurrentIsy(isy)"
-                [disabled]="isy.uuid === settings.currentIsy.value['uuid']"
-              >
-                <fa-icon
-                  [icon]="faCheck"
-                  *ngIf="isy.uuid === settings.currentIsy.value['uuid']"
-                ></fa-icon>
-                {{ isy.name ? isy.name : 'ISY' }} - {{ isy.uuid }}
-              </button>
+              <ng-container *ngIf="(sockets.getIsys | async)?.length > 0; else noIsy">
+                <button
+                  *ngFor="let isy of sockets.getIsys | async"
+                  class="dropdown-item"
+                  (click)="updateCurrentIsy(isy)"
+                  [disabled]="isy.uuid === settings.currentIsy.value['uuid']"
+                >
+                  <fa-icon
+                    [icon]="faCheck"
+                    *ngIf="isy.uuid === settings.currentIsy.value['uuid']"
+                  ></fa-icon>
+                  {{ isy.name ? isy.name : 'ISY' }} - {{ isy.uuid }}
+                </button>
+              </ng-container>
+              <ng-template #noIsy>
+                <button class="dropdown-item" [disabled]="true">None</button>
+              </ng-template>
               <li class="dropdown-divider"></li>
               <button class="dropdown-item" (click)="openAdd(addIsyModal)">Add New Isy</button>
-              <button class="dropdown-item" (click)="openUpdate('updateIsyForm', updateIsyModal)">
-                Edit Current ISY
-              </button>
-              <button class="dropdown-item">Delete Current Isy</button>
+              <ng-container *ngIf="(sockets.getIsys | async)?.length > 0">
+                <button class="dropdown-item" (click)="openUpdate('updateIsyForm', updateIsyModal)">
+                  Edit Current ISY
+                </button>
+                <button class="dropdown-item" (click)="open(removeIsyModal)">
+                  Delete Current Isy
+                </button>
+              </ng-container>
               <li class="dropdown-divider"></li>
               <button class="dropdown-item" (click)="discoverIsys()">Auto Discover ISY's</button>
               <button class="dropdown-item" (click)="refreshIsys()">Refresh ISY's</button>
@@ -191,7 +200,7 @@
 </nav>
 
 <div *ngIf="authService.loggedIn()">
-  <div *ngIf="!mqttConnected" class="alert alert-dismissible alert-danger text-center">
+  <div *ngIf="!sockets.connected" class="alert alert-dismissible alert-danger text-center">
     <p>
       Not connected to server... Try refreshing the page. This will disappear once the connection is
       re-established.
@@ -288,7 +297,7 @@
   <div class="modal-body text-white">
     All Fields required: <br />
     <!-- Input Form -->
-    <form [formGroup]="addIsyForm" (ngSubmit)="addNewIsy(addIsyForm)">
+    <form [formGroup]="addIsyForm" (ngSubmit)="addIsy(addIsyForm)">
       <!-- Name -->
       <div class="form-group row">
         <label class="col-sm-2 col-form-label">Name</label>
@@ -346,5 +355,26 @@
         </button>
       </div>
     </form>
+  </div>
+</ng-template>
+
+<!-- removeIsyModal Modal -->
+<ng-template #removeIsyModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title text-white">Remove ISY</h4>
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
+      <span aria-hidden="true"><fa-icon class="fa-1x" [icon]="faWindowClose"></fa-icon></span>
+    </button>
+  </div>
+  <div class="modal-body text-white">
+    This will remove this ISY from the system and remove and delete all existing NodeServers from
+    the ISY, the os, and the database.<br />
+  </div>
+  <!-- Buttons -->
+  <div class="modal-footer">
+    <button (click)="removeIsy()" class="btn btn-danger">DELETE</button>
+    <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">
+      Cancel
+    </button>
   </div>
 </ng-template>

@@ -26,12 +26,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   faPlus = faPlus
   faCheck = faCheck
   faWindowClose = faWindowClose
-  public mqttConnected: boolean = false
-  private subConnected: any
-  username: string
   environment: any
-  isys = []
-  dashboard = 'Dashboard'
   updateIsyForm: FormGroup
   addIsyForm: FormGroup
   modalOptions: NgbModalOptions
@@ -72,32 +67,37 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.settings.getPolisy()
-    this.getConnected()
-    this.subscription.add(
-      this.sockets.getIsys.subscribe((isys: any[]) => {
-        if (isys !== null) {
-          this.isys = []
-          this.settings.isys = isys
-          isys.map(item => this.isys.push(item.uuid))
-          let selectedIsy
-          const currentIsy = localStorage.getItem('currentIsy')
-          if (!currentIsy) {
-            const profile = JSON.parse(localStorage.getItem('profile'))
-            if (profile.preferredIsy === 'none') {
-              console.log(`No preferred ISY Found. Using first in list.`)
-              selectedIsy = this.isys[0]
-            } else {
-              selectedIsy = profile.preferredIsy
-            }
-          } else selectedIsy = currentIsy
-          this.settings.isys.map(item => {
-            if (item.uuid === selectedIsy) {
-              this.updateCurrentIsy(item)
-            }
-          })
-        }
-      })
-    )
+    // this.getConnected()
+    // this.subscription.add(
+    //   this.sockets.getIsys.subscribe((isys: any[]) => {
+    //     if (isys !== null) {
+    //       this.isys = []
+    //       this.settings.isys = isys
+    //       const currentIsy = localStorage.getItem('currentIsy')
+    //       let found = false
+    //       isys.map(item => {
+    //         this.isys.push(item.uuid)
+    //         if (currentIsy && item.uuid === currentIsy) found = true
+    //       })
+    //       let selectedIsy
+    //       if (!found) selectedIsy = this.isys[0]
+    //       if (!currentIsy) {
+    //         const profile = JSON.parse(localStorage.getItem('profile'))
+    //         if (profile.preferredIsy === 'none') {
+    //           console.log(`No preferred ISY Found. Using first in list.`)
+    //           selectedIsy = this.isys[0]
+    //         } else {
+    //           selectedIsy = profile.preferredIsy
+    //         }
+    //       } else selectedIsy = currentIsy
+    //       this.settings.isys.map(item => {
+    //         if (item.uuid === selectedIsy) {
+    //           this.updateCurrentIsy(item)
+    //         }
+    //       })
+    //     }
+    //   })
+    // )
   }
 
   onclick() {
@@ -110,12 +110,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   updateCurrentIsy(isy) {
     if (isy && isy.hasOwnProperty('uuid')) {
-      // if (this.settings.currentIsy.value && this.settings.currentIsy.value['uuid'] === isy.uuid) {
-      //   return // this.toastr.error(`${isy.uuid} already selected`)
-      // }
       localStorage.setItem('currentIsy', isy.uuid)
       this.settings.currentIsy.next(isy)
-      this.dashboard = isy ? `${isy.name || isy.uuid} Dashboard` : 'Dashboard'
     }
   }
 
@@ -171,6 +167,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  async open(content) {
+    try {
+      await this.modal.open(content, this.modalOptions).result
+    } catch {
+      // This catches the modal cancel
+    }
+  }
+
   getDirtyValues(cg) {
     const dirtyValues = {}
     Object.keys(cg.controls).forEach(c => {
@@ -200,9 +204,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     )
   }
 
-  async addNewIsy() {
+  async addIsy() {
     this.modal.dismissAll()
-    console.log(this.addIsyForm.valid, this.addIsyForm.value)
     if (!this.addIsyForm.valid) {
       return this.toastr.error(`Missing or invalid required field`)
     }
@@ -210,20 +213,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.sockets.sendMessage('system', {
       addIsy: isy
     })
-    this.toastr.success(`Adding new ISY: ${isy['name']} @ ${isy['ip']}:${isy['port']}`)
+    this.toastr.success(`Adding ISY: ${isy['name']} @ ${isy['ip']}:${isy['port']}`)
     this.addIsyForm.reset()
   }
 
-  getConnected() {
-    this.subscription.add(
-      this.sockets.mqttConnected.subscribe(connected => {
-        this.mqttConnected = connected
-      })
-    )
+  async removeIsy() {
+    this.modal.dismissAll()
+    const isy = this.settings.currentIsy.value
+    this.sockets.sendMessage('system', { removeIsy: { uuid: isy['uuid'] } })
+    this.toastr.success(`Removing ISY: ${isy['name']} @ ${isy['ip']}: ${isy['port']}`)
+    this.settings.currentNodeServers.next([])
   }
 
   restartClick() {
-    if (this.mqttConnected) {
+    if (this.sockets.connected) {
       this.sockets.sendMessage('nodeservers', { restartPolyglot: {} })
       this.toastr.warning(
         'Sent Restart command to Polyglot. You will be logged out. Please wait till this message disappears to attempt to login again.',
@@ -237,7 +240,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   rebootClick() {
-    if (this.mqttConnected) {
+    if (this.sockets.connected) {
       this.sockets.sendMessage('system', {
         reboot: { uuid: this.settings.currentIsy.value['uuid'] }
       })

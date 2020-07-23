@@ -9,6 +9,7 @@ const config = require('../../config/config')
 const u = require('../../utils/utils')
 const logger = require('../logger')
 const isy = require('../../models/isy')
+const ns = require('../../services/nodeservers')
 const settings = require('../../models/globalsettings')
 const isySystem = require('../isy/system')
 const isyDiscover = require('../isy/discover')
@@ -81,6 +82,7 @@ async function discoverIsys(id, cmd, data) {
           `Discovered ISY Version ${newEntry.version} with ID: ${newEntry.uuid} at ${newEntry.ip}:${newEntry.port} successfully. Database version ${newEntry.dbVersion}`
         )
         Object.assign(result, discoveredIsy)
+        await ns.verifyNodeServers()
       } else {
         throw new Error(`No new ISY discovered.`)
       }
@@ -111,6 +113,20 @@ async function updateIsy(id, cmd, data) {
     const { uuid } = data
     const result = { uuid, success: true }
     await isy.update(uuid, data)
+    if (u.isIn(data, 'password') || u.isIn(data, 'username')) await ns.verifyNodeServers()
+    return result
+  } catch (err) {
+    logger.error(`updateIsy: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
+async function removeIsy(id, cmd, data) {
+  try {
+    const { uuid } = data
+    const result = { uuid, success: true }
+    await ns.removeAllNs(uuid)
+    await isy.remove(uuid)
     return result
   } catch (err) {
     logger.error(`updateIsy: ${err.stack}`)
@@ -146,6 +162,10 @@ const API = {
   updateIsy: {
     props: ['uuid'],
     func: updateIsy
+  },
+  removeIsy: {
+    props: ['uuid'],
+    func: removeIsy
   }
 }
 

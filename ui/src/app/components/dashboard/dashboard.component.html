@@ -1,23 +1,36 @@
-<div *ngIf="gotSettings">
-  <div *ngIf="!isyConnected" class="alert alert-dismissible alert-danger text-center">
-    <button type="button" class="close" data-dismiss="alert">&times;</button>
-    <p *ngIf="isyFound">
-      ISY automatically discovered at {{ isyHttps ? 'https' : 'http' }}://{{ isyHost }}:{{
-        isyPort
-      }}
-      however the username and password need to be set in the settings menu.
-    </p>
-    <p *ngIf="!isyFound">
-      ISY was not automatically discovered on your local network. Please configure it in the
-      settings menu now.
-    </p>
-  </div>
+<div
+  *ngIf="(sockets.getIsys | async)?.length <= 0"
+  class="alert alert-dismissible alert-danger text-center"
+>
+  <button type="button" class="close" data-dismiss="alert">&times;</button>
+  <p>
+    No ISY was automatically discovered on your local network. Please configure it in the ISY menu
+    to proceed.
+  </p>
 </div>
 
 <div class="container">
   <h2 align="center" class="text-white">NodeServers</h2>
-  <div class="row card-group">
-    <div *ngFor="let nodeServer of settingsService.currentNodeServers | async" class="col-6">
+  <div
+    class="row card-group"
+    *ngIf="
+      (settingsService.currentIsy | async) &&
+        (
+          settingsService.currentNodeServers
+          | async
+          | filter: 'uuid':settingsService.currentIsy.value['uuid']
+        )?.length > 0;
+      else noNodeservers
+    "
+  >
+    <div
+      *ngFor="
+        let nodeServer of settingsService.currentNodeServers
+          | async
+          | filter: 'uuid':settingsService.currentIsy.value['uuid']
+      "
+      class="col-6"
+    >
       <div *ngIf="nodeServer.type !== 'unmanaged'" class="mt-2">
         <div class="card p-1 pt-2">
           <h4 class="align-top" align="center" class="card-title">
@@ -86,3 +99,10 @@
   </div>
 </div>
 <app-nodepop [node]="selectedNode"></app-nodepop>
+
+<ng-template #noNodeservers>
+  <br />
+  <h3 class="text-white text-center">
+    No NodeServers found. Please add one through the store under the NodeServers menu!
+  </h3>
+</ng-template>

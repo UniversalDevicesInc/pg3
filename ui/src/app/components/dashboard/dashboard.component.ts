@@ -38,7 +38,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private subResponses: any
 
   constructor(
-    private sockets: WebsocketsService,
+    public sockets: WebsocketsService,
     private addNodeService: AddnodeService,
     private modal: NgbModal,
     private router: Router,
