@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
 import { WebsocketsService } from '../../services/websockets.service'
 import { AddnodeService } from '../../services/addnode.service'
-import { FlashMessagesService } from 'angular2-flash-messages'
 import { NodeServer } from '../../models/nodeserver.model'
 import { Router } from '@angular/router'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
@@ -31,7 +30,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public isyPort: string
   public gotSettings: boolean
   public isyConnected: boolean
-  public mqttConnected: boolean = false
   private subConnected: any
   private subSettings: any
   private subNodeServers: any
@@ -45,12 +43,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     public settingsService: SettingsService,
     private toastr: ToastrService
   ) {
-    this.subscription.add(
-      this.sockets.mqttConnected.subscribe(connected => {
-        this.mqttConnected = connected
-      })
-    )
-
     // this.subscription.add(this.sockets.settingsData.subscribe(settings => {
     //   this.addNodeService.getPolyglotVersion()
     //   this.isyConnected = settings.isyConnected
@@ -60,7 +52,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     //   this.isyPort = settings.isyPort
     //   this.gotSettings = true
     // }))
-
     // this.subscription.add(this.sockets.nodeServerData.subscribe(nodeServers => {
     //   nodeServers.sort((a, b) => {
     //     return parseInt(a.profileNum, 10) - parseInt(b.profileNum, 10)
@@ -74,7 +65,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     //     }
     //   }
     // }))
-
     // this.subscription.add(this.sockets.nodeServerResponse.subscribe(response => {
     //   if (response.hasOwnProperty('success')) {
     //     if (response.success) {
@@ -93,7 +83,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.addNodeService.getPolyglotVersion()
+    // this.addNodeService.getPolyglotVersion()
   }
 
   ngOnDestroy() {
@@ -112,7 +102,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     modalRef.result
       .then(isConfirmed => {
         if (isConfirmed)
-          if (this.mqttConnected) this.deleteNodeServer(nodeServer)
+          if (this.sockets.connected) this.deleteNodeServer(nodeServer)
           else this.showDisconnected()
       })
       .catch(error => {})
@@ -133,9 +123,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.toastr.error(`Not connected to Polyglot`)
   }
 
-  redirect(profileNum) {
-    //this.settingsService.currentNode = profileNum
-    this.router.navigate(['/nsdetails', profileNum])
+  redirect(uuid, profileNum) {
+    //this.settingsService.currentNs = [uuid, profileNum]
+    this.router.navigate(['/nsdetails', `${uuid}_${profileNum}`])
   }
 
   isArray(obj: any) {

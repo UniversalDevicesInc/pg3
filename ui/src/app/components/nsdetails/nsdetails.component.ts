@@ -5,7 +5,8 @@ import { NodeServer } from '../../models/nodeserver.model'
 import { Router, ActivatedRoute } from '@angular/router'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
-import { FlashMessagesService } from 'angular2-flash-messages'
+import { Subscription } from 'rxjs'
+import { ToastrService } from 'ngx-toastr'
 
 @Component({
   selector: 'app-nsdetails',
@@ -15,11 +16,7 @@ import { FlashMessagesService } from 'angular2-flash-messages'
 export class NsdetailsComponent implements OnInit, OnDestroy {
   @ViewChild('nslogScroll') private logScrollContainer: ElementRef
 
-  nodeServers: NodeServer[]
-  public mqttConnected = false
-  private subConnected: any
-  private subNodeServers: any
-  private subResponses: any
+  private subscription: Subscription = new Subscription()
   private logConn: any
   public logData: string[] = []
   public arrayOfKeys: string[] = []
@@ -27,9 +24,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   public customParamsChangePending: boolean
   public typedCustomData: any
   public typedParams: any
-  public profileNum: any
   public uptime: any
   public uptimeInterval: any
+  public refreshInterval: any
   public selectedNodeServer: any
   public currentlyEnabled: any
   public autoScroll: boolean
@@ -37,9 +34,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
   constructor(
     private sockets: WebsocketsService,
-    private settingsService: SettingsService,
+    public settings: SettingsService,
     private modal: NgbModal,
-    private flashMessage: FlashMessagesService,
+    private toastr: ToastrService,
     private route: ActivatedRoute,
     private router: Router
   ) {
@@ -47,39 +44,50 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     this.customParams = {}
     this.customParamsChangePending = false
     this.route.params.subscribe(params => {
-      this.profileNum = params['id']
+      const id = params['id'].split('_')
+      this.settings.currentNsDetails = {
+        uuid: id[0],
+        profileNum: id[1]
+      }
     })
   }
 
   ngOnInit() {
     this.autoScroll = true
-    this.getConnected()
-    this.getNodeServers()
+    this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
+    if (!this.refreshInterval) {
+      this.refreshInterval = setInterval(() => {
+        this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
+      }, 5000)
+    }
     this.getNodeServerResponses()
+    this.subscription.add(
+      this.settings.currentNs.subscribe(ns => {
+        if (!ns || !ns.hasOwnProperty('timeStarted')) return
+        if (!this.uptimeInterval && ns.timeStarted) {
+          this.uptimeInterval = setInterval(() => {
+            this.calculateUptime(ns)
+          }, 1000)
+        }
+      })
+    )
   }
 
   ngOnDestroy() {
+    this.subscription.unsubscribe()
+    this.settings.currentNsDetails = null
     if (this.logConn) {
       this.logConn.unsubscribe()
-      if (this.mqttConnected) {
-        this.sockets.sendMessage('log', { stop: this.selectedNodeServer.profileNum })
+      if (this.sockets.connected) {
+        // this.sockets.sendMessage('log', { stop: this.selectedNodeServer.profileNum })
       }
-    }
-    if (this.subNodeServers) {
-      this.subNodeServers.unsubscribe()
-    }
-    if (this.subResponses) {
-      this.subResponses.unsubscribe()
     }
     if (this.uptimeInterval) {
       clearInterval(this.uptimeInterval)
     }
-  }
-
-  getConnected() {
-    this.subConnected = this.sockets.mqttConnected.subscribe(connected => {
-      this.mqttConnected = connected
-    })
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval)
+    }
   }
 
   showConfirm(nodeServer) {
@@ -91,7 +99,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     modalRef.result
       .then(isConfirmed => {
         if (isConfirmed) {
-          this.deleteNodeServer(nodeServer, isConfirmed)
+          if (this.sockets.connected) this.deleteNodeServer(nodeServer)
         }
       })
       .catch(error => {})
@@ -104,14 +112,14 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     modalRef.result
       .then(isConfirmed => {
         if (isConfirmed) {
-          this.deleteNode(i)
+          if (this.sockets.connected) this.deleteNode(i)
         }
       })
       .catch(error => {})
   }
 
   deleteNode(i) {
-    if (this.mqttConnected) {
+    if (this.sockets.connected) {
       this.sockets.sendMessage(
         'nodeservers',
         {
@@ -128,13 +136,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  deleteNodeServer(nodeServer, confirmed) {
-    if (this.mqttConnected) {
-      this.sockets.sendMessage('nodeservers', { delns: { profileNum: nodeServer.profileNum } })
-      this.router.navigate(['/dashboard'])
-    } else {
-      this.showDisconnected()
-    }
+  deleteNodeServer(nodeServer) {
+    this.sockets.sendMessage('isy', { removeNs: nodeServer }, false, false)
+    this.toastr.success(`Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.slot}`)
   }
 
   showControl(type) {
@@ -144,7 +148,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     this.currentlyEnabled = type
 
     if (type === 'log') {
-      if (this.mqttConnected) {
+      if (this.sockets.connected) {
         this.sockets.sendMessage('log', { start: this.selectedNodeServer.profileNum })
         this.getLog()
       } else {
@@ -153,7 +157,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     } else {
       if (this.logConn) {
         this.logConn.unsubscribe()
-        if (this.mqttConnected) {
+        if (this.sockets.connected) {
           this.sockets.sendMessage('log', { stop: this.selectedNodeServer.profileNum })
         }
       }
@@ -161,47 +165,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   }
 
   showDisconnected() {
-    this.flashMessage.show('Error not connected to Polyglot.', {
-      cssClass: 'alert-danger',
-      timeout: 3000
-    })
-  }
-
-  getNodeServers() {
-    // this.subNodeServers = this.sockets.nodeServerData.subscribe(nodeServers => {
-    //   this.nodeServers = nodeServers
-    //   for (const nodeServer of this.nodeServers) {
-    //     if (nodeServer.profileNum === this.profileNum) {
-    //       this.selectedNodeServer = nodeServer
-    //       // If notices is an object, convert to array of values
-    //       if (nodeServer.notices != null && !Array.isArray(nodeServer.notices)) {
-    //         nodeServer.notices = Object.keys(nodeServer.notices).map(key => nodeServer.notices[key]);
-    //       }
-    //       for (const node of nodeServer.nodes) {
-    //         if (Array.isArray(node.hint)) {
-    //           node.hint = node.hint.join('.');
-    //         }
-    //       }
-    //       if (!this.uptimeInterval && this.selectedNodeServer.timeStarted) {
-    //         this.uptimeInterval = setInterval(() => {
-    //           this.calculateUptime()
-    //         }, 1000)
-    //       }
-    //       if (!Array.isArray(nodeServer.typedParams)) {
-    //         nodeServer.typedParams = [];
-    //       }
-    //       const keys = Object.keys(nodeServer.customParams).sort();
-    //       if (!this.customParamsChangePending
-    //           && JSON.stringify(this.arrayOfKeys) !== JSON.stringify(keys)) {
-    //         this.setCustomParams(nodeServer, keys);
-    //       }
-    //       if (JSON.stringify(this.typedParams)
-    //         !== JSON.stringify(nodeServer.typedParams)) {
-    //         this.setTypedCustomData(nodeServer);
-    //       }
-    //     }
-    //   }
-    // })
+    this.toastr.error('Not connected to Polyglot')
   }
 
   setCustomParams(nodeServer, keys) {
@@ -217,9 +181,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     this.typedCustomData = JSON.parse(JSON.stringify(nodeServer.typedCustomData))
   }
 
-  calculateUptime() {
+  calculateUptime(ns) {
     // var seconds = Math.floor(()/1000)
-    let d = Math.abs(+new Date() - this.selectedNodeServer.timeStarted) / 1000
+    let d = Math.abs(+new Date() - ns.timeStarted) / 1000
     const r = {}
     const s = {
       'Year(s)': 31536000,
@@ -249,7 +213,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     longPoll = parseInt(longPoll, 10)
     if (typeof shortPoll === 'number' && typeof longPoll === 'number') {
       if (shortPoll < longPoll) {
-        if (this.mqttConnected) {
+        if (this.sockets.connected) {
           const message = {
             shortPoll: shortPoll,
             longPoll: longPoll
@@ -269,10 +233,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   }
 
   badValidate(message) {
-    this.flashMessage.show(message, {
-      cssClass: 'alert-danger',
-      timeout: 5000
-    })
+    this.toastr.error(message)
     window.scrollTo(0, 0)
   }
 
@@ -325,19 +286,21 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   }
 
   sendControl(command) {
-    if (this.mqttConnected) {
-      const cmd = {
-        node: this.selectedNodeServer.profileNum
-      }
-      cmd[command] = ''
-      this.sockets.sendMessage(this.selectedNodeServer.profileNum, cmd, false, false)
-      this.flashMessage.show(
-        `Sent ${command} command to NodeServer ${this.selectedNodeServer.name}.`,
+    if (this.sockets.connected) {
+      this.sockets.sendMessage(
+        'ns',
         {
-          cssClass: 'alert-success',
-          timeout: 5000
-        }
+          [command]: {
+            uuid: this.settings.currentNs.value['uuid'],
+            profileNum: this.settings.currentNs.value['profileNum']
+          }
+        },
+        false,
+        false
       )
+      // this.toastr.success(
+      //   `Sent ${command} command to NodeServer ${this.settings.currentNs.value['name']}.`
+      // )
       window.scrollTo(0, 0)
     }
   }

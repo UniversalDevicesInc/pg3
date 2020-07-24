@@ -2,6 +2,7 @@ import { Component, OnInit, QueryList, ViewChildren } from '@angular/core'
 
 //import { CustomparamComponent } from '../params/customparam/customparam.component'
 import { NsdetailsComponent } from '../nsdetails/nsdetails.component'
+import { SettingsService } from '../../services/settings.service'
 import { ValidateparamsService } from '../../services/validateparams.service'
 
 @Component({
@@ -10,18 +11,19 @@ import { ValidateparamsService } from '../../services/validateparams.service'
   styleUrls: ['./customdetails.component.css']
 })
 export class CustomdetailsComponent implements OnInit {
-
   helpCollapsed = false
 
-  constructor(public nsdetails: NsdetailsComponent,
-    private params: ValidateparamsService) {}
+  constructor(
+    public nsdetails: NsdetailsComponent,
+    private params: ValidateparamsService,
+    public settings: SettingsService
+  ) {}
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   addCustom(key: string, value) {
-    (<HTMLInputElement>document.getElementById('newkey')).value = '';
-    (<HTMLInputElement>document.getElementById('newvalue')).value = '';
+    ;(<HTMLInputElement>document.getElementById('newkey')).value = ''
+    ;(<HTMLInputElement>document.getElementById('newvalue')).value = ''
     this.nsdetails.saveCustom(key, value)
   }
 
@@ -31,5 +33,4 @@ export class CustomdetailsComponent implements OnInit {
       this.nsdetails.sendTypedCustom()
     }
   }
-
 }

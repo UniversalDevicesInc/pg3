@@ -15,9 +15,10 @@ import { saveAs } from 'file-saver'
 export class SettingsService {
   public authToken: any
   public settings: any
-  public currentNode: any
+  public currentNsDetails: any
   public isPolisy: boolean = false
   public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
+  public currentNs: BehaviorSubject<any> = new BehaviorSubject(null)
   public currentNodeServers: BehaviorSubject<any[]> = new BehaviorSubject([])
   public globalSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   // public isys: any[] = []

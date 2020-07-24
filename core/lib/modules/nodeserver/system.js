@@ -1,5 +1,6 @@
 /* eslint-disable
-  no-use-before-define
+  no-use-before-define,
+  no-unused-vars
   */
 const logger = require('../logger')
 const u = require('../../utils/utils')
@@ -10,8 +11,8 @@ const isyErrors = require('../isy/errors')
 const ns = require('../../models/nodeserver')
 const nodeserver = require('../../services/nodeservers')
 
-async function configuration(message) {
-  console.log(message)
+async function config([uuid, profileNum], cmd, data) {
+  return ns.getFull(uuid, profileNum)
 }
 
 async function connected(message) {
@@ -25,7 +26,7 @@ async function polls(message) {
 async function installprofile([uuid, profileNum], cmd, data) {
   try {
     const nodeServer = await ns.get(uuid, profileNum)
-    await isyNodeServer.profileUpload(nodeServer)
+    // await isyNodeServer.profileUpload(uuid, profileNum)
   } catch (err) {
     logger.error(`installprofile error: ${err.stack}`)
   }
@@ -42,7 +43,7 @@ async function restart(message) {
 const API = {
   config: {
     props: [],
-    func: configuration
+    func: config
   },
   connected: {
     props: [],

@@ -17,26 +17,37 @@ async function getNodes(id, cmd, data) {
   return servicens.getNodes(data)
 }
 
-async function start(id, cmd, data) {
+async function startNs(id, cmd, data) {
   const { uuid, profileNum } = data
   try {
     const nodeServer = await ns.get(uuid, profileNum)
     return servicens.startNs(nodeServer)
   } catch (err) {
-    logger.error(`start: ${err.stack}`)
+    logger.error(`startNs: ${err.stack}`)
   }
-  return { error: 'Failed, check log for details.' }
+  return { success: false, error: 'Failed, check log for details.' }
 }
 
-async function stop(id, cmd, data) {
+async function stopNs(id, cmd, data) {
   const { uuid, profileNum } = data
   try {
     const nodeServer = await ns.get(uuid, profileNum)
     return servicens.stopNs(nodeServer)
   } catch (err) {
-    logger.error(`stop: ${err.stack}`)
+    logger.error(`stopNs: ${err.stack}`)
   }
-  return { error: 'Failed, check log for details.' }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
+async function restartNs(id, cmd, data) {
+  const { uuid, profileNum } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return servicens.restartNs(nodeServer)
+  } catch (err) {
+    logger.error(`restartNs: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
 }
 
 const API = {
@@ -48,13 +59,17 @@ const API = {
     props: ['uuid', 'profileNum'],
     func: getNodes
   },
-  start: {
+  startNs: {
     props: ['uuid', 'profileNum'],
-    func: start
+    func: startNs
   },
-  stop: {
+  stopNs: {
     props: ['uuid', 'profileNum'],
-    func: stop
+    func: stopNs
+  },
+  restartNs: {
+    props: ['uuid', 'profileNum'],
+    func: restartNs
   }
 }
 

@@ -44,7 +44,7 @@
           <div class="btn-group btn-group-justified py-0" role="group">
             <button
               class="btn btn-primary btn-sm"
-              (click)="showNodes(nodeServer)"
+              (click)="redirect(nodeServer.uuid, nodeServer.profileNum)"
               style="width: 33%;"
               role="button"
             >
@@ -55,7 +55,7 @@
             </button>
             <button
               class="btn btn-primary btn-sm"
-              (click)="redirect(nodeServer.profileNum)"
+              (click)="redirect(nodeServer.uuid, nodeServer.profileNum)"
               style="width: 34%;"
               role="button"
             >

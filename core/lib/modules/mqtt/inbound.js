@@ -61,9 +61,11 @@ async function processMessage(topic, message) {
         )
     )
     logger.debug(`MQTT Results: [${type}/${target}/${id}] :: ${JSON.stringify(results)}`)
-    if (type === 'ns' && u.isIn(message, 'id') && Array.isArray(id))
-      nscore.nsMessage(id[0], id[1], { id: message.id, ...results })
-    else frontcore.frontendMessage(results)
+    if (type === 'ns' && Array.isArray(id)) {
+      const response = { ...results }
+      if (u.isIn(message, 'id')) response.id = message.id
+      nscore.sendMessage(id[0], id[1], response)
+    } else frontcore.frontendMessage(results)
   } catch (err) {
     logger.error(`MQTT on Inbound processMessage: ${err.stack}`)
   }

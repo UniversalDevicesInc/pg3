@@ -21,10 +21,10 @@ async function publish(topic, message) {
  * @param {string} command - Command to send, e.g 'status', etc.
  * @param {object} message - Dictionary object of message to send. JSON format.
  */
-async function nsMessage(uuid, profileNum, message) {
+async function sendMessage(uuid, profileNum, message) {
   return publish(`udi/pg3/ns/clients/${uuid}_${profileNum}`, message)
 }
 
 module.exports = {
-  nsMessage
+  sendMessage
 }

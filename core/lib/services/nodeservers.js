@@ -13,6 +13,7 @@ const isyns = require('../modules/isy/nodeserver')
 const isysystem = require('../modules/isy/system')
 const nscore = require('../modules/nodeserver/core')
 const frontendcore = require('../modules/frontend/core')
+const { timeout } = require('../utils/utils')
 
 const VALID_TYPES = ['node', 'python3', 'python', 'binary']
 
@@ -266,22 +267,22 @@ async function removeNs(nodeServer) {
 }
 
 async function startNs(nodeServer) {
-  if (nodeServer.type.toLowerCase() === 'unmanaged') return
+  if (nodeServer.type.toLowerCase() === 'unmanaged') return { success: false, error: `unmanaged` }
   if (config.nodeProcesses[nodeServer.id]) {
     logger.error(`[${nodeServer.name}(${nodeServer.profileNum})] :: already running.`)
-    return
+    return { success: false, error: `already running` }
   }
   if (!VALID_TYPES.includes(nodeServer.type)) {
     logger.error(
       `[${nodeServer.name}(${nodeServer.profileNum})] :: Invalid Type: '${nodeServer.type}', valid types are '${VALID_TYPES}'`
     )
-    return
+    return { success: false, error: `invalid type` }
   }
   if (!fs.existsSync(nodeServer.home)) {
     logger.error(
       `[${nodeServer.name}(${nodeServer.profileNum})] ::  directory ${nodeServer.home} not found. Skipping.`
     )
-    return
+    return { success: false, error: `directory not found` }
   }
   try {
     const serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
@@ -364,8 +365,10 @@ async function startNs(nodeServer) {
 
     // Start polls
     await startPolls(nodeServer)
+    return { success: true }
   } catch (err) {
     logger.error(`startNs: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
   }
 }
 
@@ -374,13 +377,26 @@ async function stopNs(nodeServer) {
   if (config.nodeProcesses[nodeServer.id]) {
     logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Stopping Nodeserver`)
     stopPolls(nodeServer)
-    process.kill(-config.nodeProcesses[nodeServer.id].pid)
+    await nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { stop: {} })
+    await utils.timeout(2000)
+    try {
+      process.kill(-config.nodeProcesses[nodeServer.id].pid)
+    } catch (err) {
+      logger.error(`stopNs: ${err.stack}`)
+    }
+    return { success: true }
   }
+  return { success: false, error: `${nodeServer.name} not running` }
 }
 
 async function restartNs(nodeServer) {
-  await stopNs(nodeServer)
-  await startNs(nodeServer)
+  logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Restarting Nodeserver`)
+  let result = await stopNs(nodeServer)
+  if (result.success) {
+    await utils.timeout(3000)
+    result = { ...(await startNs(nodeServer)) }
+  }
+  return result
 }
 
 async function stopPolls(nodeServer) {
@@ -393,13 +409,13 @@ async function stopPolls(nodeServer) {
 async function startPolls(nodeServer) {
   if (!config.shortPolls[nodeServer.id]) {
     config.shortPolls[nodeServer.id] = setInterval(() => {
-      nscore.nsMessage(nodeServer.uuid, nodeServer.profileNum, { shortPoll: {} })
+      nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { shortPoll: {} })
     }, nodeServer.shortPoll * 1000)
     config.shortPolls[nodeServer.id].unref()
   }
   if (!config.longPolls[nodeServer.id]) {
     config.longPolls[nodeServer.id] = setInterval(() => {
-      nscore.nsMessage(nodeServer.uuid, nodeServer.profileNum, { longPoll: {} })
+      nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { longPoll: {} })
     }, 1 * nodeServer.longPoll * 1000)
     config.longPolls[nodeServer.id].unref()
   }
@@ -408,7 +424,7 @@ async function startPolls(nodeServer) {
 async function getNs(nodeServer) {
   const { uuid, profileNum } = nodeServer
   try {
-    const result = await ns.get(uuid, profileNum)
+    const result = await ns.getFull(uuid, profileNum)
     if (result) return result
   } catch (err) {
     logger.error(`getNs: ${err.stack}`)
@@ -454,6 +470,16 @@ async function sendFrontendUpdate() {
   }
 }
 
+async function sendConfig(uuid, profileNum) {
+  try {
+    const result = await ns.getFull(uuid, profileNum)
+    nscore.sendMessage(uuid, profileNum, { config: result })
+  } catch (err) {
+    logger.error(`sendConfig: ${err.stack}`)
+    nscore.sendMessage(uuid, profileNum, { config: {} })
+  }
+}
+
 // API
 module.exports = {
   start,
@@ -473,5 +499,6 @@ module.exports = {
   getAllNs,
   getNodes,
   sendFrontendUpdate,
-  verifyNodeServers
+  verifyNodeServers,
+  sendConfig
 }

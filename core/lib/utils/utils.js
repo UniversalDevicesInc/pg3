@@ -1,6 +1,8 @@
 const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
 const isIn = (obj, key) => Object.keys(obj).includes(key)
 
+const timeout = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 const propExists = (obj, path) => {
   return !!path.split('.').reduce((o, prop) => {
     return o && o[prop] ? o[prop] : undefined
@@ -36,4 +38,4 @@ const convertHint = hint => {
 
 const hasProps = (obj, props) => props.every(prop => Object.keys(obj).includes(prop))
 
-module.exports = { hasOwn, isIn, verifyProps, hasProps, convertHint }
+module.exports = { hasOwn, isIn, verifyProps, hasProps, convertHint, timeout }

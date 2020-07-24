@@ -7,6 +7,7 @@ import { ToastrService } from 'ngx-toastr'
 import { SettingsService } from './settings.service'
 import { AuthService } from './auth.service'
 import { ThrowStmt } from '@angular/compiler'
+import { settings } from 'cluster'
 // import { NodeServer } from '../models/nodeserver.model'
 // import { Mqttmessage } from '../models/mqttmessage.model'
 
@@ -17,12 +18,16 @@ export class WebsocketsService {
   public installNs: Subject<object> = new Subject()
   public removeNs: Subject<object> = new Subject()
   public discoverIsys: Subject<object> = new Subject()
+  public startNs: Subject<object> = new Subject()
+  public stopNs: Subject<object> = new Subject()
+  public restartNs: Subject<object> = new Subject()
   public getIsys: BehaviorSubject<any[]> = new BehaviorSubject(null)
   public addIsy: Subject<object> = new Subject()
   public updateIsy: Subject<object> = new Subject()
   public removeIsy: Subject<object> = new Subject()
   public invalidCredentials: Subject<object> = new Subject()
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject([])
+  public getNs: BehaviorSubject<any[]> = new BehaviorSubject(null)
   public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public setSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public reboot: Subject<object> = new Subject()
@@ -169,45 +174,28 @@ export class WebsocketsService {
   }
 
   addSubscribers() {
-    // currentIsy Subscriber
-    // this.subscription.add(
-    //   this.settingsService.currentIsy.subscribe(currentIsy => {
-    //     if (currentIsy && currentIsy.hasOwnProperty('uuid')) {
-    //       if (!this._currentIsy || this._currentIsy['uuid'] !== currentIsy['uuid']) {
-    //         this._currentIsy = currentIsy
-    //         // const index = this.topics.findIndex(e => e.includes(`/00:21`))
-    //         // if (index > -1) {
-    //         //   console.log(`unsub ${this.topics[index]}`)
-    //         //   this.client.unsubscribe(this.topics[index])
-    //         //   this.topics.splice(index, 1)
-    //         // }
-    //         // const isyTopic = `udi/pg3/frontend/clients/${this.settingsService.settings.id}/${currentIsy['uuid']}`
-    //         // if (this.topics.indexOf(isyTopic) === -1) {
-    //         //   this.topics.push(isyTopic)
-    //         //   console.log(`sub ${isyTopic}`)
-    //         //   this.client.subscribe(isyTopic)
-    //         // }
-    //         this.sendMessage('isy', { getNodeServers: { uuid: currentIsy['uuid'] } })
-    //       }
-    //     }
-    //   })
-    // )
-
-    // getNodeServers Subscriber
     this.subscription.add(
       this.getNodeServers.subscribe((nodeservers: any[]) => {
         if (Array.isArray(nodeservers)) {
           this.settingsService.currentNodeServers.next(nodeservers)
-          // this.settingsService.availableNodeServerSlots = {}
-          // nodeservers.map(item => {
-          //   if (!u.isIn(this.settingsService.availableNodeServerSlots, item.uuid)) {
-          //     this.settingsService.availableNodeServerSlots[item.uuid] = []
-          //   }
-          // })
-          // nodeservers.map(item => {
-          //   this.settingsService.availableNodeServerSlots.splice(item.profileNum - 1, 1)
-          // })
         }
+      })
+    )
+
+    this.subscription.add(
+      this.getNs.subscribe((msg: any[]) => {
+        if (!msg) return
+        if (
+          this.settingsService.currentNsDetails &&
+          this.settingsService.currentNsDetails.hasOwnProperty('uuid') &&
+          msg.hasOwnProperty('uuid')
+        ) {
+          if (this.settingsService.currentNsDetails['uuid'] === msg['uuid'])
+            this.settingsService.currentNs.next(msg)
+        }
+        // if (msg.hasOwnProperty('name') && msg.hasOwnProperty('uuid')) {
+        //   this.toastr.success(`Received ${msg['name']}(${msg['uuid']}) details`)
+        // }
       })
     )
 
@@ -246,6 +234,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.removeNs.subscribe(ns => {
         if (!ns) return
@@ -263,6 +252,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.reboot.subscribe(msg => {
         if (!msg) return
@@ -277,6 +267,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.discoverIsys.subscribe(msg => {
         if (!msg) return
@@ -290,6 +281,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.getIsys.subscribe(msg => {
         if (!msg) return
@@ -319,6 +311,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.addIsy.subscribe(msg => {
         if (!msg) return
@@ -330,6 +323,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.updateIsy.subscribe(msg => {
         if (!msg) return
@@ -341,6 +335,7 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.removeIsy.subscribe(msg => {
         if (!msg) return
@@ -352,33 +347,46 @@ export class WebsocketsService {
         }
       })
     )
+
     this.subscription.add(
       this.invalidCredentials.subscribe(msg => {
         if (!msg) return
         this.toastr.error(`Invalid Credentials for ISY ${msg['uuid']}. Please update.`)
       })
     )
-  }
 
-  processNodeServers(message) {
-    if (message.hasOwnProperty('response') && message.hasOwnProperty('seq')) {
-      // this.nsResponses.forEach(item => {
-      //   if (item.seq === message.seq) {
-      //     //this.nodeServerResponses(message)
-      //     this.nodeServerResponse.next(message.response)
-      //     return
-      //   }
-      // })
-    } else if (message.hasOwnProperty('nodetypes')) {
-      //this.nsTypeResponses(message)
-      // this.nsTypeResponse.next(message.nodetypes)
-    } else if (message.hasOwnProperty('installedns')) {
-      //this.getinstalledNS(message)
-      // this.installedNSData.next(message.installedns)
-    } else {
-      //this.getNodeServers(message)
-      //this.nodeServerData.next(message.nodeservers)
-    }
+    this.subscription.add(
+      this.startNs.subscribe(msg => {
+        if (!msg) return
+        if (msg.hasOwnProperty('success') && msg['success']) {
+          this.toastr.success(`Nodeserver started successfully.`)
+        } else {
+          this.toastr.error(`NodeServer Start: ${msg['error']}`)
+        }
+      })
+    )
+
+    this.subscription.add(
+      this.stopNs.subscribe(msg => {
+        if (!msg) return
+        if (msg.hasOwnProperty('success') && msg['success']) {
+          this.toastr.success(`Nodeserver stopped successfully.`)
+        } else {
+          this.toastr.error(`NodeServer Stop: ${msg['error']}`)
+        }
+      })
+    )
+
+    this.subscription.add(
+      this.restartNs.subscribe(msg => {
+        if (!msg) return
+        if (msg.hasOwnProperty('success') && msg['success']) {
+          this.toastr.success(`Nodeserver restarted successfully.`)
+        } else {
+          this.toastr.error(`NodeServer Restart: ${msg['error']}`)
+        }
+      })
+    )
   }
 
   processSconfig(topic, message) {
@@ -396,28 +404,6 @@ export class WebsocketsService {
       this.polisySystemData.next(message)
     }
   }
-
-  /*
-  getNodeServers(message) {
-    Observable.of(message.nodeservers).subscribe(data => this.nodeServerData.next(data))
-    return this.nodeServerData
-  }
-
-  getinstalledNS(message) {
-    Observable.of(message.installedns).subscribe(data => this.installedNSData.next(data))
-    return this.installedNSData
-  }
-
-  nodeServerResponses(message) {
-    Observable.of(message.response).subscribe(data => this.nodeServerResponse.next(data))
-    return this.nodeServerResponse
-  }
-
-  nsTypeResponses(message) {
-    Observable.of(message.nodetypes).subscribe(data => this.nsTypeResponse.next(data))
-    return this.nsTypeResponse
-  } */
-
   processSettings(message) {
     // if (message.hasOwnProperty('response') && message.hasOwnProperty('seq')) {
     //   this.setResponses.forEach(item => {
