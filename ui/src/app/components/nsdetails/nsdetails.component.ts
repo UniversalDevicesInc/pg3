@@ -7,6 +7,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { Subscription } from 'rxjs'
 import { ToastrService } from 'ngx-toastr'
+import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms'
 
 @Component({
   selector: 'app-nsdetails',
@@ -17,8 +18,11 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   @ViewChild('nslogScroll') private logScrollContainer: ElementRef
 
   private subscription: Subscription = new Subscription()
+  public objectValues = Object.values
+  public objectKeys = Object.keys
   private logConn: any
   public logData: string[] = []
+  public jsonParse = item => JSON.parse(item)
   public arrayOfKeys: string[] = []
   public customParams: any
   public customParamsChangePending: boolean
@@ -31,28 +35,34 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   public currentlyEnabled: any
   public autoScroll: boolean
   public child: any
+  customparamsForm: FormGroup
+  customtypedparamsForm: FormGroup
+  submitted = false
 
   constructor(
-    private sockets: WebsocketsService,
+    public sockets: WebsocketsService,
     public settings: SettingsService,
+    private fb: FormBuilder,
     private modal: NgbModal,
     private toastr: ToastrService,
     private route: ActivatedRoute,
     private router: Router
-  ) {
-    this.arrayOfKeys = []
-    this.customParams = {}
-    this.customParamsChangePending = false
+  ) {}
+
+  ngOnInit() {
+    this.customparamsForm = this.fb.group({
+      customparams: new FormArray([])
+    })
+    this.customtypedparamsForm = this.fb.group({
+      customtypedparams: new FormArray([])
+    })
     this.route.params.subscribe(params => {
       const id = params['id'].split('_')
       this.settings.currentNsDetails = {
         uuid: id[0],
-        profileNum: id[1]
+        profileNum: parseInt(id[1], 10)
       }
     })
-  }
-
-  ngOnInit() {
     this.autoScroll = true
     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
     if (!this.refreshInterval) {
@@ -60,7 +70,6 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
         this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
       }, 5000)
     }
-    this.getNodeServerResponses()
     this.subscription.add(
       this.settings.currentNs.subscribe(ns => {
         if (!ns || !ns.hasOwnProperty('timeStarted')) return
@@ -71,11 +80,51 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
         }
       })
     )
+    // getCustom Subscriber
+    this.subscription.add(
+      this.sockets.getCustom.subscribe(custom => {
+        if (!Array.isArray(custom)) return
+        if (this.customparamsForm.dirty || this.customtypedparamsForm.dirty) return
+        custom.map(entry => {
+          if (entry.key === 'customparams') {
+            try {
+              const params = JSON.parse(entry.value)
+              Object.entries(params).map(([key, value]) => {
+                ;(this.customparamsForm.controls.customparams as FormArray).push(
+                  this.fb.group({
+                    name: [key, Validators.required],
+                    value: [value, Validators.required]
+                  })
+                )
+              })
+              console.log(this.customparamsForm.controls.customparams['controls'])
+            } catch (err) {
+              console.log(`customparams value is not json parseable`)
+            }
+          }
+          if (entry.key === 'customtypedparams') {
+            try {
+              const params = JSON.parse(entry.value)
+              Object.entries(entry).map(([key, value]) => {
+                ;(this.customtypedparamsForm.controls.customtypedparams as FormArray).push(
+                  this.fb.group({
+                    key: ['', Validators.required],
+                    value: ['', Validators.required]
+                  })
+                )
+              })
+            } catch (err) {
+              console.log(`customparams value is not json parseable`)
+            }
+          }
+        })
+      })
+    )
   }
 
   ngOnDestroy() {
     this.subscription.unsubscribe()
-    this.settings.currentNsDetails = null
+    this.settings.currentNsDetails = {}
     if (this.logConn) {
       this.logConn.unsubscribe()
       if (this.sockets.connected) {
@@ -89,6 +138,14 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval)
     }
   }
+
+  // convenience getters for easy access to form fields
+  // get f() {
+  //   return this.dynamicForm.controls
+  // }
+  // get t() {
+  //   return this.f.tickets as FormArray
+  // }
 
   showConfirm(nodeServer) {
     const modalRef = this.modal.open(ConfirmComponent, { centered: true })
@@ -123,7 +180,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
       this.sockets.sendMessage(
         'nodeservers',
         {
-          removenode: {
+          removeNode: {
             address: i.address,
             profileNum: this.selectedNodeServer.profileNum
           }
@@ -138,7 +195,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
   deleteNodeServer(nodeServer) {
     this.sockets.sendMessage('isy', { removeNs: nodeServer }, false, false)
-    this.toastr.success(`Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.slot}`)
+    this.toastr.success(
+      `Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.profileNum}`
+    )
   }
 
   showControl(type) {
@@ -215,12 +274,12 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
       if (shortPoll < longPoll) {
         if (this.sockets.connected) {
           const message = {
-            shortPoll: shortPoll,
-            longPoll: longPoll
+            updatePolls: {
+              short: shortPoll,
+              long: longPoll
+            }
           }
-          const updatedPolls = JSON.parse(JSON.stringify(message))
-          updatedPolls['profileNum'] = this.selectedNodeServer.profileNum
-          this.sockets.sendMessage('nodeservers', { polls: updatedPolls }, false, true)
+          this.sockets.sendMessage('ns', message)
         } else {
           this.badValidate('Websockets not connected to Polyglot. Poll Parameters not saved.')
         }
@@ -252,8 +311,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     if (this.sockets.connected) {
       // Deepcopy hack
       const updatedParams = JSON.parse(JSON.stringify(this.customParams))
-      updatedParams['profileNum'] = this.selectedNodeServer.profileNum
-      this.sockets.sendMessage('nodeservers', { customparams: updatedParams }, false, true)
+      console.log(updatedParams)
+      // updatedParams['profileNum'] = this.selectedNodeServer.profileNum
+      // this.sockets.sendMessage('nodeservers', { customparams: updatedParams }, false, true)
       this.customParamsChangePending = false
     } else {
       this.badValidate('Websockets not connected to Polyglot. Custom Parameters not saved.')
@@ -261,13 +321,13 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   }
 
   sendTypedCustom() {
-    if (this.sockets.connected) {
-      const data = JSON.parse(JSON.stringify(this.typedCustomData))
-      data['profileNum'] = this.selectedNodeServer.profileNum
-      this.sockets.sendMessage('nodeservers', { typedcustomdata: data }, false, true)
-    } else {
-      this.badValidate('Websockets not connected to Polyglot. Typed Custom Parameters not saved.')
-    }
+    // if (this.sockets.connected) {
+    //   const data = JSON.parse(JSON.stringify(this.typedCustomData))
+    //   data['profileNum'] = this.selectedNodeServer.profileNum
+    //   this.sockets.sendMessage('nodeservers', { typedcustomdata: data }, false, true)
+    // } else {
+    //   this.badValidate('Websockets not connected to Polyglot. Typed Custom Parameters not saved.')
+    // }
   }
 
   getLog() {

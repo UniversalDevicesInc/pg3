@@ -60,6 +60,10 @@ async function processMessage(topic, message) {
             })
         )
     )
+    if (Object.keys(results).length <= 0) {
+      results.error = `No valid API calls provided`
+      results.message = `${JSON.stringify(message)}`
+    }
     logger.debug(`MQTT Results: [${type}/${target}/${id}] :: ${JSON.stringify(results)}`)
     if (type === 'ns' && Array.isArray(id)) {
       const response = { ...results }

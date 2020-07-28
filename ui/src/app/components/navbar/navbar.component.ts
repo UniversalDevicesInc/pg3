@@ -100,10 +100,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // )
   }
 
-  onclick() {
-    alert('Clicked')
-  }
-
   ngOnDestroy() {
     this.subscription.unsubscribe()
   }

@@ -23,6 +23,7 @@ async function start() {
     await check.isyTable()
     await check.nodeserverTable()
     await check.nodeTable()
+    await check.customTable()
     await check.driverTable()
   }
 }

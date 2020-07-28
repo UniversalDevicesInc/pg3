@@ -15,7 +15,7 @@ import { saveAs } from 'file-saver'
 export class SettingsService {
   public authToken: any
   public settings: any
-  public currentNsDetails: any
+  public currentNsDetails: object = {}
   public isPolisy: boolean = false
   public currentIsy: BehaviorSubject<object> = new BehaviorSubject(null)
   public currentNs: BehaviorSubject<any> = new BehaviorSubject(null)
@@ -81,10 +81,13 @@ export class SettingsService {
   storeSettings(settings) {
     //if (settings.hasOwnProperty('isPolisy')) this.isPolisy = settings['isPolisy']
     localStorage.setItem('settings', JSON.stringify(settings))
+    this.settings = settings
+    this.globalSettings.next(settings)
   }
 
   loadSettings() {
     this.settings = JSON.parse(localStorage.getItem('settings'))
+    this.globalSettings.next(this.settings)
     /*
     if (this.settings.hasOwnProperty('isPolisy')) {
       this.isPolisy = this.settings['isPolisy']

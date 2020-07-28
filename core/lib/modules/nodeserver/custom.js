@@ -5,7 +5,7 @@
 const logger = require('../logger')
 const u = require('../../utils/utils')
 
-const ns = require('../../models/nodeserver')
+const custom = require('../../models/custom')
 
 const KEYS = [
   'customparams',
@@ -18,23 +18,24 @@ const KEYS = [
 
 async function set([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
   return Promise.all(
     Object.values(data).map(async item => {
-      const result = {}
       try {
-        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (typeof item !== 'object') throw new Error(`custom object invalid`)
         if (!u.hasProps(item, API[cmd].props))
-          throw new Error(`${cmd} object does not have the correct properties`)
+          throw new Error(
+            `${cmd} object does not have the correct properties :: ${JSON.stringify(item)}`
+          )
         if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a mutable property`)
-        const updateObject = {
-          [item.key]: typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
-        }
-        await ns.update(uuid, profileNum, updateObject)
+        console.log(item.value)
+        const value = typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
+        await custom.add(uuid, profileNum, item.key, value)
         logger.info(`[${uuid}_${profileNum}] Set ${item.key}`)
-        return { ...result, success: true, [item.key]: item.value }
+        return { success: true, key: item.key }
       } catch (err) {
         logger.error(`command ${cmd} ${err.message}`)
-        return { ...result, success: false, error: err.message }
+        return { success: false, key: item.key, error: err.message }
       }
     })
   )
@@ -42,26 +43,35 @@ async function set([uuid, profileNum], cmd, data) {
 
 async function get([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
-  return Promise.all(
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
+  const results = []
+  await Promise.allSettled(
     Object.values(data).map(async item => {
-      const result = {}
       try {
-        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (typeof item !== 'object') throw new Error(`custom object invalid`)
         if (!u.hasProps(item, API[cmd].props))
           throw new Error(`${cmd} object does not have the correct properties`)
         if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a valid property`)
-        const value = await ns.getColumn(uuid, profileNum, item.key)
-        logger.info(`[${uuid}_${profileNum}] Retrieved ${item.key}`)
-        try {
-          value[item.key] = JSON.parse(value[item.key])
-        } catch (err) {}
-        return { ...result, ...value }
+        const value = await custom.get(uuid, profileNum, item.key)
+        if (value) {
+          logger.info(`[${uuid}_${profileNum}] Retrieved ${item.key}`)
+          try {
+            value[item.key] = JSON.parse(value[item.key])
+          } catch (err) {
+            results.push(value)
+          }
+        }
       } catch (err) {
         logger.error(`command ${cmd} ${err.message}`)
-        return { ...result, error: err.message }
+        results.push({ key: [item.key], error: err.message })
       }
     })
   )
+  return results
+}
+
+async function getAll([uuid, profileNum], cmd, data) {
+  return custom.getAll(uuid, profileNum)
 }
 
 const API = {
@@ -72,7 +82,11 @@ const API = {
   get: {
     props: ['key'],
     func: get
+  },
+  getAll: {
+    props: [],
+    func: getAll
   }
 }
 
-module.exports = { API }
+module.exports = { API, get, set }

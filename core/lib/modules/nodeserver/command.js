@@ -13,6 +13,7 @@ const isy = require('../isy/core')
 const isySystem = require('../isy/system')
 const isyNodeServer = require('../isy/nodeserver')
 const isyErrors = require('../isy/errors')
+const nodeservice = require('../../services/nodeservers')
 const node = require('../../models/node')
 const driver = require('../../models/driver')
 const status = require('./status')
@@ -38,7 +39,13 @@ async function checkResponse(cmd, response) {
 }
 
 async function addnode([uuid, profileNum], cmd, data) {
-  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  try {
+    if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+    if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
+  } catch (err) {
+    logger.error(`${cmd} :: ${err.stack}`)
+    return { error: `${err.message}` }
+  }
   return Promise.all(
     Object.values(data).map(async item => {
       let response = {}
@@ -47,6 +54,12 @@ async function addnode([uuid, profileNum], cmd, data) {
       let addDrivers = true
       let existing = {}
       try {
+        const props = u.verifyProps(item, ['address', 'primaryNode'])
+        if (!props.valid)
+          throw new Error(
+            `Request missing required property: ${props.missing} :: ${JSON.stringify(item)}`
+          )
+
         if (typeof item !== 'object') throw new Error(`${cmd} object invalid`)
         if (!u.hasProps(item, API[cmd].props))
           throw new Error(`${cmd} object does not have the correct properties`)
@@ -93,6 +106,7 @@ async function addnode([uuid, profileNum], cmd, data) {
           })
           await isyNodeServer.setHint(uuid, profileNum, item)
           await isySystem.groupNodes(uuid, profileNum, item.address, item.primaryNode)
+          await nodeservice.sendFrontendUpdate()
         }
         if (addDrivers) {
           // add drivers to the db and set in ISY
@@ -129,6 +143,7 @@ async function addnode([uuid, profileNum], cmd, data) {
 
 async function removenode([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
   return Promise.all(
     Object.values(data).map(async item => {
       const result = {
@@ -149,6 +164,7 @@ async function removenode([uuid, profileNum], cmd, data) {
         if (![200, 404].includes(response.status)) checkResponse(cmd, response)
         logger.info(`[${uuid}_${profileNum}] ${cmd} sucessfully removed node ${item.address}`)
         await node.remove(uuid, profileNum, item.address)
+        await nodeservice.sendFrontendUpdate()
         return { ...result, success: true }
       } catch (err) {
         logger.error(`command ${cmd} ${err.message}`)
@@ -205,6 +221,7 @@ async function checkNodeDefAndHint(uuid, profileNum, newNode, existingNode) {
 
 async function changenode([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
   return Promise.all(
     Object.values(data).map(async item => {
       const result = {
@@ -233,6 +250,7 @@ async function changenode([uuid, profileNum], cmd, data) {
 
 async function command([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
   return Promise.all(
     Object.values(data).map(async item => {
       const result = {
@@ -268,7 +286,7 @@ const API = {
     func: changenode
   },
   command: {
-    props: [],
+    props: ['address', 'command'],
     func: command
   }
 }

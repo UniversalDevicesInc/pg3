@@ -18,11 +18,11 @@
         <p align="center">
           Version <b>{{ settings.settings.pg3Version }}</b> <br />Status:
           <span class="badge badge-secondary">{{
-            mqttConnected ? 'Connected' : 'Disconnected'
+            sockets.connected ? 'Connected' : 'Disconnected'
           }}</span>
           <br />Frontend Version: <b>{{ version }}</b> <br />ISY Version:
           <b>{{ (settings.currentIsy | async)?.version }}</b> <br />Uptime:
-          <strong>{{ mqttConnected ? uptime : 'Not Connected' }}</strong> <br />(c)
+          <strong>{{ sockets.connected ? uptime : 'Not Connected' }}</strong> <br />(c)
           {{ year }} UDI<br />
           <span *ngIf="settings.isPolisy">Running on Polisy<br /></span>
           <a href="https://www.universal-devices.com/polisy" *ngIf="settings.isPolisy"

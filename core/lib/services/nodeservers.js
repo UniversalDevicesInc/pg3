@@ -43,19 +43,18 @@ function spawn(name, command, args, opts) {
  * @method
  */
 async function start() {
-  setTimeout(async () => {
-    logger.info(`Checking ISY's for installed NodeServers...`)
-    await verifyNodeServers()
-    setInterval(verifyNodeServers, 5 * 60000) // 5 Minutes
-    const nodeservers = await ns.getAllInstalled()
-    if (nodeservers.length < 1) return logger.info(`No installed NodeServers found`)
-    logger.info(`Starting installed NodeServers...`)
-    return Promise.allSettled(
-      nodeservers.map(async nodeServer => {
-        await startNs(nodeServer)
-      })
-    )
-  }, 1000)
+  await timeout(1000)
+  logger.info(`Checking ISY's for installed NodeServers...`)
+  await verifyNodeServers()
+  setInterval(verifyNodeServers, 5 * 60000) // 5 Minutes
+  const nodeservers = await ns.getAllInstalled()
+  if (nodeservers.length < 1) return logger.info(`No installed NodeServers found`)
+  logger.info(`Starting installed NodeServers...`)
+  return Promise.allSettled(
+    nodeservers.map(async nodeServer => {
+      await startNs(nodeServer)
+    })
+  )
 }
 
 /**
@@ -372,17 +371,18 @@ async function startNs(nodeServer) {
   }
 }
 
-// TODO send stop to NS
 async function stopNs(nodeServer) {
   if (config.nodeProcesses[nodeServer.id]) {
     logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Stopping Nodeserver`)
     stopPolls(nodeServer)
     await nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { stop: {} })
-    await utils.timeout(2000)
+    await utils.timeout(3000)
     try {
       process.kill(-config.nodeProcesses[nodeServer.id].pid)
+      logger.warn(`${nodeServer.name} did not stop on it's own. Force killed.`)
     } catch (err) {
-      logger.error(`stopNs: ${err.stack}`)
+      if (err instanceof TypeError) logger.info(`${nodeServer.name} stopped`)
+      else logger.error(`stopNs: ${err.stack}`)
     }
     return { success: true }
   }
@@ -391,12 +391,13 @@ async function stopNs(nodeServer) {
 
 async function restartNs(nodeServer) {
   logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Restarting Nodeserver`)
-  let result = await stopNs(nodeServer)
-  if (result.success) {
-    await utils.timeout(3000)
-    result = { ...(await startNs(nodeServer)) }
+  if (config.nodeProcesses[nodeServer.id]) {
+    await stopNs(nodeServer)
+  } else {
+    logger.warn(`[${nodeServer.name}(${nodeServer.profileNum})]: Was not running. Starting...`)
   }
-  return result
+  await utils.timeout(3000)
+  return startNs(nodeServer)
 }
 
 async function stopPolls(nodeServer) {

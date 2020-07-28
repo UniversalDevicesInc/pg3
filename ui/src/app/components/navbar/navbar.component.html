@@ -1,6 +1,6 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
-    <span class="navbar-brand" href="#">{{ settings.isPolisy ? 'Polisy' : 'Polyglot' }}</span>
+    <span class="navbar-brand" href="#">{{ settings.isPolisy ? 'Polisy' : 'Polyglot3' }}</span>
     <button
       class="navbar-toggler"
       type="button"
@@ -126,8 +126,8 @@
               >
                 Polyglot Settings
               </button>
-              <li class="dropdown-divider"></li>
-              <button
+              <!-- <li class="dropdown-divider"></li>
+               <button
                 class="dropdown-item"
                 [routerLinkActive]="['active']"
                 [routerLinkActiveOptions]="{ exact: true }"
@@ -135,7 +135,7 @@
                 (click)="isCollapsed = !isCollapsed"
               >
                 Profile
-              </button>
+              </button> -->
             </div>
           </div>
         </li>
@@ -144,7 +144,9 @@
           <div ngbDropdown>
             <span class="nav-link text-light" id="restartMenu" ngbDropdownToggle>System</span>
             <div ngbDropdownMenu aria-labelledby="restartMenu">
-              <button class="dropdown-item" (click)="showRestartConfirm()">Restart Polyglot</button>
+              <button class="dropdown-item" (click)="showRestartConfirm()">
+                Restart {{ settings.isPolisy ? 'Polisy' : 'Polyglot3' }}
+              </button>
               <li class="dropdown-divider"></li>
               <button class="dropdown-item" (click)="showConfirm()">Reboot ISY</button>
               <div *ngIf="settings.isPolisy">

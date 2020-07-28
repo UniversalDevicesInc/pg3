@@ -13,6 +13,7 @@ const isy = require('./isy')
 const ns = require('./nodeserver')
 const node = require('./node')
 const driver = require('./driver')
+const custom = require('./custom')
 
 function checkForTable(table) {
   return config.db
@@ -181,6 +182,18 @@ async function nodeTable() {
   }
 }
 
+async function customTable() {
+  const table = 'custom'
+  if (checkForTable(table)) {
+    logger.debug(`Table ${table} exists`)
+  } else {
+    logger.warn(
+      `Table ${table} doesn't exist. This is probably a first run or reset. Initializing table`
+    )
+    custom.TABLE.map(sql => config.db.exec(sql))
+  }
+}
+
 async function driverTable() {
   const table = 'driver'
   if (checkForTable(table)) {
@@ -200,5 +213,6 @@ module.exports = {
   isyTable,
   nodeserverTable,
   nodeTable,
+  customTable,
   driverTable
 }

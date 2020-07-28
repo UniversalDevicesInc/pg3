@@ -8,6 +8,8 @@ const logger = require('../logger')
 
 const ns = require('../../models/nodeserver')
 const servicens = require('../../services/nodeservers')
+const custom = require('../../models/custom')
+const nscustom = require('../nodeserver/custom')
 
 async function getNs(id, cmd, data) {
   return servicens.getNs(data)
@@ -50,6 +52,29 @@ async function restartNs(id, cmd, data) {
   return { success: false, error: 'Failed, check log for details.' }
 }
 
+async function removeNode(id, cmd, data) {}
+
+async function updateNotices(id, cmd, data) {
+  const { uuid, profileNum, notices } = data
+  try {
+    await custom.add(uuid, profileNum, 'notices', JSON.stringify(notices))
+    return { success: true }
+  } catch (err) {
+    logger.error(`updateNotices: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
+async function getCustom(id, cmd, data) {
+  const { uuid, profileNum, keys } = data
+  return nscustom.get([uuid, profileNum], 'get', keys)
+}
+
+async function setCustom(id, cmd, data) {
+  const { uuid, profileNum, keys } = data
+  return nscustom.set([uuid, profileNum], 'set', keys)
+}
+
 const API = {
   getNs: {
     props: ['uuid', 'profileNum'],
@@ -70,6 +95,22 @@ const API = {
   restartNs: {
     props: ['uuid', 'profileNum'],
     func: restartNs
+  },
+  removeNode: {
+    props: ['uuid', 'profileNum'],
+    func: removeNode
+  },
+  updateNotices: {
+    props: ['uuid', 'profileNum', 'notices'],
+    func: updateNotices
+  },
+  getCustom: {
+    props: ['uuid', 'profileNum', 'keys'],
+    func: getCustom
+  },
+  setCustom: {
+    props: ['uuid', 'profileNum', 'keys'],
+    func: setCustom
   }
 }
 

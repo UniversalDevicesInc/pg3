@@ -25,11 +25,14 @@ export class WebsocketsService {
   public addIsy: Subject<object> = new Subject()
   public updateIsy: Subject<object> = new Subject()
   public removeIsy: Subject<object> = new Subject()
+  public updateNotices: Subject<object> = new Subject()
   public invalidCredentials: Subject<object> = new Subject()
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject([])
   public getNs: BehaviorSubject<any[]> = new BehaviorSubject(null)
   public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public setSettings: BehaviorSubject<object> = new BehaviorSubject(null)
+  public getCustom: BehaviorSubject<object> = new BehaviorSubject(null)
+  public setCustom: Subject<object> = new Subject()
   public reboot: Subject<object> = new Subject()
   public nsUpdate: BehaviorSubject<object> = new BehaviorSubject(null)
   public notification: BehaviorSubject<object> = new BehaviorSubject(null)
@@ -139,14 +142,14 @@ export class WebsocketsService {
 
   sendMessage(topic, message, retained = false, needResponse = false) {
     let msg = JSON.stringify(Object.assign(message, needResponse ? { seq: this._seq } : undefined))
-    if (needResponse) {
-      if (topic === 'settings') {
-        // this.setResponses.push(JSON.parse(msg))
-      } else if (topic === 'nodeservers') {
-        // this.nsResponses.push(JSON.parse(msg))
-      }
-      this._seq++
-    }
+    // if (needResponse) {
+    //   if (topic === 'settings') {
+    //     // this.setResponses.push(JSON.parse(msg))
+    //   } else if (topic === 'nodeservers') {
+    //     // this.nsResponses.push(JSON.parse(msg))
+    //   }
+    //   this._seq++
+    // }
     topic = `udi/pg3/frontend/${topic}/${this.authService.user}`
     this.client.publish(topic, msg, { qos: 0, retained: retained })
   }
@@ -186,12 +189,27 @@ export class WebsocketsService {
       this.getNs.subscribe((msg: any[]) => {
         if (!msg) return
         if (
-          this.settingsService.currentNsDetails &&
           this.settingsService.currentNsDetails.hasOwnProperty('uuid') &&
           msg.hasOwnProperty('uuid')
         ) {
-          if (this.settingsService.currentNsDetails['uuid'] === msg['uuid'])
+          if (
+            this.settingsService.currentNsDetails['uuid'] === msg['uuid'] &&
+            this.settingsService.currentNsDetails['profileNum'] === msg['profileNum']
+          ) {
             this.settingsService.currentNs.next(msg)
+            if (!this.getCustom.value)
+              this.sendMessage('ns', {
+                getCustom: {
+                  uuid: this.settingsService.currentNsDetails['uuid'],
+                  profileNum: this.settingsService.currentNsDetails['profileNum'],
+                  keys: [
+                    { key: 'customparams' },
+                    { key: 'customparamsdoc' },
+                    { key: 'customtypedparams' }
+                  ]
+                }
+              })
+          }
         }
         // if (msg.hasOwnProperty('name') && msg.hasOwnProperty('uuid')) {
         //   this.toastr.success(`Received ${msg['name']}(${msg['uuid']}) details`)
@@ -211,8 +229,17 @@ export class WebsocketsService {
     this.subscription.add(
       this.setSettings.subscribe(settings => {
         if (!settings) return
+        this.toastr.success(`Settings saved successfully`)
         this.settingsService.globalSettings.next(settings)
         this.settingsService.storeSettings(settings)
+      })
+    )
+
+    // setCustom Subscriber
+    this.subscription.add(
+      this.setCustom.subscribe(custom => {
+        if (!custom) return
+        this.toastr.success(`Custom saved successfully`)
       })
     )
 
@@ -384,6 +411,17 @@ export class WebsocketsService {
           this.toastr.success(`Nodeserver restarted successfully.`)
         } else {
           this.toastr.error(`NodeServer Restart: ${msg['error']}`)
+        }
+      })
+    )
+
+    this.subscription.add(
+      this.updateNotices.subscribe(msg => {
+        if (!msg) return
+        if (msg.hasOwnProperty('success') && msg['success']) {
+          this.toastr.success(`Notices updated successfully.`)
+        } else {
+          this.toastr.error(`Notices update failed: ${msg['error']}`)
         }
       })
     )

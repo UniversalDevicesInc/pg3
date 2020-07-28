@@ -78,7 +78,7 @@
 <ng-template #install let-modal>
   <!-- Header -->
   <div class="modal-header">
-    <h4 class="modal-title text-white">Install {{ current.name }}?</h4>
+    <h4 class="modal-title text-white">Install {{ current['name'] }}?</h4>
     <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
       <span aria-hidden="true"><fa-icon class="fa-1x" [icon]="faWindowClose"></fa-icon></span>
     </button>
@@ -92,7 +92,7 @@
     >
     <br /><br />
     Please choose the slot to install
-    {{ current.name }} to: <br />
+    {{ current['name'] }} to: <br />
     <select
       [(ngModel)]="selectedSlot"
       class="button"

@@ -1,7 +1,9 @@
 const { v4: uuid } = require('uuid')
 const encryption = require('../modules/security/encryption')
+const custom = require('./custom')
 
 const config = require('../config/config')
+const logger = require('../modules/logger')
 const u = require('../utils/utils')
 
 /**
@@ -38,12 +40,6 @@ TABLE[0] = `
     executable TEXT NOT NULL,
     shortPoll INTEGER NOT NULL,
     longPoll INTEGER NOT NULL,
-    customparams BLOB,
-    customdata BLOB,
-    customparamsdoc BLOB,
-    customtypeddata BLOB,
-    customtypedparams BLOB,
-    notices BLOB,
     dbVersion INTEGER,
     FOREIGN KEY (uuid)
       REFERENCES isy(uuid)
@@ -74,13 +70,7 @@ class DEFAULTS {
 
 const REQUIRED = ['uuid', 'name', 'profileNum', 'version', 'home', 'type', 'executable', 'url']
 const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion']
-const ENCRYPTED = [
-  'customparams',
-  'customdata',
-  'customtypeddata',
-  'customtypedparams',
-  'customparamsdoc'
-]
+const ENCRYPTED = []
 const MUTABLE = [
   'uuid',
   'token',
@@ -98,13 +88,7 @@ const MUTABLE = [
   'shortPoll',
   'longPoll',
   'type',
-  'executable',
-  'customparams',
-  'customdata',
-  'customparamsdoc',
-  'customtypeddata',
-  'customtypedparams',
-  'notices'
+  'executable'
 ]
 
 async function getColumn(key, profileNum, columnKey) {
@@ -142,13 +126,23 @@ async function getIsy(key) {
       `SELECT nodeserver.*, COUNT(node.address) as nodeCount FROM nodeserver LEFT OUTER JOIN node USING (uuid, profileNum) WHERE (uuid) is (?) GROUP by nodeserver.profileNum`
     )
     .all(key)
-  items.map(value => {
+  items.map(async value => {
     if (!value) return value
+    if (value.type === 'unmanaged') return value
     Object.keys(value).map(item => {
       // eslint-disable-next-line
       if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
-      return item
     })
+    // eslint-disable-next-line no-param-reassign
+    value.notices = null
+    try {
+      // eslint-disable-next-line no-param-reassign
+      value.notices = JSON.parse((await custom.get(value.uuid, value.profileNum, 'notices')).value)
+    } catch (err) {
+      logger.error(
+        `[${value.name}-${value.uuid}(${value.profileNum}) :: Notices not an object. Ignoring.`
+      )
+    }
     return value
   })
   return items
@@ -163,6 +157,16 @@ async function getFull(key, profileNum) {
   Object.keys(value).forEach(item => {
     if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
   })
+  // eslint-disable-next-line no-param-reassign
+  value.notices = null
+  try {
+    // eslint-disable-next-line no-param-reassign
+    value.notices = JSON.parse((await custom.get(value.uuid, value.profileNum, 'notices')).value)
+  } catch (err) {
+    logger.error(
+      `[${value.name}-${value.uuid}(${value.profileNum}) :: Notices not an object. Ignoring.`
+    )
+  }
   value.nodes =
     config.db
       .prepare(`SELECT * FROM node WHERE (uuid, profileNum) is (?, ?)`)

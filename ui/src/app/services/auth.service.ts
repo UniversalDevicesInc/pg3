@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http'
 import { environment } from '../../environments/environment'
 
 import { SettingsService } from './settings.service'
-import { ReplaySubject } from 'rxjs'
+import { BehaviorSubject } from 'rxjs'
 import { tap } from 'rxjs/operators'
 //import { WebsocketsService } from './websockets.service'
 import { JwtHelper } from '../helpers/token'
@@ -12,7 +12,7 @@ import { JwtHelper } from '../helpers/token'
 export class AuthService {
   authToken: any
   user: any
-  public isLoggedIn: ReplaySubject<boolean> = new ReplaySubject(1)
+  public isLoggedIn: BehaviorSubject<boolean> = new BehaviorSubject(false)
 
   constructor(
     private http: HttpClient,
@@ -41,6 +41,7 @@ export class AuthService {
           this.authToken = token
           this.storeUserData(token, response['user'])
           this.settingsService.storeSettings(response['settings'])
+          this.settingsService.globalSettings.next(response['settings'])
           data.success = true
           this.isLoggedIn.next(true)
           return data

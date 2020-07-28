@@ -83,6 +83,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    if (this.settingsService.currentIsy.value)
+      if (this.sockets.connected) {
+        this.sockets.sendMessage('isy', {
+          getNodeServers: { uuid: this.settingsService.currentIsy.value['uuid'] }
+        })
+      }
     // this.addNodeService.getPolyglotVersion()
   }
 
@@ -92,7 +98,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   deleteNodeServer(nodeServer) {
     this.sockets.sendMessage('isy', { removeNs: nodeServer }, false, false)
-    this.toastr.success(`Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.slot}`)
+    this.toastr.success(
+      `Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.profileNum}`
+    )
   }
 
   showConfirm(nodeServer) {

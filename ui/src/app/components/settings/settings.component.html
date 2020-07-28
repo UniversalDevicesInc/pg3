@@ -3,93 +3,97 @@
   <div class="row">
     <legend class="col-form-label col-2">Download Backup</legend>
     <div class="col-lg-2">
-        <input class="form-control btn btn-primary" type="submit" value="Download" (click)="getBackup()" data-toggle="tooltip" data-placement="right" title="This ONLY backups up your local NodeServers and their Nodes. No Username/Password or IP settings are transferred.">
+      <input
+        class="form-control btn btn-primary"
+        type="submit"
+        value="Download"
+        (click)="getBackup()"
+        onclick="this.blur()"
+        data-toggle="tooltip"
+        data-placement="right"
+        title="This ONLY backups up your local NodeServers and their Nodes. No Username/Password or IP settings are transferred."
+      />
     </div>
-  </div><br>
+  </div>
+  <br />
   <div class="row">
     <legend class="col-form-label col-2">Restore Backup</legend>
     <div class="col-lg-2">
-        <button *ngIf="!file" class="form-control btn btn-primary" (click)="fileInput.click()">{{file || "Select File"}}</button>
-        <input
-          style="display: none"
-          type="file" (change)="onFileChanged($event)"
-          #fileInput>
-         <button *ngIf="file" class="form-control btn btn-primary" data-toggle="tooltip" data-placement="right" title="{{file.name}}" data-original-title="File" (click)="restoreBackup()">Restore</button>
+      <button
+        *ngIf="!file"
+        class="form-control btn btn-primary"
+        (click)="fileInput.click()"
+        onclick="this.blur()"
+      >
+        {{ file || 'Select File' }}
+      </button>
+      <input style="display: none;" type="file" (change)="onFileChanged($event)" #fileInput />
+      <button
+        *ngIf="file"
+        class="form-control btn btn-primary"
+        data-toggle="tooltip"
+        data-placement="right"
+        title="{{ file.name }}"
+        data-original-title="File"
+        (click)="restoreBackup()"
+      >
+        Restore
+      </button>
     </div>
   </div>
 </fieldset>
-<hr style="border:1px solid;">
-<form [formGroup]="settingsForm" class="form-group column">
+<hr style="border: 1px solid;" />
+<form
+  [formGroup]="settingsForm"
+  (ngSubmit)="saveSettings(getDirtyValues(settingsForm))"
+  class="form-group column"
+>
   <fieldset>
-    <legend>Polyglot Settings</legend>
+    <legend>Settings</legend>
     <div class="row">
-      <legend class="col-form-label col-2">Polyglot Web Port</legend>
-      <div class="col-lg-10">
-        <input type="text" class="form-control" formControlName="listenPort">
-      </div>
-    </div><br>
-  </fieldset><br  />
-  <fieldset>
-    <legend>ISY Settings</legend>
-    <div class="row">
-      <legend class="col-form-label col-2">Address / Hostname</legend>
-      <div class="col-lg-10">
-        <input type="text" class="form-control" formControlName="isyHost">
-      </div>
-    </div><br>
-    <div class="row">
-      <legend class="col-form-label col-2">Port</legend>
-      <div class="col-lg-10">
-        <input type="text" class="form-control" formControlName="isyPort">
-      </div>
-    </div><br>
-    <div class="row">
-      <legend class="col-form-label col-2">Username</legend>
-      <div class="col-lg-10">
-        <input type="text" class="form-control" formControlName="isyUsername">
-      </div>
-    </div><br>
-    <div class="row">
-      <legend class="col-form-label col-2">Password</legend>
-      <div class="col-lg-10">
-        <input type="password" class="form-control" formControlName="isyPassword" placeholder="Password"><br>
+      <legend class="col-form-label col-2">
+        Current IP
+      </legend>
+      <div class="col-lg-10 d-flex align-items-center text-white">
+        {{ settingsForm.value.ipAddress }}
       </div>
     </div>
     <div class="row">
-      <legend class="col-form-label col-2">Use HTTPS</legend>
+      <legend class="col-form-label col-2">
+        Web Port
+      </legend>
+      <div class="col-lg-10">
+        <input type="text" class="form-control" formControlName="listenPort" />
+      </div>
+    </div>
+    <div class="row">
+      <legend class="col-form-label col-2">
+        Use HTTPS?
+      </legend>
       <div class="checkbox align-self-center col-2">
-        <input type="checkbox" formControlName="isyHttps">
+        <input type="checkbox" formControlName="secure" />
       </div>
     </div>
-  </fieldset><br>
-  <hr style="border:1px solid;">
-  <fieldset>
-    <legend>MQTT Settings</legend>
-    <div class="row">
-      <legend class="col-form-label col-2">Address / Hostname</legend>
-      <div class="col-lg-10">
-        <input type="text" class="form-control" formControlName="mqttHost">
-      </div>
-    </div><br>
-    <div class="row">
-      <legend class="col-form-label col-2">MQTT Port</legend>
-      <div class="col-lg-10">
-        <input type="text" class="form-control" formControlName="mqttPort">
-      </div>
-    </div>
-  </fieldset><br  />
-  <hr style="border:1px solid;">
-  <fieldset>
-    <legend>Firmware Management</legend>
-    <div class="row">
-      <legend class="col-form-label col-2">Use Beta Firmware</legend>
-      <div class="checkbox align-self-center col-2">
-        <input type="checkbox" formControlName="useBeta">
-      </div>
-    </div><br>
+    <br />
   </fieldset>
-  <hr style="border:1px solid;">
+  <br />
+  <hr style="border: 1px solid;" />
+  <fieldset>
+    <legend>Software Management</legend>
+    <div class="row">
+      <legend class="col-form-label col-2">
+        Use Beta Versions?
+      </legend>
+      <div class="checkbox align-self-center col-2">
+        <input type="checkbox" formControlName="beta" />
+      </div>
+    </div>
+    <br />
+  </fieldset>
+  <hr style="border: 1px solid;" />
   <div class="row justify-content-center align-items-center">
-    <input type="submit" class="btn btn-primary col-lg-2 " value="Save" (click)="saveSettings(getDirtyValues(settingsForm))">
+    <button type="submit" class="btn btn-primary col-lg-2" value="Save" onclick="this.blur()">
+      Save
+    </button>
   </div>
 </form>

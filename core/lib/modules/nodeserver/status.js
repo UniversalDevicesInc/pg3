@@ -24,11 +24,13 @@ const API = {
 
 async function get([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
   return Promise.all(Object.values(data).map(item => getDrivers(uuid, profileNum, item)))
 }
 
 async function set([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
   return Promise.all(Object.values(data).map(item => setDriver(uuid, profileNum, item)))
 }
 

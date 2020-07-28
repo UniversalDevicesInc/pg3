@@ -1,5 +1,17 @@
-<h2>{{nsdetails.selectedNodeServer.name}} Notices:</h2>
-<div *ngFor="let notice of nsdetails.selectedNodeServer.notices" class="alert alert-info alert-dismissible fade show">
-  <div [innerHTML]="notice">
+<ng-container *ngIf="settings.currentNs | async as selectedNodeServer">
+  <h2>{{ selectedNodeServer.name }} Notices:</h2>
+  <div
+    *ngFor="let notice of selectedNodeServer.notices | keyvalue"
+    class="alert alert-info alert-dismissible fade show"
+  >
+    <div class="d-inline" [innerHTML]="notice.value | safe: 'html'"></div>
+    <button
+      type="button"
+      (click)="removeNotice(selectedNodeServer, notice.key)"
+      class="d-inline close"
+      aria-label="Close"
+    >
+      <span aria-hidden="true"><fa-icon class="fa-1x" [icon]="faWindowClose"></fa-icon></span>
+    </button>
   </div>
-</div>
+</ng-container>

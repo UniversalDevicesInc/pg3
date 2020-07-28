@@ -4,7 +4,8 @@ import { SettingsService } from '../../services/settings.service'
 import { WebsocketsService } from '../../services/websockets.service'
 import { AddnodeService } from '../../services/addnode.service'
 import { Router } from '@angular/router'
-import { FlashMessagesService } from 'angular2-flash-messages'
+import { Subscription } from 'rxjs'
+import { ToastrService } from 'ngx-toastr'
 import { FormBuilder, FormGroup, Validators } from '@angular/forms'
 
 @Component({
@@ -14,11 +15,8 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms'
 })
 export class SettingsComponent implements OnInit, OnDestroy {
   //@ViewChild('file', { static: false }) file
-  public mqttConnected: boolean = false
-  private subConnected: any
   public settingsForm: FormGroup
-  private subSettings: any
-  private subResponses: any
+  private subscription: Subscription = new Subscription()
 
   file: File
 
@@ -27,97 +25,29 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private sockets: WebsocketsService,
     private authService: AuthService,
     private router: Router,
-    private flashMessage: FlashMessagesService,
-    private settingsService: SettingsService,
+    public settings: SettingsService,
+    private toastr: ToastrService,
     private addNodeService: AddnodeService
-  ) {}
+  ) {
+    this.settingsForm = this.fb.group({
+      ipAddress: '',
+      listenPort: [3000, Validators.required],
+      secure: false,
+      beta: false
+    })
+  }
 
   ngOnInit() {
-    this.getConnected()
-    this.settingsForm = this.fb.group({
-      listenPort: [3000, Validators.required],
-      isyHost: ['', Validators.required],
-      isyPort: [80, Validators.required],
-      isyUsername: ['', Validators.required],
-      isyPassword: '',
-      isyHttps: false,
-      mqttHost: ['', Validators.required],
-      mqttPort: 1883,
-      useBeta: false
-    })
-    this.getSettings()
-    this.getSettingResponses()
+    this.subscription.add(
+      this.settings.globalSettings.subscribe(settings => {
+        if (!settings) return
+        this.settingsForm.reset(this.settings.globalSettings.value)
+      })
+    )
   }
 
   ngOnDestroy() {
-    if (this.subConnected) {
-      this.subConnected.unsubscribe()
-    }
-    if (this.subSettings) {
-      this.subSettings.unsubscribe()
-    }
-    if (this.subResponses) {
-      this.subResponses.unsubscribe()
-    }
-  }
-
-  getConnected() {
-    this.subConnected = this.sockets.mqttConnected.subscribe(connected => {
-      this.mqttConnected = connected
-    })
-  }
-
-  getSettings() {
-    // this.subSettings = this.sockets.settingsData.subscribe(settings => {
-    //   this.settingsService.storeSettings(settings)
-    //   this.addNodeService.getPolyglotVersion()
-    //   this.settingsForm.patchValue({
-    //     listenPort: settings.listenPort,
-    //     isyHost: settings.isyHost,
-    //     isyPort: settings.isyPort,
-    //     isyUsername: settings.isyUsername,
-    //     isyHttps: settings.isyHttps,
-    //     mqttHost: settings.mqttHost,
-    //     mqttPort: settings.mqttPort,
-    //     useBeta: settings.useBeta || false,
-    //   })
-    // })
-  }
-
-  getSettingResponses() {
-    // this.subResponses = this.sockets.settingsResponse.subscribe(response => {
-    //   if (response.hasOwnProperty('success')) {
-    //     if (response.success) {
-    //       this.flashMessage.show('Settings saved successfully. If you changed the Polyglot Web Port, please restart Polyglot.', {
-    //         cssClass: 'alert-success',
-    //         timeout: 10000})
-    //       window.scrollTo(0, 0)
-    //     } else {
-    //       this.flashMessage.show(response.msg, {
-    //         cssClass: 'alert-danger',
-    //         timeout: 5000})
-    //       window.scrollTo(0, 0)
-    //     }
-    //   }
-    // })
-  }
-
-  sendSettingsREST(settings) {
-    // this.settingsService.setSettings(settings).subscribe(data => {
-    //   if (data['success']) {
-    //     this.flashMessage.show('Settings saved successfully.', {
-    //       cssClass: 'alert-success',
-    //       timeout: 5000
-    //     })
-    //     window.scrollTo(0, 0)
-    //   } else {
-    //     this.flashMessage.show(data['msg'], {
-    //       cssClass: 'alert-danger',
-    //       timeout: 5000
-    //     })
-    //     window.scrollTo(0, 0)
-    //   }
-    // })
+    this.subscription.unsubscribe()
   }
 
   getDirtyValues(cg) {
@@ -137,21 +67,16 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   saveSettings(settings) {
-    if (this.mqttConnected) {
+    if (this.sockets.connected) {
       if (JSON.stringify(settings) !== '{}') {
-        this.sockets.sendMessage('settings', { updatesettings: settings }, false, true)
+        this.sockets.sendMessage('system', { setSettings: settings })
+        window.scrollTo(0, 0)
       } else {
-        this.flashMessage.show('No Settings Changed.', {
-          cssClass: 'alert-danger',
-          timeout: 5000
-        })
+        this.toastr.error('No Settings Changed.')
         window.scrollTo(0, 0)
       }
     } else {
-      this.flashMessage.show('Not connected to Polyglot. Settings not saved.', {
-        cssClass: 'alert-danger',
-        timeout: 5000
-      })
+      this.toastr.error('Not connected to backend. Settings not saved.')
       window.scrollTo(0, 0)
     }
   }
@@ -161,34 +86,22 @@ export class SettingsComponent implements OnInit, OnDestroy {
   }
 
   getBackup() {
-    this.settingsService.downloadBackup()
+    this.settings.downloadBackup()
   }
 
   restoreBackup() {
     if (this.file) {
       const formData = new FormData()
       formData.append('file', this.file)
-      this.flashMessage.show('Restore starting. This may take some time, please wait...', {
-        cssClass: 'alert-success',
-        timeout: 10000
-      })
+      this.toastr.success('Restore starting. This may take some time, please wait...')
       window.scrollTo(0, 0)
-      this.settingsService.restoreBackup(formData).subscribe(data => {
+      this.settings.restoreBackup(formData).subscribe(data => {
         if (data['success']) {
-          this.flashMessage.show(
-            'Restore Completed Sucessfully. Polyglot Restarting in 5 seconds.',
-            {
-              cssClass: 'alert-success',
-              timeout: 5000
-            }
-          )
+          this.toastr.success('Restore Completed Sucessfully. Restarting in 5 seconds.')
           window.scrollTo(0, 0)
           this.logout()
         } else {
-          this.flashMessage.show(data['msg'], {
-            cssClass: 'alert-danger',
-            timeout: 5000
-          })
+          this.toastr.error(data['msg'])
           window.scrollTo(0, 0)
         }
         this.file = null
@@ -199,10 +112,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
   logout() {
     this.authService.logout()
     this.sockets.stop()
-    this.flashMessage.show('Logging you out.', {
-      cssClass: 'alert-success',
-      timeout: 3000
-    })
+    this.toastr.success('Logging you out.')
     this.router.navigate(['/login'])
   }
 }

@@ -29,7 +29,7 @@ const API = {
     func: removeNs
   },
   changeNsBranch: {
-    props: ['uuid', 'profileNum', 'branch'],
+    props: ['uuid', 'name', 'profileNum', 'branch'],
     func: changeNsBranch
   },
   getNodeServers: {

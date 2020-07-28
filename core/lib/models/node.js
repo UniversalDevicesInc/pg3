@@ -194,6 +194,7 @@ async function remove(key, profileNum, address) {
 module.exports = {
   TABLE,
   DEFAULTS,
+  REQUIRED,
   // TEST,
   get,
   getChildren,
