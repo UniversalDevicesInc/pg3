@@ -19,14 +19,6 @@
               value="{{ selectedNodeServer.shortPoll }}"
             />
           </td>
-          <td align="middle">
-            <button
-              class="btn btn-primary btn-xs"
-              (click)="nsdetails.savePolls(short.value, long.value)"
-            >
-              Save
-            </button>
-          </td>
         </tr>
         <tr style="margin-bottom: 10px;">
           <td>longPoll</td>
@@ -38,17 +30,15 @@
               value="{{ selectedNodeServer.longPoll }}"
             />
           </td>
-          <td align="middle">
-            <button
-              class="btn btn-primary btn-xs"
-              (click)="nsdetails.savePolls(short.value, long.value)"
-            >
-              Save
-            </button>
-          </td>
         </tr>
       </tbody>
     </table>
+    <div align="center" style="margin-bottom: 10px;">
+      <button class="btn btn-primary btn-xs" (click)="nsdetails.savePolls(short.value, long.value)">
+        Save
+      </button>
+    </div>
+    <hr />
     <br />
     <ng-container *ngIf="sockets.getCustom | async as custom">
       <ng-container *ngIf="custom | filter: 'key':'customparamsdoc' as customparamsdoc">
@@ -60,8 +50,8 @@
             [attr.aria-expanded]="!helpCollapsed"
             aria-controls="configDocs"
           >
-            Configuration Help
-          </button>
+            {{ helpCollapsed ? 'Expand' : 'Collapse' }} Configuration Help</button
+          ><br /><br />
           <div
             *ngFor="let doc of customparamsdoc"
             align="left"
@@ -72,53 +62,87 @@
           ></div>
         </div>
       </ng-container>
+      <hr />
+      <br />
       <h2>Custom Configuration Parameters</h2>
       <table class="table table-striped table-bordered table-hover">
         <thead>
           <tr>
-            <td>Key</td>
-            <td>Value</td>
+            <th width="20%">Key</th>
+            <th width="75%">Value</th>
+            <th width="5%">Delete</th>
           </tr>
         </thead>
         <tbody>
           <ng-container
-            *ngFor="let item of nsdetails.customparamsForm.controls.customparams['controls']"
+            *ngFor="
+              let item of nsdetails.customparamsForm.controls.customparams['controls'];
+              let i = index
+            "
           >
             <tr [formGroup]="item" style="margin-bottom: 10px;">
               <td>
-                <input class="form-control input-sm" type="text" formControlName="name" />
+                <input class="form-control input-sm" type="text" formControlName="key" />
               </td>
               <td>
                 <input class="form-control input-sm" type="text" formControlName="value" />
               </td>
               <td>
-                <button class="btn btn-primary btn-xs" (click)="nsdetails.removeCustom(item.key)">
-                  Delete
+                <button
+                  class="btn btn-primary btn-xs"
+                  (click)="nsdetails.removeCustom('customparams', i)"
+                >
+                  <span aria-hidden="true">&times;</span>
                 </button>
               </td>
             </tr>
           </ng-container>
-          <!-- <tr
-            *ngFor="let key of nsdetails.typedParams; index as i"
-            style="margin-bottom: 10px;"
-            app-customparam
-            [desc]="nsdetails.typedParams[i]"
-            [(data)]="nsdetails.typedCustomData"
-          ></tr> -->
         </tbody>
       </table>
       <div align="center" style="margin-bottom: 10px;">
+        <button class="btn btn-primary btn-xs" (click)="nsdetails.saveCustom()">
+          Save Changes
+        </button>
         <!--button class="btn btn-primary btn-xs" (click)="nsdetails.sendCustom()" type="submit">Save Changes</button-->
-        <button class="btn btn-primary btn-xs" (click)="saveChanges(custom)">Save Changes</button>
+        <button class="btn btn-primary btn-xs" (click)="nsdetails.addCustom('customparams')">
+          Add Custom Parameter
+        </button>
+        <!-- <button class="btn btn-primary btn-xs" (click)="nsdetails.addCustom('customtypedparams')">
+          Add Custom Typed Parameter
+        </button> -->
+        <button class="btn btn-primary btn-xs" (click)="nsdetails.refreshCustom()">
+          Refresh
+        </button>
+      </div>
+      <hr />
+      <br />
+      <ng-container *ngIf="custom | filter: 'key':'customtypedparams'">
+        <h2>Custom Typed Configuration Parameters</h2>
+        <ng-container>
+          <table class="table table-striped table-bordered table-hover">
+            <tbody>
+              <tr
+                *ngFor="let key of nsdetails.typedParams; index as i"
+                style="margin-bottom: 10px;"
+                app-customparam
+                [desc]="nsdetails.typedParams[i]"
+                [(data)]="nsdetails.typedCustomData"
+              ></tr>
+            </tbody>
+          </table>
+        </ng-container>
+      </ng-container>
+
+      <div align="center" style="margin-bottom: 10px;">
+        <button class="btn btn-primary btn-xs" (click)="nsdetails.saveCustom()">
+          Save Changes
+        </button>
+        <button class="btn btn-primary btn-xs" (click)="nsdetails.refreshCustom()">
+          Refresh
+        </button>
       </div>
     </ng-container>
-    <div class="addCustom" align="center">
-      <input #newkey id="newkey" placeholder="key" value="" style="width: 16%;" />
-      <input #newvalue id="newvalue" placeholder="value" value="" style="width: 41%;" />
-      <button class="btn btn-primary btn-xs" (click)="addCustom(newkey.value, newvalue.value)">
-        Add Custom Parameter
-      </button>
-    </div>
+    <div class="addCustom" align="center"></div>
   </div>
 </div>
 <br />

@@ -37,7 +37,7 @@ export class AuthService {
         let data = { success: false, msg: response['msg'] }
         let token = response['token']
         if (token) {
-          console.log(response)
+          // console.log(response)
           this.authToken = token
           this.storeUserData(token, response['user'])
           this.settingsService.storeSettings(response['settings'])

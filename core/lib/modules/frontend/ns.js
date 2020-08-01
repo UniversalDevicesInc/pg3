@@ -75,6 +75,20 @@ async function setCustom(id, cmd, data) {
   return nscustom.set([uuid, profileNum], 'set', keys)
 }
 
+async function setPolls(id, cmd, data) {
+  const { uuid, profileNum, short, long } = data
+  try {
+    await ns.update(uuid, profileNum, { shortPoll: short, longPoll: long })
+    const currentNs = await ns.get(uuid, profileNum)
+    await servicens.stopPolls(currentNs)
+    await servicens.startPolls(currentNs)
+    return { success: true }
+  } catch (err) {
+    logger.error(`setPolls: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
 const API = {
   getNs: {
     props: ['uuid', 'profileNum'],
@@ -111,6 +125,10 @@ const API = {
   setCustom: {
     props: ['uuid', 'profileNum', 'keys'],
     func: setCustom
+  },
+  setPolls: {
+    props: ['uuid', 'profileNum', 'short', 'long'],
+    func: setPolls
   }
 }
 

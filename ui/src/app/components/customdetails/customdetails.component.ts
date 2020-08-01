@@ -24,18 +24,4 @@ export class CustomdetailsComponent implements OnInit, OnDestroy {
   ngOnInit() {}
 
   ngOnDestroy(): void {}
-
-  addCustom(key: string, value) {
-    ;(<HTMLInputElement>document.getElementById('newkey')).value = ''
-    ;(<HTMLInputElement>document.getElementById('newvalue')).value = ''
-    this.nsdetails.saveCustom(key, value)
-  }
-
-  saveChanges(custom) {
-    console.log(custom)
-    if (this.params.validate()) {
-      this.nsdetails.sendCustom()
-      this.nsdetails.sendTypedCustom()
-    }
-  }
 }

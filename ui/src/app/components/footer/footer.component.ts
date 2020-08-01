@@ -31,6 +31,7 @@ export class FooterComponent implements OnInit, OnDestroy {
   public upgradeData: any
   public timeStarted: any
   public uptime: any
+  public mqttConnected: any
   public uptimeInterval: any
   public upgrading: boolean = false
   public year = new Date().getFullYear()
@@ -44,7 +45,7 @@ export class FooterComponent implements OnInit, OnDestroy {
     private modal: NgbModal,
     private addNodeService: AddnodeService,
     private router: Router,
-    public sockets: WebsocketsService,
+    private sockets: WebsocketsService,
     public settings: SettingsService,
     public authService: AuthService,
     private toastr: ToastrService
@@ -53,6 +54,11 @@ export class FooterComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.subscription.add(
+      this.sockets.mqttConnected.subscribe(connected => {
+        this.mqttConnected = connected
+      })
+    )
     this.subscription.add(
       this.authService.isLoggedIn.subscribe(state => {
         this.loggedIn = state

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
 import { AuthService } from '../../services/auth.service'
 //import { SettingsService } from '../../services/settings.service'
-//import { WebsocketsService } from '../../services/websockets.service'
+import { WebsocketsService } from '../../services/websockets.service'
 import { Router } from '@angular/router'
 import { ToastrService } from 'ngx-toastr'
 
@@ -16,7 +16,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   authSub: any
 
   constructor(
-    //private sockets: WebsocketsService,
+    private sockets: WebsocketsService,
     private authService: AuthService,
     private router: Router,
     private toastr: ToastrService //private settingsService: SettingsService,
@@ -44,7 +44,7 @@ export class LoginComponent implements OnInit, OnDestroy {
           //this.settingsService.getSettings().subscribe(settings => {
           //  this.settingsService.storeSettings(settings)
           //})
-          //this.sockets.start()
+          this.sockets.start()
           this.router.navigate(['/dashboard'])
           this.toastr.success('You are now logged in')
         }

@@ -33,6 +33,7 @@ export class WebsocketsService {
   public setSettings: BehaviorSubject<object> = new BehaviorSubject(null)
   public getCustom: BehaviorSubject<object> = new BehaviorSubject(null)
   public setCustom: Subject<object> = new Subject()
+  public setPolls: Subject<object> = new Subject()
   public reboot: Subject<object> = new Subject()
   public nsUpdate: BehaviorSubject<object> = new BehaviorSubject(null)
   public notification: BehaviorSubject<object> = new BehaviorSubject(null)
@@ -75,7 +76,7 @@ export class WebsocketsService {
       rejectUnauthorized: false,
       keepalive: 5,
       clientId: this.id,
-      clean: false,
+      clean: true,
       reconnectPeriod: 5000,
       resubscribe: true,
       // connectTimeout: 30 * 1000,
@@ -205,7 +206,8 @@ export class WebsocketsService {
                   keys: [
                     { key: 'customparams' },
                     { key: 'customparamsdoc' },
-                    { key: 'customtypedparams' }
+                    { key: 'customtypedparams' },
+                    { key: 'customtypeddata' }
                   ]
                 }
               })
@@ -422,6 +424,16 @@ export class WebsocketsService {
           this.toastr.success(`Notices updated successfully.`)
         } else {
           this.toastr.error(`Notices update failed: ${msg['error']}`)
+        }
+      })
+    )
+    this.subscription.add(
+      this.setPolls.subscribe(msg => {
+        if (!msg) return
+        if (msg.hasOwnProperty('success') && msg['success']) {
+          this.toastr.success(`Polls updated successfully.`)
+        } else {
+          this.toastr.error(`setPolls update failed: ${msg['error']}`)
         }
       })
     )

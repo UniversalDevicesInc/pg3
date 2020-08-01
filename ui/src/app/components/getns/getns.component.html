@@ -85,14 +85,47 @@
   </div>
   <!-- Body -->
   <div class="modal-body text-white">
-    Installing on:
-    <b
-      >{{ settingsService.currentIsy.value['name'] }} -
-      {{ settingsService.currentIsy.value['uuid'] }}</b
-    >
-    <br /><br />
-    Please choose the slot to install
-    {{ current['name'] }} to: <br />
+    <h6 class="text-white">NodeServer:</h6>
+    <table class="table table-striped table-bordered table-hover" style="font-size: 12px;">
+      <tbody>
+        <tr>
+          <th width="25%" style="vertical-align: middle;"><b>Name</b></th>
+          <td style="vertical-align: middle;">{{ current['name'] }}</td>
+        </tr>
+        <tr>
+          <th style="vertical-align: middle;"><b>Language</b></th>
+          <td style="vertical-align: middle;">{{ current['language'] }}</td>
+        </tr>
+        <tr>
+          <th style="vertical-align: middle;"><b>Version</b></th>
+          <td style="vertical-align: middle;">{{ current['version'] }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <h6 class="text-white">Target ISY:</h6>
+    <table class="table table-striped table-bordered table-hover" style="font-size: 12px;">
+      <tbody>
+        <tr>
+          <th width="25%" style="vertical-align: middle;"><b>Alias</b></th>
+          <td style="vertical-align: middle;">{{ settingsService.currentIsy.value['name'] }}</td>
+        </tr>
+        <tr>
+          <th style="vertical-align: middle;"><b>UUID</b></th>
+          <td style="vertical-align: middle;">{{ settingsService.currentIsy.value['uuid'] }}</td>
+        </tr>
+        <tr>
+          <th style="vertical-align: middle;"><b>Firmware</b></th>
+          <td style="vertical-align: middle;">{{ settingsService.currentIsy.value['version'] }}</td>
+        </tr>
+      </tbody>
+    </table>
+    Do you wish to install this NodeServer on to the target device? <br /><br />
+    <b>NOTE</b>: If you are trying to upgrade a NodeServer that is already installed, stop and
+    re-start it from the dashboard. It will automatically load the newest version available.
+
+    <br />
+    <h6 class="text-white">Select Slot Number:</h6>
+    <label>Select Available Slot</label><br />
     <select
       [(ngModel)]="selectedSlot"
       class="button"

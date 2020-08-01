@@ -319,8 +319,9 @@ async function startNs(nodeServer) {
     const updateObject = {
       timeStarted: `${Date.now()}`
     }
-    ;['version', 'executable', 'type', 'logLevel', 'shortPoll', 'longPoll'].map(item => {
+    ;['version', 'executable', 'type', 'logLevel'].map(item => {
       if (utils.isIn(serverJson, item)) updateObject[item] = serverJson[item]
+      return item
     })
     ns.update(nodeServer.uuid, nodeServer.profileNum, updateObject)
     config.nodeProcesses[nodeServer.id] = childProcess.spawn(runCmd, [], opts)

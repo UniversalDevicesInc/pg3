@@ -28,7 +28,6 @@ async function set([uuid, profileNum], cmd, data) {
             `${cmd} object does not have the correct properties :: ${JSON.stringify(item)}`
           )
         if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a mutable property`)
-        console.log(item.value)
         const value = typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
         await custom.add(uuid, profileNum, item.key, value)
         logger.info(`[${uuid}_${profileNum}] Set ${item.key}`)
