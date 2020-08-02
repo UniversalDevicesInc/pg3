@@ -24,7 +24,7 @@ async function start() {
 
     config.aedes = Aedes({
       id: 'pg3_broker', // Override the broker uuid (used for heartbeat)
-      heartbeatInterval: 5000 // 5 seconds, Default is 60 seconds
+      heartbeatInterval: 1000 // 5 seconds, Default is 60 seconds
       // connectTimeout: 3 * 10000 // Default is 30 seconds
     })
 

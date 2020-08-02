@@ -119,6 +119,7 @@ async function add(obj) {
     if (typeof newNode[key] === 'boolean') newNode[key] = newNode[key] ? 1 : 0
   })
   newNode.isPrimary = newNode.address === newNode.primaryNode ? 1 : 0
+  newNode.hint = u.convertHint(newNode.hint)
   return config.db
     .prepare(
       `INSERT INTO ${TABLENAME} (${Object.keys(newNode)})

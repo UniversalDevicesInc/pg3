@@ -10,6 +10,7 @@ const ns = require('../../models/nodeserver')
 const servicens = require('../../services/nodeservers')
 const custom = require('../../models/custom')
 const nscustom = require('../nodeserver/custom')
+const nscommand = require('../nodeserver/command')
 
 async function getNs(id, cmd, data) {
   return servicens.getNs(data)
@@ -52,7 +53,12 @@ async function restartNs(id, cmd, data) {
   return { success: false, error: 'Failed, check log for details.' }
 }
 
-async function removeNode(id, cmd, data) {}
+async function removeNode(id, cmd, data) {
+  const { uuid, profileNum, address } = data
+  const response = await nscommand.removenode([uuid, profileNum], 'removenode', [{ address }])
+  if (Array.isArray(response)) return response[0]
+  return response
+}
 
 async function updateNotices(id, cmd, data) {
   const { uuid, profileNum, notices } = data
@@ -111,7 +117,7 @@ const API = {
     func: restartNs
   },
   removeNode: {
-    props: ['uuid', 'profileNum'],
+    props: ['uuid', 'profileNum', 'address'],
     func: removeNode
   },
   updateNotices: {

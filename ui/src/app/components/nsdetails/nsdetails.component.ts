@@ -181,19 +181,13 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
   deleteNode(i) {
     if (this.sockets.connected) {
-      this.sockets.sendMessage(
-        'nodeservers',
-        {
-          removeNode: {
-            address: i.address,
-            profileNum: this.selectedNodeServer.profileNum
-          }
-        },
-        false,
-        true
-      )
-    } else {
-      this.showDisconnected()
+      this.sockets.sendMessage('ns', {
+        removeNode: {
+          uuid: this.settings.currentNsDetails['uuid'],
+          profileNum: this.settings.currentNsDetails['profileNum'],
+          address: i.address
+        }
+      })
     }
   }
 

@@ -35,6 +35,7 @@ export class WebsocketsService {
   public setCustom: Subject<object> = new Subject()
   public setPolls: Subject<object> = new Subject()
   public reboot: Subject<object> = new Subject()
+  public removeNode: Subject<object> = new Subject()
   public nsUpdate: BehaviorSubject<object> = new BehaviorSubject(null)
   public notification: BehaviorSubject<object> = new BehaviorSubject(null)
   public polisyNicsData: ReplaySubject<any> = new ReplaySubject(1)
@@ -74,7 +75,7 @@ export class WebsocketsService {
     }
     let options = {
       rejectUnauthorized: false,
-      keepalive: 5,
+      keepalive: 10,
       clientId: this.id,
       clean: true,
       reconnectPeriod: 5000,
@@ -434,6 +435,16 @@ export class WebsocketsService {
           this.toastr.success(`Polls updated successfully.`)
         } else {
           this.toastr.error(`setPolls update failed: ${msg['error']}`)
+        }
+      })
+    )
+    this.subscription.add(
+      this.removeNode.subscribe(msg => {
+        if (!msg) return
+        if (msg.hasOwnProperty('success') && msg['success']) {
+          this.toastr.success(`Removed node ${msg['address']} successfully.`)
+        } else {
+          this.toastr.error(`Remove Node failed: ${msg['error']}`)
         }
       })
     )

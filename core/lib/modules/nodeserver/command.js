@@ -49,7 +49,8 @@ async function addnode([uuid, profileNum], cmd, data) {
   return Promise.all(
     Object.values(data).map(async item => {
       let response = {}
-      let exists = false
+      let existsInDb = false
+      let existsOnIsy = false
       let update = false
       let addDrivers = true
       let existing = {}
@@ -68,13 +69,13 @@ async function addnode([uuid, profileNum], cmd, data) {
           address: item.address
         })
         if (existing.drivers) {
-          exists = true
+          existsOnIsy = true
           // returns false if drivers are the same
           addDrivers = await compareDrivers(uuid, profileNum, item)
-          const fromDb = await node.get(uuid, profileNum, item.address)
-          if (fromDb) {
+          existsInDb = await node.get(uuid, profileNum, item.address)
+          if (existsInDb) {
             // checks and updates nodeDefId(with NLS) and hint
-            update = await checkNodeDefAndHint(uuid, profileNum, item, fromDb)
+            update = await checkNodeDefAndHint(uuid, profileNum, item, existsInDb)
           }
           if (!update && !addDrivers)
             logger.warn(
@@ -83,7 +84,17 @@ async function addnode([uuid, profileNum], cmd, data) {
         }
         if (existing.code && existing.code !== 404)
           throw new Error(`ISY returned error code: ${existing.code}`)
-        if (!exists) {
+        if (!existsInDb) {
+          logger.warn(
+            `node ${item.address} on profile ${uuid}/${profileNum} exists on the ISY but not in the database. Adding...`
+          )
+          await node.add({
+            uuid,
+            profileNum,
+            ...item
+          })
+        }
+        if (!existsOnIsy) {
           const path = ['nodes', isy.addNodePrefix(profileNum, item.address), 'add', item.nodeDefId]
           response = await isy.isyGet(
             uuid,
@@ -99,15 +110,10 @@ async function addnode([uuid, profileNum], cmd, data) {
           checkResponse(cmd, response)
           if (u.isIn(item, 'hint')) item.hint = u.convertHint(item.hint)
           logger.info(`[${uuid}_${profileNum}] ${cmd} sucessfully added node ${item.address}`)
-          await node.add({
-            uuid,
-            profileNum,
-            ...item
-          })
           await isyNodeServer.setHint(uuid, profileNum, item)
           await isySystem.groupNodes(uuid, profileNum, item.address, item.primaryNode)
-          await nodeservice.sendFrontendUpdate()
         }
+        await nodeservice.sendFrontendUpdate()
         if (addDrivers) {
           // add drivers to the db and set in ISY
           await Promise.all(
@@ -128,7 +134,7 @@ async function addnode([uuid, profileNum], cmd, data) {
             status.setDriver(uuid, profileNum, { ...dvr, address: item.address })
           )
         }
-        return await node.get(uuid, profileNum, item.address)
+        return (await node.get(uuid, profileNum, item.address)) || {}
       } catch (err) {
         logger.error(`command ${cmd} ${err.stack}`)
         return {
@@ -161,7 +167,7 @@ async function removenode([uuid, profileNum], cmd, data) {
           profileNum,
           false // retry?
         )
-        if (![200, 404].includes(response.status)) checkResponse(cmd, response)
+        if (![200, 404].includes(response.status)) await checkResponse(cmd, response)
         logger.info(`[${uuid}_${profileNum}] ${cmd} sucessfully removed node ${item.address}`)
         await node.remove(uuid, profileNum, item.address)
         await nodeservice.sendFrontendUpdate()
@@ -176,6 +182,7 @@ async function removenode([uuid, profileNum], cmd, data) {
 
 async function compareDrivers(uuid, profileNum, newNode) {
   const existingDrivers = await driver.getAllNode(uuid, profileNum, newNode.address)
+  if (!existingDrivers) return true
   // const result = existingDrivers.filter(o1 => newNode.drivers.some(o2 => o1.driver !== o2.driver))
   const result = []
   const lengthsMatch = existingDrivers.length === newNode.drivers.length
@@ -291,4 +298,4 @@ const API = {
   }
 }
 
-module.exports = { API }
+module.exports = { API, removenode }
