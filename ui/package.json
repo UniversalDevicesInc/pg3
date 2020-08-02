@@ -4,16 +4,13 @@
   "license": "MIT",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "start:dev": "ng serve --host polyglot --ssl true --ssl-key ~/.polyglot/ssl/polyglot_private.key --ssl-cert ~/.polyglot/ssl/polyglot.crt",
-    "start:local": "ng serve --ssl true --ssl-key ~/.polyglot/ssl/polyglot_private.key --ssl-cert ~/.polyglot/ssl/polyglot.crt",
-    "start:devhttp": "ng serve --host polyglot",
+    "start:dev": "ng serve",
     "patchrelease": "npm version patch",
     "prerelease": "npm version prerelease",
     "postversion": "git push && git push --tags",
     "update:check": "ncu",
     "update:run": "ncu -u; npm install",
-    "build:test": "ng build --configuration=test",
+    "build:test": "time ng build --configuration=test",
     "build:prod": "time ng build --prod",
     "postinstall": "ngcc --properties es2015 browser module main --first-only --create-ivy-entry-points"
   },

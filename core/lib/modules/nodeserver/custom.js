@@ -27,7 +27,8 @@ async function set([uuid, profileNum], cmd, data) {
           throw new Error(
             `${cmd} object does not have the correct properties :: ${JSON.stringify(item)}`
           )
-        if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a mutable property`)
+        // Uncommenting the below line would only allow saving of system keys
+        // if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a setable key`)
         const value = typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
         await custom.add(uuid, profileNum, item.key, value)
         logger.info(`[${uuid}_${profileNum}] Set ${item.key}`)
