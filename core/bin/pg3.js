@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Polyglot Version 3 (PG3)
  * Written by James Milne(milne.james@gmail.com)
