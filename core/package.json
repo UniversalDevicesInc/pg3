@@ -8,7 +8,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint --color .",
-    "publish": "npm version patch && npm run publish --access public"
+    "release": "np"
   },
   "repository": {
     "type": "git",
