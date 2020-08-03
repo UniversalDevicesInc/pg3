@@ -7,7 +7,8 @@
     "start:dev": "nodemon .",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint --color ."
+    "lint": "eslint --color .",
+    "publish": "npm version patch && npm run publish --access public"
   },
   "repository": {
     "type": "git",
