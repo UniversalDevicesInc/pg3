@@ -59,6 +59,7 @@ typings/
 
 # Angular Frontend
 ./frontend/
+public/
 
 # Project Specific
 ssl/
