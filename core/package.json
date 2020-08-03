@@ -3,14 +3,7 @@
   "version": "3.0.1",
   "description": "PG3 Core",
   "main": "bin/pg3.js",
-  "scripts": {
-    "start:dev": "nodemon .",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "lint": "eslint --color .",
-    "release": "np",
-    "prepack": "cd ../ui && ng build --prod"
-  },
+  "homepage": "https://github.com/UniversalDevicesInc/pg3#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/UniversalDevicesInc/pg3.git"
@@ -20,24 +13,25 @@
   "bugs": {
     "url": "https://github.com/UniversalDevicesInc/pg3/issues"
   },
+  "bin": {
+    "pg3": "bin/pg3.js"
+  },
+  "preferGlobal": true,
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start:dev": "nodemon .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint --color .",
+    "release": "np",
+    "prepack": "cd ../ui && ng build --prod",
+    "update:check": "ncu",
+    "update:run": "ncu -u; npm install"
+  },
   "engines": {
     "node": ">12.16.0"
-  },
-  "homepage": "https://github.com/UniversalDevicesInc/pg3#readme",
-  "devDependencies": {
-    "eslint": "^7.1.0",
-    "eslint-config-airbnb-base": "^14.1.0",
-    "eslint-config-node": "^4.1.0",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-import": "^2.20.2",
-    "eslint-plugin-jest": "^23.13.2",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.1.3",
-    "eslint-plugin-standard": "^4.0.1",
-    "jest": "^26.0.1",
-    "prettier": "^2.0.5",
-    "nodemon": "*",
-    "np": "*"
   },
   "dependencies": {
     "@koa/cors": "^3.1.0",
@@ -69,12 +63,20 @@
     "winston-daily-rotate-file": "^4.4.2",
     "xml2js": "^0.4.23"
   },
-  "bin": {
-    "pg3": "bin/pg3.js"
-  },
-  "preferGlobal": true,
-  "directories": {
-    "lib": "lib"
+  "devDependencies": {
+    "eslint": "^7.1.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-config-node": "^4.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-jest": "^23.13.2",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.1.3",
+    "eslint-plugin-standard": "^4.0.1",
+    "jest": "^26.0.1",
+    "prettier": "^2.0.5",
+    "nodemon": "*",
+    "np": "*"
   },
   "np": {
     "yarn": false
