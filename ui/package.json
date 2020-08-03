@@ -15,11 +15,7 @@
   },
   "private": true,
   "scripts": {
-    "ng": "ng",
     "start:dev": "ng serve",
-    "patchrelease": "npm version patch",
-    "prerelease": "npm version prerelease",
-    "postversion": "git push && git push --tags",
     "update:check": "ncu",
     "update:run": "ncu -u; npm install",
     "build:test": "time ng build --configuration=test",

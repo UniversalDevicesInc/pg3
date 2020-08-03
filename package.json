@@ -1,7 +1,16 @@
 {
-  "name": "universaldevices",
+  "name": "@universaldevices/root",
+  "version": "3.0.1",
+  "description": "PG3 Root",
   "private": true,
-  "devDependencies": {
-    "lerna": "^3.22.1"
+  "homepage": "https://github.com/UniversalDevicesInc/pg3#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/UniversalDevicesInc/pg3.git"
+  },
+  "author": "James Milne <milne.james@gmail.com>",
+  "license": "See LICENSE file",
+  "bugs": {
+    "url": "https://github.com/UniversalDevicesInc/pg3/issues"
   }
 }
