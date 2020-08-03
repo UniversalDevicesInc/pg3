@@ -1,4 +1,6 @@
 const Router = require('@koa/router')
+const fs = require('fs-extra')
+const { Tail } = require('tail')
 
 // const logger = require('../modules/logger')
 const config = require('../config/config')
@@ -38,6 +40,16 @@ router.get('/ispolisy', ctx => {
     isPolisy: config.globalsettings.polisy
   }
   ctx.response.body = ispolisy
+})
+
+router.get('/logstream/:type', async ctx => {
+  const {
+    params: { type }
+  } = ctx
+  if (type === 'main') {
+    ctx.response.set('content-type', 'text/plain;charset=UTF-8')
+    // Stream Log File
+  }
 })
 
 module.exports = router

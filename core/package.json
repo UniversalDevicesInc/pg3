@@ -58,6 +58,7 @@
     "passport-jwt": "^4.0.0",
     "querystring": "^0.2.0",
     "simple-git": "^2.11.0",
+    "tail": "^2.0.4",
     "uuid": "^8.1.0",
     "websocket-stream": "^5.5.2",
     "winston": "^3.2.1",
