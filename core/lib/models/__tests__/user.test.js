@@ -5,8 +5,8 @@ const name = 'user'
 const mod = require(`../${name}`)
 
 describe(`check ${mod} `, () => {
-  test(`${name} table should be defined`, () => {
-    expect(mod.table).toBeDefined()
+  test(`${name} TABLE should be defined`, () => {
+    expect(mod.TABLE).toBeDefined()
   })
   test(`${name} DEFAULTS should be defined`, () => {
     expect(mod.DEFAULTS).toBeDefined()
