@@ -67,8 +67,9 @@
     "xml2js": "^0.4.23"
   },
   "bin": {
-    "pg3": "pg3.js"
+    "pg3": "bin/pg3.js"
   },
+  "preferGlobal": true,
   "directories": {
     "lib": "lib"
   }
