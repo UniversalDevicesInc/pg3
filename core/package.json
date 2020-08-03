@@ -26,7 +26,8 @@
     "test:watch": "jest --watch",
     "lint": "eslint --color .",
     "release": "np",
-    "prepack": "cd ../ui && ng build --prod",
+    "preversion": "cd ../ui && npm version patch",
+    "version": "cd ../ui && ng build --prod",
     "update:check": "ncu",
     "update:run": "ncu -u; npm install"
   },
