@@ -58,7 +58,6 @@ typings/
 .env
 
 # Angular Frontend
-angular-src/
 ./frontend/
 
 # Project Specific

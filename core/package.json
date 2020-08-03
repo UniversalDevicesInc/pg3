@@ -1,6 +1,6 @@
 {
-  "name": "@pg3/core",
-  "version": "3.0.0",
+  "name": "@universaldevices/pg3",
+  "version": "3.0.1",
   "description": "PG3 Core",
   "main": "bin/pg3.js",
   "scripts": {
@@ -11,10 +11,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/UniversalDevicesInc/pg3.git"
+    "url": "https://github.com/UniversalDevicesInc/pg3.git"
   },
   "author": "James Milne <milne.james@gmail.com>",
-  "license": "MIT",
+  "license": "See LICENSE file",
   "bugs": {
     "url": "https://github.com/UniversalDevicesInc/pg3/issues"
   },
@@ -64,5 +64,11 @@
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.4.2",
     "xml2js": "^0.4.23"
+  },
+  "bin": {
+    "pg3": "pg3.js"
+  },
+  "directories": {
+    "lib": "lib"
   }
 }
