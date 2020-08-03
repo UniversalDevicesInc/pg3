@@ -12,5 +12,8 @@
   "license": "See LICENSE file",
   "bugs": {
     "url": "https://github.com/UniversalDevicesInc/pg3/issues"
+  },
+  "scripts": {
+    "release": "cd core && np"
   }
 }
