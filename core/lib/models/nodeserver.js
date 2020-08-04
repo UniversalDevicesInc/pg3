@@ -132,6 +132,7 @@ async function getIsy(key) {
     Object.keys(value).map(item => {
       // eslint-disable-next-line
       if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
+      return item
     })
     // eslint-disable-next-line no-param-reassign
     value.notices = null

@@ -9,7 +9,7 @@
     "url": "https://github.com/UniversalDevicesInc/pg3.git"
   },
   "author": "James Milne <milne.james@gmail.com>",
-  "license": "See LICENSE file",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/UniversalDevicesInc/pg3/issues"
   },
@@ -38,6 +38,7 @@
     "@koa/cors": "^3.1.0",
     "@koa/router": "^9.0.1",
     "aedes": "^0.42.0",
+    "archiver": "^5.0.0",
     "axios": "^0.19.2",
     "bcrypt": "^4.0.1",
     "better-sqlite3": "^7.0.1",
@@ -59,6 +60,7 @@
     "querystring": "^0.2.0",
     "simple-git": "^2.11.0",
     "tail": "^2.0.4",
+    "unzipper": "^0.10.11",
     "uuid": "^8.1.0",
     "websocket-stream": "^5.5.2",
     "winston": "^3.2.1",

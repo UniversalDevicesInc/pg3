@@ -40,7 +40,7 @@ async function start() {
     const staticFolder = path.join(__dirname, '../../public/')
     app.use(serve(staticFolder))
     // Body Parser
-    app.use(bodyParser())
+    app.use(bodyParser({ multipart: true }))
     // Error Handling
     app.use(async (ctx, next) => {
       try {

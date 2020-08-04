@@ -33,7 +33,8 @@ export class SettingsService {
   }
 
   async savePackage(id) {
-    var headers = new HttpHeaders().set('Authorization', localStorage.getItem('id_token'))
+    this.loadToken()
+    var headers = new HttpHeaders({ Authorization: `Bearer ${this.authToken}` })
     const file = await this.http
       .get(`${environment.PG_URI}/frontend/log/package/${id}`, {
         observe: 'response',
@@ -45,7 +46,8 @@ export class SettingsService {
   }
 
   async downloadLog(id) {
-    var headers = new HttpHeaders().set('Authorization', localStorage.getItem('id_token'))
+    this.loadToken()
+    var headers = new HttpHeaders({ Authorization: `Bearer ${this.authToken}` })
     const file = await this.http
       .get(`${environment.PG_URI}/frontend/log/${id}`, {
         observe: 'response',
@@ -98,7 +100,7 @@ export class SettingsService {
 
   async downloadBackup() {
     this.loadToken()
-    var headers = new HttpHeaders({ Authorization: this.authToken })
+    var headers = new HttpHeaders({ Authorization: `Bearer ${this.authToken}` })
     const file = await this.http
       .get(`${environment.PG_URI}/frontend/backup`, {
         observe: 'response',
@@ -112,7 +114,7 @@ export class SettingsService {
   restoreBackup(file) {
     this.loadToken()
     const headers = new HttpHeaders({
-      Authorization: this.authToken
+      Authorization: `Bearer ${this.authToken}`
     })
     return this.http.post(`${environment.PG_URI}/frontend/restore`, file, { headers: headers })
   }

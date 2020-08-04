@@ -32,6 +32,7 @@ async function stop() {
   logger.info(`DB Stopping Gracefully`)
   if (config.db && config.db.open) {
     config.db.close()
+    config.db = false
   }
 }
 
