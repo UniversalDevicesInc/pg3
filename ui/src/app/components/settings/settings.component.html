@@ -35,7 +35,37 @@
         data-placement="right"
         title="{{ file.name }}"
         data-original-title="File"
-        (click)="restoreBackup()"
+        (click)="restoreBackup(false)"
+      >
+        Restore
+      </button>
+    </div>
+  </div>
+  <br />
+  <div class="row">
+    <ng-container *ngIf="settings.currentIsy | async as isy">
+      <legend class="col-form-label col-2">
+        Restore Backup from Polyglot v2 to {{ isy['name'] }} {{ isy['uuid'] }}
+      </legend>
+    </ng-container>
+    <div class="col-lg-2">
+      <button
+        *ngIf="!file"
+        class="form-control btn btn-primary"
+        (click)="fileInput.click()"
+        onclick="this.blur()"
+      >
+        {{ file || 'Select File' }}
+      </button>
+      <input style="display: none;" type="file" (change)="onFileChanged($event)" #fileInput />
+      <button
+        *ngIf="file"
+        class="form-control btn btn-primary"
+        data-toggle="tooltip"
+        data-placement="right"
+        title="{{ file.name }}"
+        data-original-title="File"
+        (click)="restoreBackup(true)"
       >
         Restore
       </button>

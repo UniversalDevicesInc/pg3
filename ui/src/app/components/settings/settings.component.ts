@@ -89,17 +89,17 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.settings.downloadBackup()
   }
 
-  restoreBackup() {
+  restoreBackup(v2: boolean) {
     if (this.file) {
       const formData = new FormData()
       formData.append('file', this.file)
       this.toastr.success('Restore starting. This may take some time, please wait...')
       window.scrollTo(0, 0)
-      this.settings.restoreBackup(formData).subscribe(data => {
+      this.settings.restoreBackup(formData, v2).subscribe(data => {
         if (data['success']) {
           this.toastr.success('Restore Completed Sucessfully. Restarting in 5 seconds.')
           window.scrollTo(0, 0)
-          this.logout()
+          // this.logout()
         } else {
           this.toastr.error(data['msg'])
           window.scrollTo(0, 0)
@@ -107,12 +107,5 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.file = null
       })
     }
-  }
-
-  logout() {
-    this.authService.logout()
-    this.sockets.stop()
-    this.toastr.success('Logging you out.')
-    this.router.navigate(['/login'])
   }
 }

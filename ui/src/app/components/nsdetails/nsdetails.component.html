@@ -89,7 +89,7 @@
         </div>
       </div>
     </div>
-    <div *ngIf="objectKeys(selectedNodeServer?.notices).length > 0">
+    <div *ngIf="selectedNodeServer.notices && objectKeys(selectedNodeServer?.notices)?.length > 0">
       <hr />
       <app-nsnotices></app-nsnotices>
     </div>

@@ -61,7 +61,7 @@
             >
               Details
               <span
-                *ngIf="objectKeys(nodeServer.notices).length > 0"
+                *ngIf="nodeServer.notices && objectKeys(nodeServer.notices).length > 0"
                 style="vertical-align: top;"
                 class="badge badge-info"
                 >{{ objectKeys(nodeServer.notices).length }} New Message{{

@@ -111,11 +111,14 @@ export class SettingsService {
     this.saveToFileSystem(file)
   }
 
-  restoreBackup(file) {
+  restoreBackup(file, v2: boolean = false) {
     this.loadToken()
     const headers = new HttpHeaders({
       Authorization: `Bearer ${this.authToken}`
     })
-    return this.http.post(`${environment.PG_URI}/frontend/restore`, file, { headers: headers })
+    let url = `${environment.PG_URI}/frontend/${v2 ? 'restoreFrom2' : 'restore'}`
+    if (v2) url += `?uuid=${this.currentIsy.value['uuid']}`
+    console.log(url)
+    return this.http.post(url, file, { headers: headers })
   }
 }

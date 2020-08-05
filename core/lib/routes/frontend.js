@@ -8,6 +8,9 @@ const fs = require('fs-extra')
 const { Tail } = require('tail')
 const Archiver = require('archiver')
 const unzipper = require('unzipper')
+const crypto = require('crypto')
+const axios = require('axios')
+const git = require('simple-git')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
@@ -18,6 +21,8 @@ const mqtts = require('../services/mqtts')
 const mqttc = require('../services/mqttc')
 const httpc = require('../services/httpc')
 const nsservice = require('../services/nodeservers')
+const isyns = require('../modules/isy/nodeserver')
+const custom = require('../models/custom')
 
 /**
  * Frontend Interface Module
@@ -154,6 +159,8 @@ router.post('/restore', async ctx => {
           nodeServers.map(async ns => {
             const localDir = `${process.env.PG3WORKDIR}ns/${ns.uuid}_${ns.profileNum}`
             await nsservice.gitClone(ns.uuid, ns.profileNum, ns.url, localDir)
+            await isyns.installNodeServer(ns)
+            await nsservice.installNs(ns)
           })
         )
         logger.info(`RESTORE: Completed Database restore... Starting persistent file extraction.`)
@@ -166,7 +173,7 @@ router.post('/restore', async ctx => {
       ctx.body = { success: true }
       logger.warn(`Restore Completed. Shutting down in 5 seconds.`)
       await u.timeout(5000)
-      process.kill(process.pid, 'SIGINT')
+      // process.kill(process.pid, 'SIGINT')
     } else {
       throw new Error(`database not found... how did you get here?`)
     }
@@ -175,6 +182,126 @@ router.post('/restore', async ctx => {
     ctx.body = { success: false, error: `${err.stack}` }
   }
 })
+
+router.post('/restoreFrom2', async ctx => {
+  try {
+    const { file } = ctx.request.files
+    if (!u.isIn(ctx.query, 'uuid')) throw new Error(`UUID not provided`)
+    const { uuid } = ctx.query
+    logger.info(`Starting Restore of Version 2 data. File Name: ${file.name} to ${uuid}`)
+    const directory = await unzipper.Open.file(file.path)
+    const backupFile = directory.files.find(d => d.path === 'backup.bin')
+    const decrypted = JSON.parse(decrypt2((await backupFile.buffer()).toString()))
+    logger.info(`RESTORE: Backup decrypted, processing NodeServers for Restore...`)
+    const options = {
+      method: 'get',
+      url: 'https://pgcstore.isy.io/v1/list?all',
+      timeout: 5000
+    }
+    const storeRes = await axios(options)
+    if (storeRes.status !== 200) {
+      throw new Error('Could not get nodeservers from pgcstore')
+    }
+    const storeNodeServers = storeRes.data
+    if (decrypted.nodeServers && decrypted.nodeServers.length > 0) {
+      await Promise.allSettled(
+        decrypted.nodeServers.map(async ns => {
+          try {
+            logger.info(`RESTORE: Attempting restore of ${ns.name} in slot ${ns.profileNum}`)
+            let url
+            storeNodeServers.map(storens => {
+              if (storens.name === ns.name) url = storens.url
+              return storens
+            })
+            if (!url) throw new Error(`NodeServer url not found in store. Skipping`)
+            await nsdb.remove(uuid, ns.profileNum)
+            const result = await nsservice.createNs(
+              {
+                uuid,
+                name: ns.name,
+                profileNum: ns.profileNum,
+                url
+              },
+              true
+            )
+            if (u.isIn(ns, 'notices'))
+              custom.set([uuid, ns.profileNum], 'set', { key: 'notices', value: ns.notices })
+            if (u.isIn(ns, 'customData'))
+              custom.set([uuid, ns.profileNum], 'set', { key: 'customdata', value: ns.customData })
+            if (u.isIn(ns, 'customParams'))
+              custom.set([uuid, ns.profileNum], 'set', {
+                key: 'customparams',
+                value: ns.customParams
+              })
+            if (u.isIn(ns, 'customParamsDoc'))
+              custom.set([uuid, ns.profileNum], 'set', {
+                key: 'customparamsdoc',
+                value: ns.customParamsDoc
+              })
+            if (u.isIn(ns, 'typedParams'))
+              custom.set([uuid, ns.profileNum], 'set', {
+                key: 'customtypedparams',
+                value: ns.typedParams
+              })
+            if (u.isIn(ns, 'typedCustomData'))
+              custom.set([uuid, ns.profileNum], 'set', {
+                key: 'customtypeddata',
+                value: ns.typedCustomData
+              })
+            if (result.success) {
+              const zip = fs.createReadStream(file.path).pipe(unzipper.Parse({ forceStream: true }))
+              await Promise.allSettled(
+                zip.map(async entry => {
+                  if (entry.path.includes(`${ns.name}/`)) {
+                    const pathName = entry.path.replace(`${ns.name}/`, '')
+                    entry.pipe(
+                      fs.createWriteStream(
+                        `${process.env.PG3WORKDIR}ns/${uuid}_${ns.profileNum}/${pathName}`
+                      )
+                    )
+                  }
+                })
+              )
+            }
+            ctx.body = { success: true }
+            ctx.status = 200
+            logger.warn(`Restore Completed. Shutting down in 5 seconds.`)
+            await u.timeout(5000)
+            // process.kill(process.pid, 'SIGINT')
+          } catch (err) {
+            logger.error(`Failed to restore nodeserver :: ${err.stack}`)
+          }
+        })
+      )
+    }
+  } catch (err) {
+    logger.error(`Backup: ${err.stack}`)
+    ctx.body = { success: false, error: `${err.stack}` }
+  }
+})
+
+function decrypt2(text) {
+  const algorithm = 'aes-256-ctr'
+  const key = 'b2df428b9929d3ace7c598bbf4e496b2'
+  const encoding = ',2YE6=#r(z5?Y4=a'
+  const inputEncoding = 'utf8'
+  const outputEncoding = 'hex'
+  const textParts = text.split(':')
+  let decipher
+  let dec
+  if (textParts.length >= 2) {
+    const iv = Buffer.from(textParts.shift(), outputEncoding)
+    const encryptedText = Buffer.from(textParts.join(':'), outputEncoding)
+    decipher = crypto.createDecipheriv(algorithm, key, iv)
+    dec = decipher.update(encryptedText, outputEncoding, inputEncoding)
+  } else {
+    // eslint-disable-next-line
+    decipher = crypto.createDecipher(algorithm, encoding)
+    dec = decipher.update(text, outputEncoding, inputEncoding)
+  }
+  dec += decipher.final(inputEncoding)
+  return dec.toString()
+}
 
 async function stopAll() {
   await nsservice.stop()

@@ -68,6 +68,7 @@ async function stop() {
   return Promise.allSettled(
     nodeservers.map(nodeServer => {
       if (nodeServer.type.toLowerCase() !== 'unmanaged') return stopNs(nodeServer)
+      return nodeServer
     })
   )
 }
@@ -149,7 +150,7 @@ async function gitClone(uuid, profileNum, url, localDir) {
 // TODO
 async function gitCheckout(nodeServer) {}
 
-async function createNs(nodeServer) {
+async function createNs(nodeServer, restore = false) {
   const { uuid, name, profileNum, url } = nodeServer
   try {
     logger.info(`[${uuid}_${profileNum}] :: Creating Nodeserver '${name}'`)
@@ -166,14 +167,18 @@ async function createNs(nodeServer) {
       executable: serverJson.executable,
       devMode: serverJson.testMode,
       branch: (await git(localDir).status()).current,
-      url
+      url,
+      shortPoll: serverJson.shortPoll || 60,
+      longPoll: serverJson.longPoll || 300
     }
     await ns.add(addObj)
     const newNs = await ns.get(uuid, profileNum)
     logger.info(`[${uuid}_${profileNum}] :: Clone Complete. Added '${name}' to database...`)
     await isyns.installNodeServer(newNs)
     await installNs(newNs, serverJson)
-    await startNs(newNs)
+    if (!restore) {
+      await startNs(newNs)
+    }
     return { ...newNs, success: true }
   } catch (err) {
     logger.error(`createNS: ${err.stack}`)
@@ -271,6 +276,7 @@ async function startNs(nodeServer) {
     logger.error(`[${nodeServer.name}(${nodeServer.profileNum})] :: already running.`)
     return { success: false, error: `already running` }
   }
+  config.nodeProcesses[nodeServer.id] = true
   if (!VALID_TYPES.includes(nodeServer.type)) {
     logger.error(
       `[${nodeServer.name}(${nodeServer.profileNum})] :: Invalid Type: '${nodeServer.type}', valid types are '${VALID_TYPES}'`
@@ -309,7 +315,7 @@ async function startNs(nodeServer) {
     const opts = {
       cwd: nodeServer.home,
       shell: '/bin/sh',
-      detached: true,
+      // detached: true,
       env: { ...process.env, PG3INIT: init }
     }
     const runCmd = `/usr/bin/env ${serverJson.type} ./${serverJson.executable}`
@@ -379,8 +385,9 @@ async function stopNs(nodeServer) {
     await nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { stop: {} })
     await utils.timeout(3000)
     try {
-      process.kill(-config.nodeProcesses[nodeServer.id].pid)
-      logger.warn(`${nodeServer.name} did not stop on it's own. Force killed.`)
+      config.nodeProcesses[nodeServer.id].kill('SIGTERM')
+      logger.info(`${nodeServer.name} stopped`)
+      // process.kill(-config.nodeProcesses[nodeServer.id].pid)
     } catch (err) {
       if (err instanceof TypeError) logger.info(`${nodeServer.name} stopped`)
       else logger.error(`stopNs: ${err.stack}`)

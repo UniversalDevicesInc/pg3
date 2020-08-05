@@ -135,14 +135,12 @@ async function getIsy(key) {
       return item
     })
     // eslint-disable-next-line no-param-reassign
-    value.notices = null
     try {
       // eslint-disable-next-line no-param-reassign
       value.notices = JSON.parse((await custom.get(value.uuid, value.profileNum, 'notices')).value)
     } catch (err) {
-      logger.error(
-        `[${value.name}-${value.uuid}(${value.profileNum}) :: Notices not an object. Ignoring.`
-      )
+      // eslint-disable-next-line no-param-reassign
+      value.notices = {}
     }
     return value
   })
@@ -159,14 +157,12 @@ async function getFull(key, profileNum) {
     if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
   })
   // eslint-disable-next-line no-param-reassign
-  value.notices = null
   try {
     // eslint-disable-next-line no-param-reassign
     value.notices = JSON.parse((await custom.get(value.uuid, value.profileNum, 'notices')).value)
   } catch (err) {
-    logger.error(
-      `[${value.name}-${value.uuid}(${value.profileNum}) :: Notices not an object. Ignoring.`
-    )
+    // eslint-disable-next-line no-param-reassign
+    value.notices = {}
   }
   value.nodes =
     config.db

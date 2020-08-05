@@ -119,11 +119,11 @@ async function shutdown() {
 }
 
 /* Gracefully shutdown when SIGTERM/SIGINT is caught */
-function gracefulShutdown() {
+async function gracefulShutdown() {
   if (!config.shutdown) {
     config.shutdown = true
     logger.info('Caught SIGTERM/SIGINT Shutting down.')
-    shutdown()
+    await shutdown()
     // If processes fail to shut down, force exit after 3 seconds
     setTimeout(() => {
       process.exit(0)
@@ -135,6 +135,9 @@ function gracefulShutdown() {
 process.on('SIGINT', gracefulShutdown)
 
 process.on('SIGTERM', gracefulShutdown)
+
+// Used by nodemon
+process.on('SIGUSR2', gracefulShutdown)
 
 process.once('exit', code => {
   logger.info(`PG3 shutdown complete with code: ${code}`)
