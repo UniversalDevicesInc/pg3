@@ -3,7 +3,7 @@ const encryption = require('../modules/security/encryption')
 const custom = require('./custom')
 
 const config = require('../config/config')
-const logger = require('../modules/logger')
+// const logger = require('../modules/logger')
 const u = require('../utils/utils')
 
 /**
