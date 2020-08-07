@@ -121,15 +121,15 @@
 </div>
 
 <div *ngIf="currentlyEnabled === 'log'">
-  <div style="text-align: center;">
+  <div style="text-align: center;" *ngIf="settings.currentNs | async as selectedNodeServer">
     <h1>Real-time {{ selectedNodeServer.name }} log file</h1>
     <button (click)="scrollToBottom()" class="btn btn-primary">Scroll to Bottom</button>
-    <button (click)="settings.downloadLog(selectedNodeServer.profileNum)" class="btn btn-primary">
+    <button (click)="settings.downloadLog(this.logId)" class="btn btn-primary">
       Download Log
     </button>
-    <button (click)="settings.savePackage(selectedNodeServer.profileNum)" class="btn btn-primary">
+    <!-- <button (click)="settings.savePackage(selectedNodeServer.profileNum)" class="btn btn-primary">
       Download Log Package
-    </button>
+    </button> -->
     <div>
       <label>
         <input

@@ -4,10 +4,13 @@ import { WebsocketsService } from '../../services/websockets.service'
 import { NodeServer } from '../../models/nodeserver.model'
 import { Router, ActivatedRoute } from '@angular/router'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+import { AuthService } from '../../services/auth.service'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { Subscription } from 'rxjs'
 import { ToastrService } from 'ngx-toastr'
 import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms'
+import { HttpClient, HttpHeaders } from '@angular/common/http'
+import { environment } from '../../../environments/environment'
 
 @Component({
   selector: 'app-nsdetails',
@@ -36,6 +39,8 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   public currentlyEnabled: any
   public autoScroll: boolean
   public child: any
+  public logId: any
+  public gotFile: boolean = false
   customparamsForm: FormGroup
   // customtypedparamsForm: FormGroup
   submitted = false
@@ -47,7 +52,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     private modal: NgbModal,
     private toastr: ToastrService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private auth: AuthService,
+    private http: HttpClient
   ) {}
 
   ngOnInit() {
@@ -58,6 +65,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     //   customtypedparams: new FormArray([])
     // })
     this.route.params.subscribe(params => {
+      this.logId = params['id']
       const id = params['id'].split('_')
       this.settings.currentNsDetails = {
         uuid: id[0],
@@ -207,18 +215,39 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
     if (type === 'log') {
       if (this.sockets.connected) {
-        this.sockets.sendMessage('log', { start: this.selectedNodeServer.profileNum })
-        this.getLog()
-      } else {
-        this.showDisconnected()
-      }
-    } else {
-      if (this.logConn) {
-        this.logConn.unsubscribe()
-        if (this.sockets.connected) {
-          this.sockets.sendMessage('log', { stop: this.selectedNodeServer.profileNum })
+        if (!this.gotFile) {
+          const headers = new HttpHeaders({ Authorization: `Bearer ${this.auth.authToken}` })
+          const logUrl = `${environment.PG_URI}/logs/${this.logId}`
+          console.log(logUrl)
+          this.toastr.success(`Getting Log file...`)
+          this.http.get(logUrl, { headers: headers, responseType: 'text' }).subscribe(
+            log => {
+              if (!log) return
+              this.gotFile = true
+              this.logData.push(<any>log)
+              this.toastr.success(`Got Log file, starting tail...`)
+              this.subscription.add(
+                this.sockets.logData.subscribe(msg => {
+                  if (msg) {
+                    this.logData.push(msg)
+                    if (this.autoScroll)
+                      setTimeout(() => {
+                        this.scrollToBottom()
+                      }, 100)
+                  }
+                })
+              )
+              this.sockets.logSub(this.logId)
+            },
+            err => {
+              console.log(err.stack)
+              this.toastr.error(`Failed to get Log File ${err.message}`)
+            }
+          )
         }
       }
+    } else {
+      this.sockets.logUnSub(this.logId)
     }
   }
 

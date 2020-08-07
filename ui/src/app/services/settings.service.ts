@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core'
 import { HttpClient, HttpHeaders } from '@angular/common/http'
 import { environment } from '../../environments/environment'
 import { Title } from '@angular/platform-browser'
+import { ToastrService } from 'ngx-toastr'
 
 import { Observable, BehaviorSubject } from 'rxjs'
 
@@ -25,7 +26,11 @@ export class SettingsService {
   // public nodeServers: any[] = []
   public availableNodeServerSlots: any[] = []
 
-  constructor(private http: HttpClient, private titleService: Title) {}
+  constructor(
+    private http: HttpClient,
+    private titleService: Title,
+    private toastr: ToastrService
+  ) {}
 
   loadToken() {
     const token = localStorage.getItem('id_token')
@@ -48,8 +53,9 @@ export class SettingsService {
   async downloadLog(id) {
     this.loadToken()
     var headers = new HttpHeaders({ Authorization: `Bearer ${this.authToken}` })
+    this.toastr.success(`Downloading Log File. Please wait.`)
     const file = await this.http
-      .get(`${environment.PG_URI}/frontend/log/${id}`, {
+      .get(`${environment.PG_URI}/logs/download/${id}`, {
         observe: 'response',
         responseType: 'blob',
         headers: headers

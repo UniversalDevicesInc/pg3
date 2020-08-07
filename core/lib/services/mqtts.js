@@ -2,15 +2,16 @@
 /* eslint-disable no-use-before-define */
 const Aedes = require('aedes')
 const jwt = require('jsonwebtoken')
-// const fs = require('fs')
+const fs = require('fs-extra')
+const { Tail } = require('tail')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
-// const utils = require('../utils/utils')
+const u = require('../utils/utils')
 const encryption = require('../modules/security/encryption')
 const ns = require('../models/nodeserver')
 const nsservice = require('./nodeservers')
-const user = require('../models/user')
+// const user = require('../models/user')
 
 /**
  * MQTT Server Start Service.
@@ -79,6 +80,30 @@ async function start() {
       logger.error(`MQTTS: connectionError: ${client.id} ${err.message}`)
     })
 
+    config.aedes.on('subscribe', (subs, client) => {
+      subs.map(sub => {
+        if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}/log/`)) {
+          const subPieces = sub.topic.split('/')
+          if (subPieces.length === 7) {
+            streamLog(client.id, sub.topic, subPieces[6])
+          }
+        }
+        return subs
+      })
+    })
+
+    config.aedes.on('unsubscribe', (subs, client) => {
+      subs.map(sub => {
+        if (!u.isIn(sub, 'topic')) return sub
+        if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}/log/`)) {
+          logger.debug(`Stopping log stream for ${client.id}`)
+          config.logStreams[client.id].unwatch()
+          delete config.logStreams[client.id]
+        }
+        return sub
+      })
+    })
+
     config.aedes.authenticate = async (client, username, password, callback) => {
       // TODO: Implement authentication to MQTT Server
       const error = new Error(`Auth Error`)
@@ -143,8 +168,9 @@ async function start() {
         if (client.id === 'debug') return callback(null, sub)
         if (client.id === config.mqttClientId) return callback(null, sub)
         if (client.id.startsWith('pg3frontend')) {
-          if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}`))
+          if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}`)) {
             return callback(null, sub)
+          }
           if (sub.topic.includes('sconfig') || sub.topic.includes('spolisy'))
             return callback(null, sub)
           return callback(error, null)
@@ -216,6 +242,41 @@ async function updateConnected(id, state) {
     }
   } catch (err) {
     logger.error(`Couldn't update connected status for ${id} :: ${err.stack}`)
+  }
+}
+
+async function streamLog(clientId, topic, type) {
+  let logFile = `${process.env.PG3WORKDIR}logs/pg3-current.log`
+  let uuid
+  let profileNum
+  // Split /log/<uuid>_<profileNum> and validate
+  const typePieces = type.split('_')
+  if (typePieces.length === 2) {
+    ;[uuid, profileNum] = typePieces
+    const nodeServer = await ns.get(uuid, profileNum)
+    if (nodeServer && nodeServer.type !== 'unmanaged') {
+      logFile = `${nodeServer.home}/${nodeServer.log}`
+    }
+  }
+  if (!u.isIn(config.logStreams, clientId)) {
+    try {
+      logger.debug(`Starting log stream for ${clientId} :: ${logFile}`)
+      config.logStreams[clientId] = new Tail(logFile)
+      config.logStreams[clientId].on('line', line => {
+        config.aedes.publish({
+          topic,
+          payload: line
+        })
+      })
+      config.logStreams[clientId].on('error', err => {
+        logger.error(`streamLog Tail error: ${err.stack}`)
+        config.logStreams[clientId].unwatch()
+        delete config.logStreams[clientId]
+      })
+    } catch (err) {
+      logger.error(`streamLog for ${clientId} failed :: ${err.stack}`)
+      delete config.logStreams[clientId]
+    }
   }
 }
 

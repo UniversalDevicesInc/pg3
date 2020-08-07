@@ -27,6 +27,7 @@ export class WebsocketsService {
   public removeIsy: Subject<object> = new Subject()
   public updateNotices: Subject<object> = new Subject()
   public invalidCredentials: Subject<object> = new Subject()
+  public logData: Subject<string> = new Subject()
   public getNodeServers: BehaviorSubject<object> = new BehaviorSubject([])
   public getNs: BehaviorSubject<any[]> = new BehaviorSubject(null)
   public getSettings: BehaviorSubject<object> = new BehaviorSubject(null)
@@ -113,6 +114,8 @@ export class WebsocketsService {
     })
 
     this.client.on('message', (topic, message, packet) => {
+      if (topic.startsWith(`udi/pg3/frontend/clients/${this.settingsService.settings.id}/log/`))
+        return this.logData.next(message.toString())
       const msg = JSON.parse(message.toString())
       console.log(`${topic} :: ${message.toString()}`)
       if (topic.startsWith('sconfig') || topic.startsWith('spolisy')) {
@@ -162,6 +165,22 @@ export class WebsocketsService {
     this.client = null
     this.connectionState(false)
     this.connected = false
+  }
+
+  logSub(type) {
+    if (this.connected) {
+      this.client.subscribe(
+        `udi/pg3/frontend/clients/${this.settingsService.settings.id}/log/${type}`
+      )
+    }
+  }
+
+  logUnSub(type) {
+    if (this.connected) {
+      this.client.unsubscribe(
+        `udi/pg3/frontend/clients/${this.settingsService.settings.id}/log/${type}`
+      )
+    }
   }
 
   randomString(length) {

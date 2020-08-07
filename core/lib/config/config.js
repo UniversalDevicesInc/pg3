@@ -24,6 +24,7 @@ const config = {
   // mqttClientTails: {},
   queue: {},
   nodeProcesses: {},
+  logStreams: {},
   git: {},
   shortPolls: {},
   longPolls: {}

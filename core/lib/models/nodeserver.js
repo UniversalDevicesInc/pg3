@@ -111,7 +111,7 @@ async function get(key, profileNum) {
     .prepare(
       `SELECT nodeserver.*, COUNT(node.address) as nodeCount FROM nodeserver LEFT OUTER JOIN node USING (uuid, profileNum) WHERE (uuid, profileNum) is (?, ?) GROUP by nodeserver.profileNum`
     )
-    .get(key, profileNum)
+    .get(key, parseInt(profileNum, 10))
   if (!value) return value
   Object.keys(value).forEach(item => {
     if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])

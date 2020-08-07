@@ -5,7 +5,6 @@ const compress = require('koa-compress')
 const serve = require('koa-static')
 const bodyParser = require('koa-body')
 const jwt = require('koa-jwt')
-const websockify = require('koa-websocket')
 
 // const fs = require('fs')
 const path = require('path')
@@ -22,6 +21,7 @@ const config = require('../config/config')
 // const ns = require('../models/nodeserver')
 const authRoutes = require('../routes/auth')
 const frontendRoutes = require('../routes/frontend')
+const logRoutes = require('../routes/log')
 
 /**
  * HTTP Server Start Service.
@@ -30,7 +30,7 @@ const frontendRoutes = require('../routes/frontend')
  */
 async function start() {
   if (!config.httpServer) {
-    const app = websockify(new Koa())
+    const app = new Koa()
     const port = config.globalsettings.listenPort
     const ip = config.globalsettings.bindIpAddress
     // Compression to gzip
@@ -66,10 +66,15 @@ async function start() {
         path: [/^\/auth/, '/', /^\/frontend\/ispolisy/]
       })
     )
+    // app.ws.use(async (ctx, next) => {
+    //   return next(ctx)
+    // })
     app.use(authRoutes.routes())
     app.use(authRoutes.allowedMethods())
     app.use(frontendRoutes.routes())
     app.use(frontendRoutes.allowedMethods())
+    app.use(logRoutes.routes())
+    app.use(logRoutes.allowedMethods())
     try {
       if (config.globalsettings.secure) {
         let sslOptions = {}
@@ -93,7 +98,7 @@ async function start() {
       } else {
         config.httpServer = http.createServer(app.callback())
       }
-      ws.createServer({ server: config.httpServer }, config.aedes.handle)
+      ws.createServer({ server: config.httpServer, perMessageDeflate: false }, config.aedes.handle)
 
       // Start Server
       config.httpServer.listen(port, ip, () => {
