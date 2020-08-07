@@ -301,6 +301,7 @@ async function startNs(nodeServer) {
       await installNs(nodeServer, serverJson)
     }
     // Start Child Process
+    const currentIsy = config.isys.find(isy => isy.uuid === nodeServer.uuid)
     const init = Buffer.from(
       JSON.stringify({
         uuid: nodeServer.uuid,
@@ -309,7 +310,9 @@ async function startNs(nodeServer) {
         token: nodeServer.token,
         mqttHost: config.globalsettings.mqttHost,
         mqttPort: config.globalsettings.mqttPort,
-        secure: config.globalsettings.secure
+        secure: config.globalsettings.secure,
+        pg3Version: config.globalsettings.version,
+        isyVersion: currentIsy.version
       })
     ).toString('base64')
     const opts = {
@@ -369,6 +372,11 @@ async function startNs(nodeServer) {
       ns.update(nodeServer.uuid, nodeServer.profileNum, { timeStarted: 0 })
     })
 
+    // Send STDIN
+    if (config.nodeProcesses[nodeServer.id]) {
+      await utils.timeout(500)
+      config.nodeProcesses[nodeServer.id].stdin.write(`${init}\n`)
+    }
     // Start polls
     await startPolls(nodeServer)
     return { success: true }
