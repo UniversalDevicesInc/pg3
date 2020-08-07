@@ -5,6 +5,7 @@ const compress = require('koa-compress')
 const serve = require('koa-static')
 const bodyParser = require('koa-body')
 const jwt = require('koa-jwt')
+const websockify = require('koa-websocket')
 
 // const fs = require('fs')
 const path = require('path')
@@ -29,7 +30,7 @@ const frontendRoutes = require('../routes/frontend')
  */
 async function start() {
   if (!config.httpServer) {
-    const app = new Koa()
+    const app = websockify(new Koa())
     const port = config.globalsettings.listenPort
     const ip = config.globalsettings.bindIpAddress
     // Compression to gzip
