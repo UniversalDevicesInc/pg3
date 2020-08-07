@@ -5,7 +5,7 @@
 const Router = require('@koa/router')
 const Stream = require('stream')
 const fs = require('fs-extra')
-const { Tail } = require('tail')
+const Tail  = require('tail').Tail
 const Archiver = require('archiver')
 const unzipper = require('unzipper')
 const crypto = require('crypto')
@@ -65,10 +65,21 @@ router.get('/logstream/:type', async ctx => {
   const {
     params: { type }
   } = ctx
-  if (type === 'main') {
+
+    const homedir = require('os').homedir();
+    const filename = homedir.concat('/.pg3/logs/').concat(type)
+    logger.debug(filename)
     ctx.response.set('content-type', 'text/plain;charset=UTF-8')
-    // Stream Log File
-  }
+
+    ctx.body = new Tail(filename)
+    ctx.body.on('line', function(data){
+      // streamToBrowser(data)
+    })
+ 
+    ctx.body.on('error', function(error) {
+      logger.debug(`error`)
+      ctx.body.unwatch()
+    })
 })
 
 router.get('/backup', async ctx => {
