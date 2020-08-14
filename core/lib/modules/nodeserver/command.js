@@ -17,6 +17,7 @@ const nodeservice = require('../../services/nodeservers')
 const node = require('../../models/node')
 const driver = require('../../models/driver')
 const status = require('./status')
+const nodeserver = require('../../models/nodeserver')
 
 async function checkResponse(cmd, response) {
   let reason = null
@@ -113,7 +114,6 @@ async function addnode([uuid, profileNum], cmd, data) {
           await isyNodeServer.setHint(uuid, profileNum, item)
           await isySystem.groupNodes(uuid, profileNum, item.address, item.primaryNode)
         }
-        await nodeservice.sendFrontendUpdate()
         if (addDrivers) {
           // add drivers to the db and set in ISY
           await Promise.all(
@@ -170,7 +170,6 @@ async function removenode([uuid, profileNum], cmd, data) {
         if (![200, 404].includes(response.status)) await checkResponse(cmd, response)
         logger.info(`[${uuid}_${profileNum}] ${cmd} sucessfully removed node ${item.address}`)
         await node.remove(uuid, profileNum, item.address)
-        await nodeservice.sendFrontendUpdate()
         return { ...result, success: true }
       } catch (err) {
         logger.error(`command ${cmd} ${err.message}`)

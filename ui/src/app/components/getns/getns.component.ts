@@ -37,7 +37,7 @@ export class GetnsComponent implements OnInit, OnDestroy {
 
   constructor(
     private addNodeService: AddnodeService,
-    private sockets: WebsocketsService,
+    public sockets: WebsocketsService,
     public settingsService: SettingsService,
     private modal: NgbModal,
     private toastr: ToastrService

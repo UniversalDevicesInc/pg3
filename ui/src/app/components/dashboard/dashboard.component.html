@@ -11,94 +11,86 @@
 
 <div class="container">
   <h2 align="center" class="text-white">NodeServers</h2>
-  <div
-    class="row card-group"
-    *ngIf="
-      (settingsService.currentIsy | async) &&
-        (
-          settingsService.currentNodeServers
+  <ng-container *ngIf="settingsService.currentIsy | async; else noIsy">
+    <ng-container
+      *ngIf="
+        sockets.getNodeServers
           | async
-          | filter: 'uuid':settingsService.currentIsy.value['uuid']
-        )?.length > 0;
-      else noNodeservers
-    "
-  >
-    <div
-      *ngFor="
-        let nodeServer of settingsService.currentNodeServers
-          | async
-          | filter: 'uuid':settingsService.currentIsy.value['uuid']
+          | filter: 'uuid':settingsService.currentIsy.value['uuid'] as currentNodeServers
       "
-      class="col-6"
     >
-      <div *ngIf="nodeServer.type !== 'unmanaged'" class="mt-2">
-        <div class="card p-1 pt-2">
-          <h4 class="align-top" align="center" class="card-title">
-            {{ nodeServer.name }}({{ nodeServer.profileNum }})
-          </h4>
-          <p align="center" class="card-text">
-            Current Status:
-            <span *ngIf="nodeServer.connected" class="badge badge-success">Connected</span>
-            <span *ngIf="!nodeServer.connected" class="badge badge-danger">Disconnected</span>
-          </p>
-          <div class="btn-group btn-group-justified py-0" role="group">
-            <button
-              class="btn btn-primary btn-sm"
-              (click)="redirect(nodeServer.uuid, nodeServer.profileNum)"
-              style="width: 33%;"
-              role="button"
-            >
-              Nodes
-              <span style="vertical-align: top;" class="badge badge-secondary">{{
-                nodeServer.nodeCount
-              }}</span>
-            </button>
-            <button
-              class="btn btn-primary btn-sm"
-              (click)="redirect(nodeServer.uuid, nodeServer.profileNum)"
-              style="width: 34%;"
-              role="button"
-            >
-              Details
-              <span
-                *ngIf="nodeServer.notices && objectKeys(nodeServer.notices).length > 0"
-                style="vertical-align: top;"
-                class="badge badge-info"
-                >{{ objectKeys(nodeServer.notices).length }} New Message{{
-                  objectKeys(nodeServer.notices).length > 1 ? 's' : ''
-                }}</span
-              >
-            </button>
-            <button
-              class="btn btn-primary btn-sm"
-              (click)="showConfirm(nodeServer)"
-              style="width: 33%;"
-              role="button"
-            >
-              Delete
-            </button>
+      <div class="row card-group" *ngIf="currentNodeServers.length > 0">
+        <div *ngFor="let nodeServer of currentNodeServers" class="col-6">
+          <div *ngIf="nodeServer.type !== 'unmanaged'" class="mt-2">
+            <div class="card p-1 pt-2">
+              <h4 class="align-top" align="center" class="card-title">
+                {{ nodeServer.name }}({{ nodeServer.profileNum }})
+              </h4>
+              <p align="center" class="card-text">
+                Current Status:
+                <span *ngIf="nodeServer.connected" class="badge badge-success">Connected</span>
+                <span *ngIf="!nodeServer.connected" class="badge badge-danger">Disconnected</span>
+              </p>
+              <div class="btn-group btn-group-justified py-0" role="group">
+                <button
+                  class="btn btn-primary btn-sm"
+                  (click)="redirect(nodeServer.uuid, nodeServer.profileNum)"
+                  style="width: 33%;"
+                  role="button"
+                >
+                  Nodes
+                  <span style="vertical-align: top;" class="badge badge-secondary">{{
+                    nodeServer.nodeCount
+                  }}</span>
+                </button>
+                <button
+                  class="btn btn-primary btn-sm"
+                  (click)="redirect(nodeServer.uuid, nodeServer.profileNum)"
+                  style="width: 34%;"
+                  role="button"
+                >
+                  Details
+                  <span
+                    *ngIf="nodeServer.notices && objectKeys(nodeServer.notices).length > 0"
+                    style="vertical-align: top;"
+                    class="badge badge-info"
+                    >{{ objectKeys(nodeServer.notices).length }} New Message{{
+                      objectKeys(nodeServer.notices).length > 1 ? 's' : ''
+                    }}</span
+                  >
+                </button>
+                <button
+                  class="btn btn-primary btn-sm"
+                  (click)="showConfirm(nodeServer)"
+                  style="width: 33%;"
+                  role="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="nodeServer.type === 'unmanaged'" class="mt-2">
+            <div class="card p-1 pt-2">
+              <div class="card-body px-1 py-1">
+                <h5 class="align-top py-0" align="center">
+                  {{ nodeServer.name }}({{ nodeServer.profileNum }})
+                </h5>
+                <p align="center" class="py-0">
+                  Current Status: <span class="badge badge-primary">Unmanaged</span>
+                </p>
+              </div>
+              <div class="btn-group btn-group-justified py-0" role="group">
+                <button type="button" class="btn btn-primary btn-sm" style="width: 100%;">
+                  No Details Available
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div *ngIf="nodeServer.type === 'unmanaged'" class="mt-2">
-        <div class="card p-1 pt-2">
-          <div class="card-body px-1 py-1">
-            <h5 class="align-top py-0" align="center">
-              {{ nodeServer.name }}({{ nodeServer.profileNum }})
-            </h5>
-            <p align="center" class="py-0">
-              Current Status: <span class="badge badge-primary">Unmanaged</span>
-            </p>
-          </div>
-          <div class="btn-group btn-group-justified py-0" role="group">
-            <button type="button" class="btn btn-primary btn-sm" style="width: 100%;">
-              No Details Available
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+    </ng-container>
+  </ng-container>
 </div>
 <app-nodepop [node]="selectedNode"></app-nodepop>
 
@@ -106,5 +98,12 @@
   <br />
   <h3 class="text-white text-center">
     No NodeServers found. Please add one through the store under the NodeServers menu!
+  </h3>
+</ng-template>
+
+<ng-template #noIsy>
+  <br />
+  <h3 class="text-white text-center">
+    No ISY found. Please add one!
   </h3>
 </ng-template>

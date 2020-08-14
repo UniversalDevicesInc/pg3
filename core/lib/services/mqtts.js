@@ -10,7 +10,7 @@ const config = require('../config/config')
 const u = require('../utils/utils')
 const encryption = require('../modules/security/encryption')
 const ns = require('../models/nodeserver')
-const nsservice = require('./nodeservers')
+// const nsservice = require('./nodeservers')
 // const user = require('../models/user')
 
 /**
@@ -82,6 +82,7 @@ async function start() {
 
     config.aedes.on('subscribe', (subs, client) => {
       subs.map(sub => {
+        logger.debug(`Client ${client.id} subscribed to ${sub.topic}`)
         if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}/log/`)) {
           const subPieces = sub.topic.split('/')
           if (subPieces.length === 7) {
@@ -94,11 +95,13 @@ async function start() {
 
     config.aedes.on('unsubscribe', (subs, client) => {
       subs.map(sub => {
-        if (!u.isIn(sub, 'topic')) return sub
-        if (sub.topic.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}/log/`)) {
+        logger.debug(`Client ${client.id} unsubscribed from ${sub}`)
+        if (sub.startsWith(`udi/pg3/frontend/clients/${config.globalsettings.id}/log/`)) {
           logger.debug(`Stopping log stream for ${client.id}`)
-          config.logStreams[client.id].unwatch()
-          delete config.logStreams[client.id]
+          if (config.logStreams[client.id]) {
+            config.logStreams[client.id].unwatch()
+            delete config.logStreams[client.id]
+          }
         }
         return sub
       })
@@ -231,14 +234,13 @@ async function updateConnected(id, state) {
     if (id.includes(':') && id.includes('_')) {
       const clientParts = id.split('_')
       await Promise.allSettled(
-        config.isys.map(isy => {
+        config.isys.map(async isy => {
           if (id.includes(isy.uuid)) {
             return ns.update(clientParts[0], clientParts[1], { connected: state })
           }
           return isy
         })
       )
-      await nsservice.sendFrontendUpdate()
     }
   } catch (err) {
     logger.error(`Couldn't update connected status for ${id} :: ${err.stack}`)

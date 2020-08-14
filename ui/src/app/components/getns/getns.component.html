@@ -40,23 +40,17 @@
           <td style="vertical-align: middle;">{{ ns.desc }}</td>
           <td style="text-align: center; vertical-align: middle; margin: auto;">
             <ng-container
-              *ngIf="
-                (settingsService.currentNodeServers | async | filter: 'name':ns.name).length <= 0;
-                else listInstalled
-              "
+              *ngIf="sockets.getNodeServers | async | filter: 'name':ns.name as nodeServers"
             >
-              None
-            </ng-container>
-            <ng-template #listInstalled>
-              <ng-container
-                *ngFor="
-                  let nodeServer of settingsService.currentNodeServers
-                    | async
-                    | filter: 'name':ns.name
-                "
-                >{{ nodeServer?.nickname || nodeServer?.name }}({{ nodeServer?.profileNum }})
+              <ng-container *ngIf="nodeServers.length <= 0; else listInstalled">
+                None
               </ng-container>
-            </ng-template>
+              <ng-template #listInstalled>
+                <ng-container *ngFor="let nodeServer of nodeServers"
+                  >{{ nodeServer?.nickname || nodeServer?.name }}({{ nodeServer?.profileNum }})
+                </ng-container>
+              </ng-template>
+            </ng-container>
           </td>
           <td style="text-align: center; vertical-align: middle; margin: auto;">
             <button (click)="open(install, ns)" class="btn btn-primary btn-sm">

@@ -13,7 +13,6 @@ const isyns = require('../modules/isy/nodeserver')
 const isysystem = require('../modules/isy/system')
 const nscore = require('../modules/nodeserver/core')
 const frontendcore = require('../modules/frontend/core')
-const { timeout } = require('../utils/utils')
 
 const VALID_TYPES = ['node', 'python3', 'python', 'binary']
 
@@ -43,7 +42,7 @@ function spawn(name, command, args, opts) {
  * @method
  */
 async function start() {
-  await timeout(1000)
+  await utils.timeout(1000)
   logger.info(`Checking ISY's for installed NodeServers...`)
   await verifyNodeServers()
   setInterval(verifyNodeServers, 5 * 60000) // 5 Minutes
@@ -487,6 +486,23 @@ async function sendFrontendUpdate() {
   }
 }
 
+// async function sendFrontendNsUpdate(uuid, profileNum) {
+//   try {
+//     // let first = false
+//     // const updateTime = 5 * 1000 // Updates only allowed every 5 seconds
+//     // if (!utils.isIn(config.updateTimes, `${uuid}_${profileNum}`)) {
+//     //   config.updateTimes[`${uuid}_${profileNum}`] = Date.now()
+//     //   first = true
+//     // }
+//     // if (Date.now() - config.updateTimes[`${uuid}_${profileNum}`] < updateTime || first) {
+//     const result = await ns.getFull(uuid, profileNum)
+//     await frontendcore.frontendMessage({ getNs: result })
+//     // }
+//   } catch (err) {
+//     logger.error(`sendFrontendNsUpdate: ${err.stack}`)
+//   }
+// }
+
 async function sendConfig(uuid, profileNum) {
   try {
     const result = await ns.getFull(uuid, profileNum)
@@ -516,6 +532,7 @@ module.exports = {
   getAllNs,
   getNodes,
   sendFrontendUpdate,
+  // sendFrontendNsUpdate,
   verifyNodeServers,
   sendConfig
 }

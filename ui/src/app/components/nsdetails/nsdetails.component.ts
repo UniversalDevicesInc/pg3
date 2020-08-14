@@ -74,11 +74,11 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     })
     this.autoScroll = true
     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
-    if (!this.refreshInterval) {
-      this.refreshInterval = setInterval(() => {
-        this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
-      }, 5000)
-    }
+    // if (!this.refreshInterval) {
+    //   this.refreshInterval = setInterval(() => {
+    //     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
+    //   }, 5000)
+    // }
     this.subscription.add(
       this.settings.currentNs.subscribe(ns => {
         if (!ns || !ns.hasOwnProperty('timeStarted')) return
@@ -136,6 +136,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.subscription.unsubscribe()
+    this.sockets.logUnSub(this.logId)
     this.settings.currentNsDetails = {}
     if (this.logConn) {
       this.logConn.unsubscribe()
@@ -215,10 +216,9 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
     if (type === 'log') {
       if (this.sockets.connected) {
-        if (!this.gotFile) {
+        if (!this.gotFile && this.logId) {
           const headers = new HttpHeaders({ Authorization: `Bearer ${this.auth.authToken}` })
           const logUrl = `${environment.PG_URI}/logs/${this.logId}`
-          console.log(logUrl)
           this.toastr.success(`Getting Log file...`)
           this.http.get(logUrl, { headers: headers, responseType: 'text' }).subscribe(
             log => {

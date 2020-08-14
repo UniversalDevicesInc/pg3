@@ -2,6 +2,8 @@ const { v4: uuid } = require('uuid')
 
 const config = require('../config/config')
 const u = require('../utils/utils')
+const frontendcore = require('../modules/frontend/core')
+const ns = require('./nodeserver')
 
 /**
  *  Nodeserver Model
@@ -139,13 +141,14 @@ async function update(key, profileNum, address, driver, updateObject) {
   })
   if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
   updated += `timeModified = ${Date.now()}`
-  return config.db
+  await config.db
     .prepare(
       `UPDATE ${TABLENAME} SET
         ${updated}
         WHERE (uuid, profileNum, address, driver) is (?, ?, ?, ?)`
     )
     .run(key, profileNum, address, driver)
+  return frontendcore.frontendMessage({ getNs: await ns.getFull(key, profileNum) })
 }
 
 async function remove(key, profileNum, address, driver) {

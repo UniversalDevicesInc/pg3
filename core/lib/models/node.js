@@ -2,6 +2,8 @@ const { v4: uuid } = require('uuid')
 
 const config = require('../config/config')
 const u = require('../utils/utils')
+const frontendcore = require('../modules/frontend/core')
+const ns = require('./nodeserver')
 
 /**
  *  Node Model
@@ -120,12 +122,13 @@ async function add(obj) {
   })
   newNode.isPrimary = newNode.address === newNode.primaryNode ? 1 : 0
   newNode.hint = u.convertHint(newNode.hint)
-  return config.db
+  await config.db
     .prepare(
       `INSERT INTO ${TABLENAME} (${Object.keys(newNode)})
     VALUES (${Object.keys(newNode).fill('?')})`
     )
     .run(Object.values(newNode))
+  return frontendcore.frontendMessage({ getNs: await ns.getFull(newNode.uuid, newNode.profileNum) })
 }
 
 async function update(key, profileNum, address, updateObject) {
@@ -143,13 +146,14 @@ async function update(key, profileNum, address, updateObject) {
   })
   if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
   updated += `timeModified = ${Date.now()}`
-  return config.db
+  await config.db
     .prepare(
       `UPDATE ${TABLENAME} SET
           ${updated}
           WHERE (uuid, profileNum, address) is (?, ?, ?)`
     )
     .run(key, profileNum, address)
+  return frontendcore.frontendMessage({ getNs: await ns.getFull(key, profileNum) })
 }
 
 async function remove(key, profileNum, address) {
@@ -165,9 +169,10 @@ async function remove(key, profileNum, address) {
       })
     )
   }
-  return config.db
+  await config.db
     .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum, address) is (?, ?, ?)`)
     .run(key, profileNum, address)
+  return frontendcore.frontendMessage({ getNs: await ns.getFull(key, profileNum) })
 }
 
 // async function TEST() {

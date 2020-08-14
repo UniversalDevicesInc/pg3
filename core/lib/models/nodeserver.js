@@ -5,6 +5,7 @@ const custom = require('./custom')
 const config = require('../config/config')
 // const logger = require('../modules/logger')
 const u = require('../utils/utils')
+const frontendcore = require('../modules/frontend/core')
 
 /**
  *  Nodeserver Model
@@ -242,12 +243,14 @@ async function add(obj) {
   Object.keys(newNs).forEach(key => {
     if (ENCRYPTED.includes(key)) newNs[key] = encryption.encryptText(newNs[key])
   })
-  return config.db
+  await config.db
     .prepare(
       `INSERT INTO ${TABLENAME} (${Object.keys(newNs)})
     VALUES (${Object.keys(newNs).fill('?')})`
     )
     .run(Object.values(newNs))
+  await frontendcore.frontendMessage({ getNodeServers: await getAll() })
+  return frontendcore.frontendMessage({ getNs: await getFull(newNs.uuid, newNs.profileNum) })
 }
 
 async function update(key, profileNum, updateObject) {
@@ -267,21 +270,25 @@ async function update(key, profileNum, updateObject) {
   })
   if (updated.length <= 0) throw new Error(`${TABLENAME} ${key} nothing to update`)
   updated += `timeModified = ${Date.now()}`
-  return config.db
+  await config.db
     .prepare(
       `UPDATE ${TABLENAME} SET
           ${updated}
           WHERE (uuid, profileNum) is (?, ?)`
     )
     .run(key, profileNum)
+  await frontendcore.frontendMessage({ getNodeServers: await getAll() })
+  return frontendcore.frontendMessage({ getNs: await getFull(key, profileNum) })
 }
 
 async function remove(key, profileNum) {
   if (!key || !profileNum)
     throw new Error(`remove ${TABLENAME} requires uuid and profileNum parameters`)
-  return config.db
+  await config.db
     .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
     .run(key, profileNum)
+  await frontendcore.frontendMessage({ getNodeServers: await getAll() })
+  return frontendcore.frontendMessage({ getNs: await getFull(key, profileNum) })
 }
 
 // async function TEST() {

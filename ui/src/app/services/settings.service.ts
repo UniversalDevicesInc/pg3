@@ -4,7 +4,7 @@ import { environment } from '../../environments/environment'
 import { Title } from '@angular/platform-browser'
 import { ToastrService } from 'ngx-toastr'
 
-import { Observable, BehaviorSubject } from 'rxjs'
+import { Observable, BehaviorSubject, Subject } from 'rxjs'
 
 import { finalize, tap } from 'rxjs/operators'
 

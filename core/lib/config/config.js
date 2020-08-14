@@ -25,6 +25,7 @@ const config = {
   queue: {},
   nodeProcesses: {},
   logStreams: {},
+  updateTimes: {},
   git: {},
   shortPolls: {},
   longPolls: {}

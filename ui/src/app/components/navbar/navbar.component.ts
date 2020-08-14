@@ -218,7 +218,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const isy = this.settings.currentIsy.value
     this.sockets.sendMessage('system', { removeIsy: { uuid: isy['uuid'] } })
     this.toastr.success(`Removing ISY: ${isy['name']} @ ${isy['ip']}: ${isy['port']}`)
-    this.settings.currentNodeServers.next([])
+    this.sockets.getNodeServers.next([])
   }
 
   restartClick() {

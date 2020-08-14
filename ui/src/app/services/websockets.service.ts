@@ -123,6 +123,7 @@ export class WebsocketsService {
       }
       Object.keys(msg).map(key => {
         if (this[key]) this[key].next(msg[key])
+        else console.log(`${key} not found`)
       })
     })
 
@@ -198,13 +199,14 @@ export class WebsocketsService {
   }
 
   addSubscribers() {
-    this.subscription.add(
-      this.getNodeServers.subscribe((nodeservers: any[]) => {
-        if (Array.isArray(nodeservers)) {
-          this.settingsService.currentNodeServers.next(nodeservers)
-        }
-      })
-    )
+    // this.subscription.add(
+    //   this.getNodeServers.subscribe((nodeservers: any[]) => {
+    //     if (Array.isArray(nodeservers)) {
+    //       console.log(nodeservers)
+    //       this.settingsService.currentNodeServers.next(nodeservers)
+    //     }
+    //   })
+    // )
 
     this.subscription.add(
       this.getNs.subscribe((msg: any[]) => {
@@ -334,7 +336,7 @@ export class WebsocketsService {
     this.subscription.add(
       this.getIsys.subscribe(msg => {
         if (!msg) return
-        console.log('getIsys')
+        // console.log('getIsys')
         if (Array.isArray(msg)) {
           this.toastr.success(`Successfully retrieved ISY's from database`)
           if (msg.length <= 0) {

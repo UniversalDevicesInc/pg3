@@ -11,6 +11,8 @@ const u = require('../../utils/utils')
 const isy = require('../isy/core')
 const driver = require('../../models/driver')
 
+const nsservice = require('../../services/nodeservers')
+
 const API = {
   get: {
     props: ['address'],
