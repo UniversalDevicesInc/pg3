@@ -203,33 +203,32 @@ async function installNs(nodeServer, serverJson = null) {
         `[${nodeServer.name}(${nodeServer.profileNum})] :: Updated: ${nodeServer.version} => ${version}`
       )
     await ns.update(nodeServer.uuid, nodeServer.profileNum, { version })
-    const profileFolder = `${nodeServer.home}/profile`
-    const importTypes = ['nodedef', 'editor', 'nls']
-    return Promise.allSettled(
-      importTypes.map(async type => {
-        const pathFolder = `${profileFolder}/${type}`
-        let extension = '.xml'
-        if (type === 'nls') extension = '.txt'
-        const files = fs.readdirSync(pathFolder)
-        return Promise.allSettled(
-          files.map(async file => {
-            if (path.extname(file.toLowerCase()) === extension) {
-              const fileData = fs.readFileSync(`${pathFolder}/${file}`)
-              await isyns.profileUpload(
-                nodeServer.uuid,
-                nodeServer.profileNum,
-                type,
-                file,
-                fileData
-              )
-            }
-          })
-        )
-      })
-    )
+    return installProfile(nodeServer)
   } catch (err) {
     return logger.error(`installNs: ${err.stack}`)
   }
+}
+
+async function installProfile(nodeServer) {
+  const profileFolder = `${nodeServer.home}/profile`
+  const importTypes = ['nodedef', 'editor', 'nls']
+  return Promise.allSettled(
+    importTypes.map(async type => {
+      const pathFolder = `${profileFolder}/${type}`
+      let extension = '.xml'
+      if (type === 'nls') extension = '.txt'
+      const files = fs.readdirSync(pathFolder)
+      return Promise.allSettled(
+        files.map(async file => {
+          if (path.extname(file.toLowerCase()) === extension) {
+            const fileData = fs.readFileSync(`${pathFolder}/${file}`)
+            return isyns.profileUpload(nodeServer.uuid, nodeServer.profileNum, type, file, fileData)
+          }
+          return false
+        })
+      )
+    })
+  )
 }
 
 async function removeAllNs(uuid) {
@@ -523,6 +522,7 @@ module.exports = {
   installNs,
   removeNs,
   removeAllNs,
+  installProfile,
   startNs,
   stopNs,
   restartNs,

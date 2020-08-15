@@ -22,6 +22,7 @@ const config = require('../config/config')
 const authRoutes = require('../routes/auth')
 const frontendRoutes = require('../routes/frontend')
 const logRoutes = require('../routes/log')
+const nsRoutes = require('../routes/nodeserver')
 
 /**
  * HTTP Server Start Service.
@@ -63,7 +64,7 @@ async function start() {
       jwt({
         secret: config.globalsettings.id
       }).unless({
-        path: [/^\/auth/, '/', /^\/frontend\/ispolisy/]
+        path: [/^\/auth/, '/', /^\/frontend\/ispolisy/, /^\/ns/]
       })
     )
     // app.ws.use(async (ctx, next) => {
@@ -75,6 +76,8 @@ async function start() {
     app.use(frontendRoutes.allowedMethods())
     app.use(logRoutes.routes())
     app.use(logRoutes.allowedMethods())
+    app.use(nsRoutes.routes())
+    app.use(nsRoutes.allowedMethods())
     try {
       if (config.globalsettings.secure) {
         let sslOptions = {}

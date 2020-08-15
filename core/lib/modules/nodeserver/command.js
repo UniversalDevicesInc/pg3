@@ -13,11 +13,11 @@ const isy = require('../isy/core')
 const isySystem = require('../isy/system')
 const isyNodeServer = require('../isy/nodeserver')
 const isyErrors = require('../isy/errors')
-const nodeservice = require('../../services/nodeservers')
+// const nodeservice = require('../../services/nodeservers')
 const node = require('../../models/node')
 const driver = require('../../models/driver')
 const status = require('./status')
-const nodeserver = require('../../models/nodeserver')
+// const nodeserver = require('../../models/nodeserver')
 
 async function checkResponse(cmd, response) {
   let reason = null

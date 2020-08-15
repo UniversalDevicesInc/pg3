@@ -9,35 +9,60 @@ const isy = require('../isy/core')
 const isyNodeServer = require('../isy/nodeserver')
 const isyErrors = require('../isy/errors')
 const ns = require('../../models/nodeserver')
-const nodeserver = require('../../services/nodeservers')
+const nsservice = require('../../services/nodeservers')
 
 async function config([uuid, profileNum], cmd, data) {
   return ns.getFull(uuid, profileNum)
 }
 
-async function connected(message) {
-  console.log(message)
+async function connected([uuid, profileNum], cmd, data) {
+  logger.warn(`Connected message no longer used. PG3 tracks client connection state internally.`)
+  return { success: false, error: `DEPRECATED! PLEASE DISCONTINUE USE` }
 }
 
-async function polls(message) {
-  console.log(message)
+async function polls([uuid, profileNum], cmd, data) {
+  const { short, long } = data
+  try {
+    await ns.update(uuid, profileNum, { shortPoll: short, longPoll: long })
+    const currentNs = await ns.get(uuid, profileNum)
+    await nsservice.stopPolls(currentNs)
+    await nsservice.startPolls(currentNs)
+    return { success: true }
+  } catch (err) {
+    logger.error(`polls: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
 }
 
 async function installprofile([uuid, profileNum], cmd, data) {
   try {
     const nodeServer = await ns.get(uuid, profileNum)
-    // await isyNodeServer.profileUpload(uuid, profileNum)
+    await nsservice.installProfile(nodeServer)
+    return { success: true }
   } catch (err) {
     logger.error(`installprofile error: ${err.stack}`)
+    return { success: false, error: err.message }
   }
 }
 
-async function stop(message) {
-  console.log(message)
+async function stop([uuid, profileNum], cmd, data) {
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return nsservice.stopNs(nodeServer)
+  } catch (err) {
+    logger.error(`stopNs: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
 }
 
-async function restart(message) {
-  console.log(message)
+async function restart([uuid, profileNum], cmd, data) {
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return nsservice.restartNs(nodeServer)
+  } catch (err) {
+    logger.error(`restartNs: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
 }
 
 const API = {
@@ -50,7 +75,7 @@ const API = {
     func: connected
   },
   polls: {
-    props: ['shortPoll', 'longPoll'],
+    props: ['short', 'long'],
     func: polls
   },
   installprofile: {
