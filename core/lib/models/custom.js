@@ -5,7 +5,7 @@ const encryption = require('../modules/security/encryption')
 
 /**
  *  Custom Model
- * @module models/custom
+ * @module db
  * @version 3.0
  */
 const TABLENAME = 'custom'
@@ -13,6 +13,9 @@ const TABLENAME = 'custom'
 // Returns array that is executed in order for Schema updates
 const TABLE = []
 // pragma user_version = 1
+/**
+ * @type {}
+ */
 TABLE[0] = `
   CREATE TABLE IF NOT EXISTS "${TABLENAME}" (
     id BLOB PRIMARY KEY UNIQUE,

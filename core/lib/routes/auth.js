@@ -12,11 +12,20 @@ const User = require('../models/user')
  */
 
 /**
- Headers: Content-Type: application/json
- Body: {"username": "admin", "password": "admin"}
- Response: {"success": true, "token": "JWT TOKEN", "user": {"username": "e42"}}
  * @name authenticate
  * @route {POST} /auth
+ * @headerparam Content-Type: application/json
+ * @example <caption>Body</caption>
+ * {
+ *  "username": "admin", 
+ *  "password": "admin"
+ * }
+ * @example <caption>Response</caption>
+ * {
+ *  "success": true,
+ *  "token": "JWT TOKEN", 
+ *  "user": {"username": "e42"}
+ * }
  */
 const router = new Router()
 

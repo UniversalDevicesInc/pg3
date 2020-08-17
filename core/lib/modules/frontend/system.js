@@ -5,6 +5,11 @@
   array-callback-return,
   no-unused-vars
   */
+ /**
+ * Nodeserver Drivers
+ * @module mqtt/frontend/system
+ * @version 3.0
+ */
 const config = require('../../config/config')
 const u = require('../../utils/utils')
 const logger = require('../logger')
@@ -15,6 +20,26 @@ const isySystem = require('../isy/system')
 const isyDiscover = require('../isy/discover')
 const encryption = require('../security/encryption')
 
+/**
+ * @route {reboot} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.reboot
+ * @param {string} data.reboot.uuid
+ * @example <caption>Request</caption>
+{
+  "reboot": {
+    "uuid": "00:21:b9:02:45:1b"
+  }
+}
+ * @example <caption>Response</caption>
+{
+  "reboot": {
+    "message": "Reboot command sent to ISY successfully.",
+    "success": true,
+    "extra": {}
+  }
+}
+ */
 async function reboot(id, cmd, data) {
   const { uuid } = data
   try {
@@ -24,7 +49,35 @@ async function reboot(id, cmd, data) {
   }
   return { success: false, error: 'Failed, check log for details.' }
 }
-
+/**
+ * @route {getIsys} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getIsys
+ * @example <caption>Request</caption>
+{
+  "getIsys": {}
+}
+ * @example <caption>Response</caption>
+{
+  "getIsys": [
+    {
+      "id": "d5f91e3b-1e41-4df4-be54-66fe80528817",
+      "uuid": "00:21:b9:02:45:1b",
+      "name": "ISY",
+      "ip": "10.0.0.210",
+      "port": 80,
+      "username": "admin",
+      "enabled": 1,
+      "discovered": 1,
+      "version": "5.0.16B",
+      "secure": 0,
+      "timeAdded": 1586726557562,
+      "timeModified": 1586726557562,
+      "dbVersion": 1
+    }
+  ]
+}
+ */
 async function getIsys(id, cmd, data) {
   try {
     const results = await isy.getAll()
@@ -38,7 +91,37 @@ async function getIsys(id, cmd, data) {
     return { success: false, error: `${err.message}` }
   }
 }
-
+/**
+ * @route {getSettings} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getSettings
+ * @example <caption>Request</caption>
+{
+  "getSettings": {}
+}
+ * @example <caption>Response</caption>
+{
+  "getSettings": {
+    "id": "9451ba9d-5d6e-490f-a1dc-bbdcbddee109",
+    "name": "pg3",
+    "pg3Version": "3.0.0",
+    "mqttHost": "localhost",
+    "mqttPort": 1883,
+    "ipAddress": "10.0.0.137",
+    "bindIpAddress": "0.0.0.0",
+    "listenPort": 3000,
+    "secure": 1,
+    "customCerts": 0,
+    "beta": 0,
+    "timeStarted": 1594849485434,
+    "secret": null,
+    "polisy": 0,
+    "timeAdded": 1586726557470,
+    "timeModified": 1594849485434,
+    "dbVersion": 1
+  }
+}
+ */
 async function getSettings(id, cmd, data) {
   try {
     return settings.get()
@@ -48,6 +131,40 @@ async function getSettings(id, cmd, data) {
   return { success: false, error: 'failed to get settings' }
 }
 
+/**
+ * @route {setSettings} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.setSettings
+ * @example <caption>Request</caption>
+{
+  "id": 13423,
+  "setSettings": {
+    "beta": 0
+  }
+}
+ * @example <caption>Response</caption>
+{
+  "setSettings": {
+    "id": "9451ba9d-5d6e-490f-a1dc-bbdcbddee109",
+    "name": "pg3",
+    "pg3Version": "3.0.0",
+    "mqttHost": "localhost",
+    "mqttPort": 1883,
+    "ipAddress": "10.0.0.137",
+    "bindIpAddress": "0.0.0.0",
+    "listenPort": 3000,
+    "secure": 1,
+    "customCerts": 0,
+    "beta": 1,
+    "timeStarted": 1594849485434,
+    "secret": null,
+    "polisy": 0,
+    "timeAdded": 1586726557470,
+    "timeModified": 1594849968857,
+    "dbVersion": 1
+  }
+}
+ */
 async function setSettings(id, cmd, data) {
   try {
     const updateObject = {}
@@ -64,7 +181,15 @@ async function setSettings(id, cmd, data) {
   }
   return { success: false, error: 'Nothing updated' }
 }
-
+/**
+ * @route {discoverIsys} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.discoverIsys
+ * @example <caption>Request</caption>
+{
+  "discoverIsys": {}
+}
+ */
 async function discoverIsys(id, cmd, data) {
   try {
     logger.info(`Attempting ISY Auto-Discovery...`)
@@ -93,7 +218,27 @@ async function discoverIsys(id, cmd, data) {
     return { success: false, error: `${err.message}` }
   }
 }
-
+/**
+ * @route {addIsy} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.addIsy
+ * @param {string} data.addIsy.ip
+ * @param {number} data.addIsy.port
+ * @param {string} data.addIsy.username
+ * @param {string} data.addIsy.password
+ * @param {number} data.addIsy.secure
+ * @example <caption>Request</caption>
+{
+  "addIsy": {
+    "name": "prod",
+    "ip": "10.0.0.14",
+    "port": 80,
+    "username": "admin",
+    "password": "password",
+    "secure": 0
+  }
+}
+ */
 async function addIsy(id, cmd, data) {
   try {
     const { ip, port, username, password, secure } = data
@@ -108,7 +253,26 @@ async function addIsy(id, cmd, data) {
     return { success: false, error: `${err.message}` }
   }
 }
-
+/**
+ * @route {updateIsy} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.updateIsy
+ * @param {string} data.updateIsy.uuid
+ * @example <caption>Request</caption>
+{
+  "updateIsy": {
+    "uuid": "00:21:b9:02:45:1b",
+    "name": "dev"
+  }
+}
+ * @example <caption>Response</caption>
+ {
+  "updateIsy": {
+    "uuid": "00:21:b9:02:45:1b",
+    "success": true
+  }
+}
+ */
 async function updateIsy(id, cmd, data) {
   try {
     const { uuid } = data

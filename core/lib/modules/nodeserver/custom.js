@@ -2,6 +2,11 @@
   no-use-before-define,
   no-empty
   */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/custom
+ * @version 3.0
+ */
 const logger = require('../logger')
 const u = require('../../utils/utils')
 
@@ -15,7 +20,30 @@ const KEYS = [
   'customtypedparams',
   'notices'
 ]
-
+/**
+ * @route {SET} udi/pg3/ns/custom/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {Object[]} data.set - Perform SET action
+ * @param {string} data.set.key
+ * @param {string} data.set.value
+ * @example <caption>Request</caption>
+{
+  "set": [{
+    "key": "customparams",
+    "value": "{abc: def}"
+  }]
+}
+ * @example <caption>Response</caption>
+{
+  "set": [
+    {
+      "success": true,
+      "key": "customparams"
+    }
+  ]
+}
+ */
 async function set([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
@@ -40,7 +68,38 @@ async function set([uuid, profileNum], cmd, data) {
     })
   )
 }
-
+/**
+ * @route {GET} udi/pg3/ns/custom/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {Object[]} data.get - Perform SET action
+ * @param {string} data.get.key
+ * @example <caption>Request</caption>
+{
+  "get": [{"key": "customdata"}, {"key": "customparams"}]
+}
+ * @example <caption>Response</caption>
+{
+  "get": [
+    {
+      "id": "aee2c611-89f2-4540-81e7-114eef974779",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "key": "customdata",
+      "value": "{\"profile_version\":\"2.1.0\"}",
+      "dbVersion": 1
+    },
+    {
+      "id": "df613de1-3957-4257-b6c3-4ca2e001ef6f",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "key": "customparams",
+      "value": "{\"password\":\"YourPassword\",\"user\":\"YourUserName\",\"some_example\":\"{ \\\"type\\\": \\\"TheType\\\", \\\"host\\\": \\\"host_or_IP\\\", \\\"port\\\": \\\"port_number\\\" }\"}",
+      "dbVersion": 1
+    }
+  ]
+}
+ */
 async function get([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   if (data.length <= 0) throw new Error(`${cmd} has no entries.`)

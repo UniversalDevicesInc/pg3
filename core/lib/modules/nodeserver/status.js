@@ -2,6 +2,11 @@
   no-use-before-define,
   no-underscore-dangle
   */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/ns
+ * @version 3.0
+ */
 const convert = require('xml2js')
 
 // const config = require('../../config/config')
@@ -10,8 +15,6 @@ const u = require('../../utils/utils')
 
 const isy = require('../isy/core')
 const driver = require('../../models/driver')
-
-// const nsservice = require('../../services/nodeservers')
 
 const API = {
   get: {
@@ -36,6 +39,40 @@ async function set([uuid, profileNum], cmd, data) {
   return Promise.all(Object.values(data).map(item => setDriver(uuid, profileNum, item)))
 }
 
+/**
+ * @route {GET} udi/pg3/ns/status/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {number} profileNum
+ * @param {Object} data Request body
+ * @param {Object[]} data.get - Perform GET action
+ * @param {string} data.get.address
+ * @example <caption>Request</caption>
+  {
+  "get": [{
+    "address": "controller",
+   }]
+  }
+ * @example <caption>Response</caption>
+  {
+  "get": [
+    {
+      "address": "controller",
+      "drivers": [
+        {
+          "driver": "GV1",
+          "value": "293",
+          "uom": "19"
+        },
+        {
+          "driver": "ST",
+          "value": "43",
+          "uom": "12"
+        }
+      ]
+    }
+  ]
+}
+ */
 async function getDrivers(uuid, profileNum, data) {
   let response = {}
   try {
@@ -78,6 +115,36 @@ async function getDrivers(uuid, profileNum, data) {
   }
 }
 
+/**
+ * @route {SET} udi/pg3/ns/status/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {number} profileNum
+ * @param {Object} data Request body
+ * @param {Object[]} data.set - Perform SET action
+ * @param {string} data.set.address
+ * @param {string} data.set.driver
+ * @param {string} data.set.value
+ * @param {number} data.set.uom 
+ * @param {boolean} [isNew=false]
+ * @example <caption>Request</caption>
+{
+  "set": [{
+    "address": "controller",
+    "driver": "ST",
+    "value": "42",
+    "uom": 12
+  }]
+}
+ * @example <caption>Response</caption>
+{
+  "set": [{
+    "address": "controller",
+    "driver": "ST",
+    "value": "42",
+    "uom": 12
+  }]
+}
+ */
 async function setDriver(uuid, profileNum, data, isNew = false) {
   let response = {}
   try {

@@ -3,6 +3,11 @@
   no-underscore-dangle,
   no-param-reassign
   */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/command
+ * @version 3.0
+ */
 const convert = require('xml2js')
 
 // const config = require('../../config/config')
@@ -38,7 +43,64 @@ async function checkResponse(cmd, response) {
     }
   }
 }
-
+/**
+ * @route {addnode} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.addnode
+ * @param {string} data.addnode.address
+ * @param {string} data.addnode.primaryNode
+ * @param {string} data.addnode.nodeDefId
+ * @param {Object[]} data.addnode.drivers
+ * @param {Object[]} data.addnode.drivers.driver
+ * @param {Object[]} data.addnode.drivers.value
+ * @param {Object[]} data.addnode.drivers.uom
+ * @example <caption>Request</caption>
+{
+  "id": 13423,
+  "addnode": [{
+  "address": "controller",
+  "name": "steve",
+  "primaryNode": "controller",
+  "nodeDefId": "controller",
+  "nls": "ctlr",
+  "drivers": [{
+    "driver": "ST",
+    "value": "43",
+    "uom": 12
+    },
+    {
+    "driver": "GV1",
+    "value": "29.3",
+    "uom": 19
+    }]
+  }]
+}
+ * @example <caption>Response</caption>
+{
+  "addnode": [
+    {
+      "id": "fdf37143-e037-48f1-8904-6ed094be3373",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "address": "controller",
+      "name": "Template Controller",
+      "nodeDefId": "controller",
+      "nls": null,
+      "hint": "0x00000000",
+      "controller": 0,
+      "primaryNode": "controller",
+      "isPrimary": 1,
+      "enabled": 1,
+      "timeAdded": 1595552956711,
+      "timeModified": 1595552956711,
+      "dbVersion": 1
+    }
+  ],
+  "id": 13423
+}
+ */
 async function addnode([uuid, profileNum], cmd, data) {
   try {
     if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
@@ -146,7 +208,28 @@ async function addnode([uuid, profileNum], cmd, data) {
     })
   )
 }
-
+/**
+ * @route {removenode} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.removenode
+ * @param {string} data.removenode.address
+ * @example <caption>Request</caption>
+{
+  "id": 13423,
+  "removenode": [{
+    "address": "controller"
+  }]
+}
+ * @example <caption>Response</caption>
+{ 
+  removenode: [{
+    address: 'controller',
+    success: true 
+  }]
+}
+ */
 async function removenode([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
@@ -224,7 +307,32 @@ async function checkNodeDefAndHint(uuid, profileNum, newNode, existingNode) {
     await node.update(uuid, profileNum, newNode.address, updateObject)
   }
 }
-
+/**
+ * @route {changenode} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.removenode
+ * @param {string} data.removenode.address
+ * @param {string} data.removenode.nodeDefId
+ * @example <caption>Request</caption>
+{
+  "id": 13423,
+  "changenode": [{
+    "address": "controller",
+    "nodeDefId": "controller",
+    "nls": "ctlr"
+  }]
+}
+ * @example <caption>Response</caption>
+{ 
+  changenode: [{
+    address: 'controller',
+    nodeDefId: 'controller',
+    success: true 
+  }]
+}
+ */
 async function changenode([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
@@ -253,7 +361,38 @@ async function changenode([uuid, profileNum], cmd, data) {
     })
   )
 }
-
+/**
+ * @route {command} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.command
+ * @param {string} data.command.address
+ * @param {string} data.command.nodeDefId
+ * @example <caption>Request</caption>
+{
+  "id": 13423,
+  "command": [{
+    "address": "controller",
+    "command": "DON",
+    "uom": "percent"
+    "value": 80,
+    params: [{
+      "param": "rate",
+      "uom": "uom58",
+      "value": "0.3"
+    }]
+  }]
+}
+ * @example <caption>Response</caption>
+{
+  command: [{ 
+    address: 'controller',
+    command: 'DON',
+    success: true
+  }]
+}
+ */
 async function command([uuid, profileNum], cmd, data) {
   if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
   if (data.length <= 0) throw new Error(`${cmd} has no entries.`)
