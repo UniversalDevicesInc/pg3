@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: bin/pg3.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: bin/pg3.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>#!/usr/bin/env node
+/**
+ * Polyglot Version 3 (PG3)
+ * Written by James Milne(milne.james@gmail.com)
+ */
+const fs = require('fs')
+const os = require('os')
+
+const config = require('../lib/config/config')
+// const utils = require('../lib/utils/utils')
+
+// Get or Set PG3WORKDIR environment variable
+let workDir = `${os.homedir()}/.pg3/`
+if ('PG3WORKDIR' in process.env) {
+  workDir = process.env.PG3WORKDIR
+  if (!workDir.endsWith('/')) {
+    workDir += '/'
+  }
+} else {
+  process.env.PG3WORKDIR = workDir
+}
+
+/**
+ * Create workDir folder if it does not exist
+ */
+if (!fs.existsSync(`${workDir}`)) {
+  fs.mkdirSync(`${workDir}`)
+}
+
+const logger = require('../lib/modules/logger')
+// These must be loaded after logger (they import logger, and logger needs workDir on first run)
+const db = require('../lib/services/db')
+const mqtts = require('../lib/services/mqtts')
+const mqttc = require('../lib/services/mqttc')
+const https = require('../lib/services/https')
+const httpc = require('../lib/services/httpc')
+const nodeservers = require('../lib/services/nodeservers')
+
+const environment = require('../lib/modules/environment')
+const certificates = require('../lib/modules/security/certificates')
+
+if (require.main === module) {
+  logger.info(`Starting PG3 version ${process.env.npm_package_version}`)
+  logger.info(`Using Workdir ${process.env.PG3WORKDIR}`)
+}
+if (fs.existsSync(`${workDir}.env`)) {
+  require('dotenv').config({ path: `${workDir}`.env })
+}
+
+/**
+ * Create NodeServer folder if it does not exist
+ */
+if (!fs.existsSync(`${workDir}ns`)) {
+  fs.mkdirSync(`${workDir}ns`)
+}
+
+/* Create Pid file */
+async function createPid(force = true) {
+  try {
+    config.pidFile = `${process.env.PG3WORKDIR}pg3.pid`
+    const pid = Buffer.from(`${process.pid}\n`)
+    const fd = fs.openSync(config.pidFile, force ? 'w' : 'wx')
+    let offset = 0
+
+    while (offset &lt; pid.length) {
+      offset += fs.writeSync(fd, pid, offset, pid.length - offset)
+    }
+    fs.closeSync(fd)
+    logger.debug(`Created PID file: ${config.pidFile}`)
+  } catch (err) {
+    if (err.code === 'EEXIST' || err.code === 'EACCES') {
+      logger.error(`PID file already exists or is un-writable: ${config.pidFile} Exiting...`)
+    } else {
+      logger.error(`PID not created: ${err} exiting...`)
+    }
+    process.kill(process.pid, 'SIGINT')
+  }
+}
+
+/* Remove Pid file */
+async function removePid() {
+  try {
+    fs.unlinkSync(config.pidFile)
+    logger.debug(`Removed PID file: ${config.pidFile}`)
+  } catch (err) {
+    logger.error(`PID file not removed: ${config.pidFile}`)
+  }
+}
+
+/* Initial Startup */
+async function start() {
+  try {
+    await createPid()
+    await db.start()
+    await environment.start()
+    await certificates.start()
+    await mqtts.start()
+    await https.start()
+    await mqttc.start()
+    await httpc.start()
+    await nodeservers.start()
+  } catch (err) {
+    logger.error(`Startup error. Shutting down: ${err.stack} `)
+    process.exit(1)
+  }
+}
+
+/* Shutdown */
+async function shutdown() {
+  config.shutdown = true
+  await nodeservers.stop()
+  await httpc.stop()
+  await https.stop()
+  await mqttc.stop()
+  await mqtts.stop()
+  await db.stop()
+  await removePid()
+  process.exit(0)
+}
+
+/* Gracefully shutdown when SIGTERM/SIGINT is caught */
+async function gracefulShutdown() {
+  if (!config.shutdown) {
+    config.shutdown = true
+    logger.info('Caught SIGTERM/SIGINT Shutting down.')
+    await shutdown()
+    // If processes fail to shut down, force exit after 3 seconds
+    setTimeout(() => {
+      process.exit(0)
+    }, 3 * 1000)
+  }
+}
+
+/* Catch SIGINT/SIGTERM and exit gracefully */
+process.on('SIGINT', gracefulShutdown)
+
+process.on('SIGTERM', gracefulShutdown)
+
+// Used by nodemon
+process.on('SIGUSR2', gracefulShutdown)
+
+process.once('exit', code => {
+  logger.info(`PG3 shutdown complete with code: ${code}`)
+})
+
+process.on('uncaughtException', err => {
+  logger.error(`uncaughtException REPORT THIS!: ${err.stack}`)
+  gracefulShutdown()
+})
+
+process.on('unhandledRejection', err => {
+  logger.error(`unhandledRejection REPORT THIS!: ${err.stack}`)
+  // gracefulShutdown()
+})
+
+// if called directly run module, if imported for tests, do nothing
+if (require.main === module) {
+  start()
+}
+
+module.exports = { start, shutdown, gracefulShutdown, createPid, removePid }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

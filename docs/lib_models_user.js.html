@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/models/user.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/models/user.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { v4: uuid } = require('uuid')
+const bcrypt = require('bcrypt')
+
+const config = require('../config/config')
+
+/**
+ *  User Model
+ * @module models/user
+ * @version 3.0
+ */
+const TABLENAME = 'user'
+
+// Returns array that is executed in order for Schema updates
+const TABLE = []
+// pragma user_version = 1
+TABLE[0] = `
+  CREATE TABLE IF NOT EXISTS "${TABLENAME}" (
+    id BLOB PRIMARY KEY UNIQUE,
+    name TEXT NOT NULL UNIQUE,
+    hash BLOB NOT NULL,
+    enabled INTEGER NOT NULL CHECK (enabled IN (0,1)),
+    role TEXT,
+    groups TEXT,
+    timeAdded INTEGER NOT NULL,
+    timeModified INTEGER,
+    dbVersion INTEGER
+  )
+`
+class DEFAULTS {
+  constructor() {
+    this.id = uuid()
+    this.name = null
+    this.hash = null
+    this.enabled = 1
+    this.role = 'admin'
+    this.groups = JSON.stringify(['Administrators'])
+    this.timeAdded = Date.now()
+    this.timeModified = Date.now()
+    this.dbVersion = TABLE.length
+  }
+}
+
+const protectedKeys = ['admin']
+
+async function get(username) {
+  return config.db
+    .prepare(`SELECT id, name, enabled, role, groups FROM user WHERE (name) is (?)`)
+    .get(username)
+}
+
+async function getById(id) {
+  return config.db
+    .prepare(`SELECT id, name, enabled, role, groups FROM user WHERE (id) is (?)`)
+    .get(id)
+}
+
+async function add(username, password, role = null, groups = []) {
+  if (!username || !password)
+    throw new Error(`Username or password wasn't specified in add${TABLENAME} request`)
+  if (protectedKeys.includes(username)) throw new Error(`${username} is protected`)
+  const newUser = new DEFAULTS()
+  newUser.name = username
+  newUser.hash = await bcrypt.hash(password, 10)
+  if (role) newUser.role = role
+  if (groups.length > 0) newUser.groups = JSON.stringify(groups)
+  return config.db
+    .prepare(
+      `INSERT INTO ${TABLENAME} (${Object.keys(newUser)})
+    VALUES (${Object.keys(newUser).fill('?')})`
+    )
+    .run(Object.values(newUser))
+}
+
+async function update(username, updateObject) {
+  if (!username || typeof updateObject !== 'object')
+    throw new Error(`updateUser parameters not valid`)
+  const currentUser = await get(`${username}`)
+  if (!currentUser) throw new Error(`User ${username} does not exist`)
+  let updatedUser = ``
+  if (Object.keys(updateObject).includes('password'))
+    updatedUser += `hash = '${await bcrypt.hash(updateObject.password, 10)}',`
+  if (Object.keys(updateObject).includes('role')) updatedUser += `role = '${updateObject.role}',`
+  if (Object.keys(updateObject).includes('groups'))
+    updatedUser += `groups = '${JSON.stringify(updateObject.groups)}',`
+  if (Object.keys(updateObject).includes('enabled'))
+    updatedUser += `enabled = ${updateObject.enabled ? 1 : 0},`
+  if (updatedUser.length &lt;= 0) throw new Error(`Nothing to update`)
+  updatedUser += `timeModified = ${Date.now()}`
+  return config.db
+    .prepare(
+      `UPDATE ${TABLENAME} SET
+          ${updatedUser}
+          WHERE name is (?)`
+    )
+    .run(username)
+}
+
+async function remove(username) {
+  if (!username) throw new Error(`Username wasn't specified in deleteUser request`)
+  if (protectedKeys.includes(username)) throw new Error(`${username} is protected`)
+  return config.db.prepare(`DELETE FROM ${TABLENAME} WHERE (name) is (?)`).run(username)
+}
+
+async function checkPassword(username, password) {
+  const userObject = config.db
+    .prepare(`SELECT hash FROM ${TABLENAME} WHERE (name) is (?)`)
+    .get(username)
+  return userObject ? bcrypt.compare(password, userObject.hash) : false
+}
+
+async function TEST() {
+  // Tests API for user
+  await add('bob', 'test123')
+  await update('bob', { password: 'test333', enabled: false })
+  let valid = false
+  if (await checkPassword('bob', 'test333')) valid = true
+  await remove('bob')
+  return valid
+}
+
+module.exports = { TABLE, DEFAULTS, TEST, get, getById, add, update, remove, checkPassword }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

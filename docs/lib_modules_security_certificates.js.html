@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/security/certificates.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/security/certificates.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const os = require('os')
+
+const logger = require('../logger')
+const config = require('../../config/config')
+const secure = require('../../models/secure')
+
+const selfsigned = require('../../utils/selfsigned')
+
+/**
+ * Certificates Module
+ * @module modules/certificates
+ * @version 3.0
+ */
+
+const ATTRIBUTES = [
+  { name: 'commonName', value: os.hostname() },
+  { name: 'countryName', value: 'US' },
+  { shortName: 'ST', value: 'California' },
+  { name: 'localityName', value: 'Los Angeles' },
+  { name: 'organizationName', value: 'Universal Devices' },
+  { shortName: 'OU', value: 'pg3' }
+]
+
+async function saveCustom(customCerts) {
+  if (!customCerts) throw new Error(`CustomCerts Object required`)
+  if (config.customSslData) await secure.remove('customCerts')
+  config.customSslData = customCerts
+  secure.add('customCerts', customCerts)
+}
+
+async function regenerate() {
+  logger.info(`Regenerating certificates`)
+  if (config.sslData) await secure.remove('certs')
+  const opts = {
+    keySize: 2048,
+    algorithm: 'sha256',
+    days: 365 * 10,
+    clientCertificate: true,
+    clientCertificateCN: 'pg3_client',
+    extensions: [
+      {
+        name: 'subjectAltName',
+        altNames: [
+          {
+            type: 2,
+            value: os.hostname()
+          },
+          {
+            type: 2,
+            value: 'pg3.local'
+          },
+          {
+            type: 2,
+            value: 'polisy.local'
+          },
+          {
+            type: 2,
+            value: 'pg3'
+          },
+          {
+            type: 2,
+            value: 'polisy'
+          },
+          {
+            type: 2,
+            value: 'localhost'
+          },
+          {
+            type: 7,
+            ip: config.globalsettings.ipAddress
+          },
+          {
+            type: 7,
+            ip: '127.0.0.1'
+          }
+        ]
+      }
+    ]
+  }
+  config.sslData = await selfsigned.generate(ATTRIBUTES, opts)
+  secure.add('certs', config.sslData)
+}
+
+async function start() {
+  config.sslData = JSON.parse(await secure.get('certs'))
+  config.customSslData = JSON.parse(await secure.get('customCerts'))
+  if (!config.sslData) {
+    logger.info(`No Certificates found. Generating`)
+    await regenerate()
+  }
+}
+
+// API
+module.exports = { start, regenerate, saveCustom }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

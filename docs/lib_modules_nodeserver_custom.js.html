@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/nodeserver/custom.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/nodeserver/custom.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable
+  no-use-before-define,
+  no-empty
+  */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/custom
+ * @version 3.0
+ */
+const logger = require('../logger')
+const u = require('../../utils/utils')
+
+const custom = require('../../models/custom')
+
+const KEYS = [
+  'customparams',
+  'customdata',
+  'customparamsdoc',
+  'customtypeddata',
+  'customtypedparams',
+  'notices'
+]
+/**
+ * @route {SET} udi/pg3/ns/custom/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {Object[]} data.set - Perform SET action
+ * @param {string} data.set.key
+ * @param {string} data.set.value
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "set": [{
+    "key": "customparams",
+    "value": "{abc: def}"
+  }]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "set": [
+    {
+      "success": true,
+      "key": "customparams"
+    }
+  ]
+}
+ */
+async function set([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      try {
+        if (typeof item !== 'object') throw new Error(`custom object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(
+            `${cmd} object does not have the correct properties :: ${JSON.stringify(item)}`
+          )
+        // Uncommenting the below line would only allow saving of system keys
+        // if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a setable key`)
+        const value = typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
+        await custom.add(uuid, profileNum, item.key, value)
+        logger.info(`[${uuid}_${profileNum}] Set ${item.key}`)
+        return { success: true, key: item.key }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { success: false, key: item.key, error: err.message }
+      }
+    })
+  )
+}
+/**
+ * @route {GET} udi/pg3/ns/custom/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {Object[]} data.get - Perform SET action
+ * @param {string} data.get.key
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "get": [{"key": "customdata"}, {"key": "customparams"}]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "get": [
+    {
+      "id": "aee2c611-89f2-4540-81e7-114eef974779",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "key": "customdata",
+      "value": "{\"profile_version\":\"2.1.0\"}",
+      "dbVersion": 1
+    },
+    {
+      "id": "df613de1-3957-4257-b6c3-4ca2e001ef6f",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "key": "customparams",
+      "value": "{\"password\":\"YourPassword\",\"user\":\"YourUserName\",\"some_example\":\"{ \\\"type\\\": \\\"TheType\\\", \\\"host\\\": \\\"host_or_IP\\\", \\\"port\\\": \\\"port_number\\\" }\"}",
+      "dbVersion": 1
+    }
+  ]
+}
+ */
+async function get([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  const results = []
+  await Promise.allSettled(
+    Object.values(data).map(async item => {
+      try {
+        if (typeof item !== 'object') throw new Error(`custom object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a valid property`)
+        const value = await custom.get(uuid, profileNum, item.key)
+        if (value) {
+          logger.info(`[${uuid}_${profileNum}] Retrieved ${item.key}`)
+          try {
+            value[item.key] = JSON.parse(value[item.key])
+          } catch (err) {
+            results.push(value)
+          }
+        }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        results.push({ key: [item.key], error: err.message })
+      }
+    })
+  )
+  return results
+}
+
+async function getAll([uuid, profileNum], cmd, data) {
+  return custom.getAll(uuid, profileNum)
+}
+
+const API = {
+  set: {
+    props: ['key', 'value'],
+    func: set
+  },
+  get: {
+    props: ['key'],
+    func: get
+  },
+  getAll: {
+    props: [],
+    func: getAll
+  }
+}
+
+module.exports = { API, get, set }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

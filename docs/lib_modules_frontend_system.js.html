@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/frontend/system.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/frontend/system.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable
+  no-use-before-define,
+  no-underscore-dangle,
+  no-param-reassign,
+  array-callback-return,
+  no-unused-vars
+  */
+ /**
+ * Nodeserver Drivers
+ * @module mqtt/frontend/system
+ * @version 3.0
+ */
+const config = require('../../config/config')
+const u = require('../../utils/utils')
+const logger = require('../logger')
+const isy = require('../../models/isy')
+const ns = require('../../services/nodeservers')
+const settings = require('../../models/globalsettings')
+const isySystem = require('../isy/system')
+const isyDiscover = require('../isy/discover')
+const encryption = require('../security/encryption')
+
+/**
+ * @route {reboot} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.reboot
+ * @param {string} data.reboot.uuid
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "reboot": {
+    "uuid": "00:21:b9:02:45:1b"
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "reboot": {
+    "message": "Reboot command sent to ISY successfully.",
+    "success": true,
+    "extra": {}
+  }
+}
+ */
+async function reboot(id, cmd, data) {
+  const { uuid } = data
+  try {
+    return await isySystem.reboot(uuid)
+  } catch (err) {
+    logger.error(`reboot: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+/**
+ * @route {getIsys} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getIsys
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "getIsys": {}
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "getIsys": [
+    {
+      "id": "d5f91e3b-1e41-4df4-be54-66fe80528817",
+      "uuid": "00:21:b9:02:45:1b",
+      "name": "ISY",
+      "ip": "10.0.0.210",
+      "port": 80,
+      "username": "admin",
+      "enabled": 1,
+      "discovered": 1,
+      "version": "5.0.16B",
+      "secure": 0,
+      "timeAdded": 1586726557562,
+      "timeModified": 1586726557562,
+      "dbVersion": 1
+    }
+  ]
+}
+ */
+async function getIsys(id, cmd, data) {
+  try {
+    const results = await isy.getAll()
+    results.map(item => {
+      delete item.password
+      return item
+    })
+    return results
+  } catch (err) {
+    logger.error(`getAllNs: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+/**
+ * @route {getSettings} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getSettings
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "getSettings": {}
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "getSettings": {
+    "id": "9451ba9d-5d6e-490f-a1dc-bbdcbddee109",
+    "name": "pg3",
+    "pg3Version": "3.0.0",
+    "mqttHost": "localhost",
+    "mqttPort": 1883,
+    "ipAddress": "10.0.0.137",
+    "bindIpAddress": "0.0.0.0",
+    "listenPort": 3000,
+    "secure": 1,
+    "customCerts": 0,
+    "beta": 0,
+    "timeStarted": 1594849485434,
+    "secret": null,
+    "polisy": 0,
+    "timeAdded": 1586726557470,
+    "timeModified": 1594849485434,
+    "dbVersion": 1
+  }
+}
+ */
+async function getSettings(id, cmd, data) {
+  try {
+    return settings.get()
+  } catch (err) {
+    logger.error(`getSettings: ${err.stack}`)
+  }
+  return { success: false, error: 'failed to get settings' }
+}
+
+/**
+ * @route {setSettings} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.setSettings
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": 13423,
+  "setSettings": {
+    "beta": 0
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "setSettings": {
+    "id": "9451ba9d-5d6e-490f-a1dc-bbdcbddee109",
+    "name": "pg3",
+    "pg3Version": "3.0.0",
+    "mqttHost": "localhost",
+    "mqttPort": 1883,
+    "ipAddress": "10.0.0.137",
+    "bindIpAddress": "0.0.0.0",
+    "listenPort": 3000,
+    "secure": 1,
+    "customCerts": 0,
+    "beta": 1,
+    "timeStarted": 1594849485434,
+    "secret": null,
+    "polisy": 0,
+    "timeAdded": 1586726557470,
+    "timeModified": 1594849968857,
+    "dbVersion": 1
+  }
+}
+ */
+async function setSettings(id, cmd, data) {
+  try {
+    const updateObject = {}
+    const keys = Object.keys(config.globalsettings)
+    keys.map(key => {
+      if (!u.isIn(data, key)) return
+      if (config.globalsettings[key] !== data[key]) updateObject[key] = data[key]
+    })
+    if (Object.keys(updateObject).length > 0) await settings.update(updateObject)
+    config.globalsettings = await settings.get()
+    return config.globalsettings
+  } catch (err) {
+    logger.error(`setSettings: ${err.stack}`)
+  }
+  return { success: false, error: 'Nothing updated' }
+}
+/**
+ * @route {discoverIsys} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.discoverIsys
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "discoverIsys": {}
+}
+ */
+async function discoverIsys(id, cmd, data) {
+  try {
+    logger.info(`Attempting ISY Auto-Discovery...`)
+    const discoveredIsy = await isyDiscover.find()
+    const result = { success: true }
+    if (discoveredIsy.discovered === 1) {
+      const exists = config.isys.filter(it => it.uuid === discoveredIsy.uuid)
+      if (exists.length &lt;= 0) {
+        // const newEntry = new isy.DEFAULTS()
+        // newEntry.password = encryption.encryptText(newEntry.password)
+        // Object.assign(newEntry, discoveredIsy)
+        await isy.add(discoveredIsy)
+        config.isys = await isy.getAll()
+        logger.info(
+          `Discovered ISY Version ${discoveredIsy.version} with ID: ${discoveredIsy.uuid} at ${discoveredIsy.ip}:${discoveredIsy.port} successfully.`
+        )
+        Object.assign(result, discoveredIsy)
+        await ns.verifyNodeServers()
+      } else {
+        throw new Error(`No new ISY discovered.`)
+      }
+    } else throw new Error(`No ISY Discovered`)
+    return result
+  } catch (err) {
+    logger.error(`discoverIsys: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+/**
+ * @route {addIsy} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.addIsy
+ * @param {string} data.addIsy.ip
+ * @param {number} data.addIsy.port
+ * @param {string} data.addIsy.username
+ * @param {string} data.addIsy.password
+ * @param {number} data.addIsy.secure
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "addIsy": {
+    "name": "prod",
+    "ip": "10.0.0.14",
+    "port": 80,
+    "username": "admin",
+    "password": "password",
+    "secure": 0
+  }
+}
+ */
+async function addIsy(id, cmd, data) {
+  try {
+    const { ip, port, username, password, secure } = data
+    const result = await isySystem.getUuid(data)
+    if (result.success) {
+      await isy.add({ uuid: result.uuid, version: result.version, ...data })
+      await ns.verifyNodeServers()
+    }
+    return result
+  } catch (err) {
+    logger.error(`updateIsy: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+/**
+ * @route {updateIsy} udi/pg3/frontend/system/admin
+ * @param {Object} data Request body
+ * @param {Object} data.updateIsy
+ * @param {string} data.updateIsy.uuid
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "updateIsy": {
+    "uuid": "00:21:b9:02:45:1b",
+    "name": "dev"
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+ {
+  "updateIsy": {
+    "uuid": "00:21:b9:02:45:1b",
+    "success": true
+  }
+}
+ */
+async function updateIsy(id, cmd, data) {
+  try {
+    const { uuid } = data
+    const result = { uuid, success: true }
+    await isy.update(uuid, data)
+    if (u.isIn(data, 'password') || u.isIn(data, 'username')) await ns.verifyNodeServers()
+    return result
+  } catch (err) {
+    logger.error(`updateIsy: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
+async function removeIsy(id, cmd, data) {
+  try {
+    const { uuid } = data
+    const result = { uuid, success: true }
+    await ns.removeAllNs(uuid)
+    await isy.remove(uuid)
+    await ns.verifyNodeServers()
+    return result
+  } catch (err) {
+    logger.error(`updateIsy: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
+const API = {
+  discoverIsys: {
+    props: [],
+    func: discoverIsys
+  },
+  reboot: {
+    props: ['uuid', 'name', 'profileNum', 'url'],
+    func: reboot
+  },
+  getIsys: {
+    props: [],
+    func: getIsys
+  },
+  getSettings: {
+    props: [],
+    func: getSettings
+  },
+  setSettings: {
+    props: [],
+    func: setSettings
+  },
+  addIsy: {
+    props: ['ip', 'port', 'username', 'password', 'secure'],
+    func: addIsy
+  },
+  updateIsy: {
+    props: ['uuid'],
+    func: updateIsy
+  },
+  removeIsy: {
+    props: ['uuid'],
+    func: removeIsy
+  }
+}
+
+module.exports = { API }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

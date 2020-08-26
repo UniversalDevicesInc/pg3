@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/routes/log.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/routes/log.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Router = require('@koa/router')
+const fs = require('fs-extra')
+
+const logger = require('../modules/logger')
+// const config = require('../config/config')
+// const u = require('../utils/utils')
+const ns = require('../models/nodeserver')
+
+/**
+ * Log Interface Module
+ * @module routes/log
+ * @version 3.0
+ */
+
+const router = new Router({ prefix: '/logs' })
+
+router.get('/:type', async ctx => {
+  const { type } = ctx.params
+  let logFile = `${process.env.PG3WORKDIR}logs/pg3-current.log`
+  let uuid
+  let profileNum
+  // Split /log/&lt;uuid>_&lt;profileNum> and validate
+  try {
+    const typePieces = type.split('_')
+    if (typePieces.length === 2) {
+      ;[uuid, profileNum] = typePieces
+      const nodeServer = await ns.get(uuid, profileNum)
+      if (nodeServer &amp;&amp; nodeServer.type !== 'unmanaged') {
+        logFile = `${nodeServer.home}/${nodeServer.log}`
+      }
+    }
+    ctx.compress = true
+    logger.debug(`Sending logfile to frontend :: ${logFile}`)
+    const readStream = fs.createReadStream(logFile)
+    // ctx.set('Content-Type', 'text/plain')
+    ctx.body = readStream
+    // ctx.status = 200
+  } catch (err) {
+    logger.error(`streamLog: ${err.stack}`)
+  }
+})
+
+router.get('/download/:type', async ctx => {
+  const { type } = ctx.params
+  let logFile = `${process.env.PG3WORKDIR}logs/pg3-current.log`
+  let uuid
+  let profileNum
+  let nodeServer
+  // Split /log/&lt;uuid>_&lt;profileNum> and validate
+  try {
+    const typePieces = type.split('_')
+    if (typePieces.length === 2) {
+      ;[uuid, profileNum] = typePieces
+      nodeServer = await ns.get(uuid, profileNum)
+      if (nodeServer &amp;&amp; nodeServer.type !== 'unmanaged') {
+        logFile = `${nodeServer.home}/${nodeServer.log}`
+      }
+    }
+    ctx.compress = true
+    const tsFormat = () =>
+      new Date()
+        .toLocaleString()
+        .replace(/, /g, '_')
+        .replace(/\//g, '-')
+        .replace(/ /g, '_')
+        .replace(/:/g, '')
+    ctx.set('access-control-expose-headers', 'content-disposition')
+    ctx.set('content-type', 'application/octet-stream')
+    ctx.set(
+      'content-disposition',
+      `attachment;filename=${nodeServer ? nodeServer.name : 'pg3'}_${tsFormat()}.txt`
+    )
+    logger.debug(`Downloading logfile :: ${logFile}`)
+    const readStream = fs.createReadStream(logFile)
+    ctx.body = readStream
+    // ctx.status = 200
+  } catch (err) {
+    logger.error(`downloadLog: ${err.stack}`)
+  }
+})
+
+module.exports = router
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

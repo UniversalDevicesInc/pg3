@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/frontend/ns.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/frontend/ns.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable
+  no-use-before-define,
+  no-underscore-dangle,
+  no-param-reassign
+  */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/frontend/ns
+ * @version 3.0
+ */
+const logger = require('../logger')
+
+const ns = require('../../models/nodeserver')
+const servicens = require('../../services/nodeservers')
+const custom = require('../../models/custom')
+const nscustom = require('../nodeserver/custom')
+const nscommand = require('../nodeserver/command')
+/**
+ * @route {getNs} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getNs
+ * @param {string} data.getNs.uuid
+ * @param {number} data.getNs.profileNum
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "getNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "getNs": {
+    "id": "d612bef2-ad01-4aa4-a1ee-d0530f1cc038",
+    "uuid": "00:21:b9:02:45:1b",
+    "token": "go-PQ7rLG)Bw+AWW",
+    "name": "PythonTemplate",
+    "nickname": null,
+    "profileNum": 2,
+    "timeAdded": 1595544052286,
+    "timeStarted": 1595547746962,
+    "timeModified": 1595547748176,
+    "version": "2.1.1",
+    "branch": "master",
+    "url": "https://github.com/Einstein42/udi-poly-template-python.git",
+    "home": "/Users/e42/.pg3/ns/00:21:b9:02:45:1b_2",
+    "log": "logs/debug.log",
+    "logLevel": "DEBUG",
+    "enabled": 1,
+    "connected": 1,
+    "devMode": 0,
+    "type": "python3",
+    "executable": "template-poly.py",
+    "shortPoll": 120,
+    "longPoll": 240,
+    "customparams": null,
+    "customdata": null,
+    "customparamsdoc": null,
+    "customtypeddata": null,
+    "customtypedparams": null,
+    "notices": null,
+    "dbVersion": 1,
+    "nodeCount": 0
+  }
+}
+ */
+async function getNs(id, cmd, data) {
+  return servicens.getNs(data)
+}
+/**
+ * @route {getNodes} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getNodes
+ * @param {string} data.getNodes.uuid
+ * @param {number} data.getNodes.profileNum
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "getNodes": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "getNodes": [
+    {
+      "id": "fdf37143-e037-48f1-8904-6ed094be3373",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "address": "controller",
+      "name": "Template Controller",
+      "nodeDefId": "controller",
+      "nls": null,
+      "hint": "0x00000000",
+      "controller": 0,
+      "primaryNode": "controller",
+      "isPrimary": 1,
+      "enabled": 1,
+      "timeAdded": 1595552956711,
+      "timeModified": 1595552956711,
+      "dbVersion": 1,
+      "drivers": [
+        {
+          "id": "dd099905-dcb2-4001-885a-2364b75a3141",
+          "uuid": "00:21:b9:02:45:1b",
+          "profileNum": 2,
+          "address": "controller",
+          "driver": "GV1",
+          "value": "29.3",
+          "uom": 19,
+          "timeAdded": 1595552957124,
+          "timeModified": 1595625042541,
+          "dbVersion": 1
+        }
+      ]
+    }
+  ]
+}
+ */
+async function getNodes(id, cmd, data) {
+  return servicens.getNodes(data)
+}
+/**
+ * @route {startNs} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.startNs
+ * @param {string} data.startNs.uuid
+ * @param {number} data.startNs.profileNum
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "startNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2
+  }
+}
+ * @example &lt;caption>Successful Response&lt;/caption>
+{
+  "startNs": {
+    "success": true
+  }
+}
+ * @example &lt;caption>Error Response&lt;/caption>
+{
+  "startNs": {
+    "error": "string"
+  }
+}
+ */
+async function startNs(id, cmd, data) {
+  const { uuid, profileNum } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return servicens.startNs(nodeServer)
+  } catch (err) {
+    logger.error(`startNs: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+/**
+ * @route {stopNs} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.stopNs
+ * @param {string} data.stopNs.uuid
+ * @param {number} data.stopNs.profileNum
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "stopNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2
+  }
+}
+ * @example &lt;caption>Successful Response&lt;/caption>
+{
+  "stopNs": {
+    "success": true
+  }
+}
+ * @example &lt;caption>Error Response&lt;/caption>
+{
+  "stopNs": {
+    "error": "string"
+  }
+}
+ */
+async function stopNs(id, cmd, data) {
+  const { uuid, profileNum } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return servicens.stopNs(nodeServer)
+  } catch (err) {
+    logger.error(`stopNs: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+/**
+ * @route {restartNs} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.restartNs
+ * @param {string} data.restartNs.uuid
+ * @param {number} data.restartNs.profileNum
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "restartNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2
+  }
+}
+ * @example &lt;caption>Successful Response&lt;/caption>
+{
+  "restartNs": {
+    "success": true
+  }
+}
+ * @example &lt;caption>Error Response&lt;/caption>
+{
+  "restartNs": {
+    "error": "string"
+  }
+}
+ */
+async function restartNs(id, cmd, data) {
+  const { uuid, profileNum } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return servicens.restartNs(nodeServer)
+  } catch (err) {
+    logger.error(`restartNs: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+/**
+ * @route {removeNode} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.removeNode
+ * @param {string} data.removeNode.uuid
+ * @param {number} data.removeNode.profileNum
+ * @param {string} data.getCustom.address
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "removeNode": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2,
+    "address": "templateaddr"
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "removeNode": {
+      "address": "templateaddr",
+      "success": true,
+      ?error: "string"
+    }
+}
+ */
+async function removeNode(id, cmd, data) {
+  const { uuid, profileNum, address } = data
+  const response = await nscommand.removenode([uuid, profileNum], 'removenode', [{ address }])
+  if (Array.isArray(response)) return response[0]
+  return response
+}
+
+async function updateNotices(id, cmd, data) {
+  const { uuid, profileNum, notices } = data
+  try {
+    await custom.add(uuid, profileNum, 'notices', JSON.stringify(notices))
+    return { success: true }
+  } catch (err) {
+    logger.error(`updateNotices: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+/**
+ * @route {getCustom} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getCustom
+ * @param {string} data.getCustom.uuid
+ * @param {number} data.getCustom.profileNum
+ * @param {Object[]} data.getCustom.keys
+ * @param {string} data.getCustom.keys.key
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "getCustom": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2,
+    "keys": [
+      {"key": "customparams"},
+      {"key": "customparamsdoc"},
+      {"key": "customtypedparams"}
+      ]
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "getCustom": [
+    {
+      "id": "df613de1-3957-4257-b6c3-4ca2e001ef6f",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "key": "customparams",
+      "value": "{abc: def}",
+      "dbVersion": 1
+    },
+    {
+      "id": "bee55807-cf0d-4a0c-8f6d-2f0101611593",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "key": "customparamsdoc",
+      "value": "&lt;h1>This is POLYGLOT_CONFIG.md&lt;/h1>\n\n&lt;p>This should have any description about how to configure your nodeserver.&lt;/p>\n",
+      "dbVersion": 1
+    }
+  ]
+}
+ */
+async function getCustom(id, cmd, data) {
+  const { uuid, profileNum, keys } = data
+  return nscustom.get([uuid, profileNum], 'get', keys)
+}
+/**
+ * @route {setCustom} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.setCustom
+ * @param {string} data.setCustom.uuid
+ * @param {number} data.setCustom.profileNum
+ * @param {Object[]} data.getCustom.keys
+ * @param {string} data.getCustom.keys.key
+ * @param {string} data.getCustom.keys.value
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "setCustom": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2,
+    "keys": [{"key": "customparams", "value": "{\"abc\": \"def\"}"}]
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "setCustom": [
+    {
+      "success": true,
+      "key": "customparams"
+    }
+  ]
+}
+ */
+async function setCustom(id, cmd, data) {
+  const { uuid, profileNum, keys } = data
+  return nscustom.set([uuid, profileNum], 'set', keys)
+}
+
+async function setPolls(id, cmd, data) {
+  const { uuid, profileNum, short, long } = data
+  try {
+    await ns.update(uuid, profileNum, { shortPoll: short, longPoll: long })
+    const currentNs = await ns.get(uuid, profileNum)
+    await servicens.stopPolls(currentNs)
+    await servicens.startPolls(currentNs)
+    return { success: true }
+  } catch (err) {
+    logger.error(`setPolls: ${err.stack}`)
+    return { success: false, error: `${err.message}` }
+  }
+}
+
+const API = {
+  getNs: {
+    props: ['uuid', 'profileNum'],
+    func: getNs
+  },
+  getNodes: {
+    props: ['uuid', 'profileNum'],
+    func: getNodes
+  },
+  startNs: {
+    props: ['uuid', 'profileNum'],
+    func: startNs
+  },
+  stopNs: {
+    props: ['uuid', 'profileNum'],
+    func: stopNs
+  },
+  restartNs: {
+    props: ['uuid', 'profileNum'],
+    func: restartNs
+  },
+  removeNode: {
+    props: ['uuid', 'profileNum', 'address'],
+    func: removeNode
+  },
+  updateNotices: {
+    props: ['uuid', 'profileNum', 'notices'],
+    func: updateNotices
+  },
+  getCustom: {
+    props: ['uuid', 'profileNum', 'keys'],
+    func: getCustom
+  },
+  setCustom: {
+    props: ['uuid', 'profileNum', 'keys'],
+    func: setCustom
+  },
+  setPolls: {
+    props: ['uuid', 'profileNum', 'short', 'long'],
+    func: setPolls
+  }
+}
+
+module.exports = { API }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

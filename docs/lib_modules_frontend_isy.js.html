@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/frontend/isy.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/frontend/isy.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable
+  no-use-before-define,
+  no-underscore-dangle,
+  no-param-reassign
+  */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/frontend/isy
+ * @version 3.0
+ */
+const servicens = require('../../services/nodeservers')
+/**
+ * @route {installNs} udi/pg3/frontend/isy/admin
+ * @param {Object} data Request body
+ * @param {Object} data.installNs
+ * @param {string} data.installNs.uuid
+ * @param {string} data.installNs.name
+ * @param {number} data.installNs.profileNum
+ * @param {string} data.installNs.url
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": "2343",
+  "installNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "name": "Test123",
+    "profileNum": "2",
+    "url": "https://github.com/Einstein42/udi-poly-template-python.git"
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "id": "2343",
+  "installNs": {
+    "id": "2bc8b443-201a-4296-a4ba-3225ffb5ae8a",
+    "uuid": "00:21:b9:02:45:1b",
+    "token": "gJUdl/TfzOFVaia3",
+    "name": "Test123",
+    "profileNum": 2,
+    "timeAdded": 1594749069072,
+    "timeStarted": null,
+    "timeModified": 1594749069072,
+    "version": "2.1.1",
+    "home": "/Users/e42/.pg3/ns/00:21:b9:02:45:1b_2",
+    "log": "logs/debug.log",
+    "logLevel": "DEBUG",
+    "enabled": 1,
+    "type": "python3",
+    "executable": "template-poly.py",
+    "shortPoll": 60,
+    "longPoll": 300,
+    "customparams": null,
+    "customdata": null,
+    "customparamsdoc": null,
+    "customtypeddata": null,
+    "customtypedparams": null,
+    "notices": null,
+    "dbVersion": 1,
+    "devMode": 0,
+    "branch": "master",
+    "success": true
+  }
+}
+ */
+async function installNs(id, cmd, data) {
+  return servicens.createNs(data)
+}
+/**
+ * @route {removeNs} udi/pg3/frontend/isy/admin
+ * @param {Object} data Request body
+ * @param {Object} data.removeNs
+ * @param {string} data.removeNs.uuid
+ * @param {string} data.removeNs.name
+ * @param {number} data.removeNs.profileNum
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": 13423,
+  "removeNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "name": "Test123",
+    "profileNum": "2"
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "id": 13423,
+  "removeNs": {
+    "uuid": "00:21:b9:02:45:1b",
+    "name": "Test123",
+    "profileNum": "2",
+    "success": true
+  }
+}
+ */
+async function removeNs(id, cmd, data) {
+  return servicens.removeNs(data)
+}
+
+async function changeNsBranch(id, cmd, data) {}
+/**
+ * @route {getNodeServers} udi/pg3/frontend/isy/admin
+ * @param {Object} data Request body
+ * @param {Object} data.getNodeServers
+ * @param {string} data.getNodeServers.uuid
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "getNodeServers": {
+    "uuid": "00:21:b9:02:45:1b"
+  }
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "getNodeServers": [
+    {
+      "id": "e82f459c-4931-4c29-aead-f93f6f310969",
+      "uuid": "00:21:b9:02:45:1b",
+      "token": "IT1ISs1PmGxZVq9+",
+      "name": "ISY Portal",
+      "profileNum": 1,
+      "timeAdded": 1595004228417,
+      "timeStarted": null,
+      "timeModified": 1595004228417,
+      "version": "0.0.0",
+      "home": "none",
+      "log": "logs/debug.log",
+      "logLevel": "DEBUG",
+      "enabled": 1,
+      "type": "unmanaged",
+      "executable": "none",
+      "shortPoll": 60,
+      "longPoll": 300,
+      "customparams": null,
+      "customdata": null,
+      "customparamsdoc": null,
+      "customtypeddata": null,
+      "customtypedparams": null,
+      "notices": null,
+      "dbVersion": 1,
+      "devMode": 0,
+      "branch": "master",
+      "nodeCount": 0
+    }
+  ]
+}
+ */
+async function getNodeServers(id, cmd, data) {
+  return servicens.getAllNs(data)
+}
+
+const API = {
+  installNs: {
+    props: ['uuid', 'name', 'profileNum', 'url'],
+    func: installNs
+  },
+  removeNs: {
+    props: ['uuid', 'name', 'profileNum'],
+    func: removeNs
+  },
+  changeNsBranch: {
+    props: ['uuid', 'name', 'profileNum', 'branch'],
+    func: changeNsBranch
+  },
+  getNodeServers: {
+    props: ['uuid'],
+    func: getNodeServers
+  }
+}
+
+module.exports = { API }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

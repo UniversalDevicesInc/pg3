@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/routes/nodeserver.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/routes/nodeserver.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Router = require('@koa/router')
+
+const logger = require('../modules/logger')
+// const config = require('../config/config')
+const u = require('../utils/utils')
+const nsdb = require('../models/nodeserver')
+const nscore = require('../modules/nodeserver/core')
+const isyInbound = require('../modules/isy/inbound')
+
+/**
+ * NS Interface Module
+ * @module routes/nodeserver
+ * @version 3.0
+ */
+
+/**
+ Headers: Content-Type: application/json
+ Body: {"username": "admin", "password": "admin"}
+ Response: {"success": true, "token": "JWT TOKEN", "user": {"username": "e42"}}
+ * @name authenticate
+ * @route {POST} /auth
+ */
+const router = new Router({ prefix: '/ns' })
+
+async function checkAuth(ctx, nodeServer) {
+  const authB64 = ctx.headers.authorization.split(' ')[1]
+  const authString = Buffer.from(authB64, 'base64').toString('utf8')
+  if (!authString.includes(nodeServer.uuid)) ctx.throw(401)
+  if (!authString.includes(nodeServer.token)) ctx.throw(401)
+}
+
+async function getNodeserver(ctx) {
+  let uuid
+  let profileNum
+  const idArray = ctx.params.id.split('_')
+  if (idArray.length === 2) {
+    ;[uuid, profileNum] = idArray
+    const nodeServer = await nsdb.get(uuid, profileNum)
+    await checkAuth(ctx, nodeServer)
+    return nodeServer
+  }
+  return ctx.throw(`Prefix not valid`)
+}
+
+/**
+ * Not Implemented yet
+ * @name install
+ * @route {GET} rest/:id/install/:profileNum
+ */
+router.get('/:id/install/:profileNum', async ctx => {
+  try {
+    const ns = await getNodeserver(ctx)
+    logger.info(`[${ns.uuid}(${ns.profileNum})] ISY HTTP Inbound: Received Install`)
+    ctx.body = { success: true, uuid: ns.uuid, profileNum: ns.profileNum, ...ctx.params }
+  } catch (err) {
+    logger.error(`ISY Inbound Install: ${err.stack}`)
+    ctx.status = 401
+    ctx.body = { success: false, error: err.message, ...ctx.params }
+  }
+})
+
+/**
+ * base/nodes/nodeAddress/query[?requestId=requestId]
+ * base/nodes/nodeAddress/status[?requestId=requestId]
+ * nodeAddress of 0 means query all nodes
+ * @name status
+ * @route {GET} rest/id/nodes/nodeAddress/command
+ */
+router.get('/:id/nodes/:nodeAddress/:command', async ctx => {
+  try {
+    const ns = await getNodeserver(ctx)
+    logger.info(`[${ns.uuid}(${ns.profileNum})] ISY HTTP Inbound: Received ${ctx.params.command}`)
+    ctx.body = { success: true, uuid: ns.uuid, profileNum: ns.profileNum, ...ctx.params }
+    const message = {
+      address: ctx.params.nodeAddress === '0' ? 'all' : ctx.params.nodeAddress.slice(5)
+    }
+    nscore.sendMessage(ns.uuid, ns.profileNum, { [ctx.params.command]: message })
+    if (u.isIn(ctx.query, 'requestId')) {
+      isyInbound.request(ns.uuid, ns.profileNum, { ...ctx.query, success: true })
+    }
+  } catch (err) {
+    logger.error(`ISY Inbound Status: ${err.stack}`)
+    ctx.status = 401
+    ctx.body = { success: false, error: err.message, ...ctx.params }
+  }
+})
+
+/**
+ * Not Implemented yet on nodeserver interfaces
+ * base/add/nodes[?requestId=requestId]
+ * @name addnodes
+ * @route {GET} rest/id/add/nodes
+ */
+router.get('/:id/add/nodes', async ctx => {
+  try {
+    const ns = await getNodeserver(ctx)
+    logger.info(`[${ns.uuid}(${ns.profileNum})] ISY HTTP Inbound: Received Add Nodes`)
+    ctx.body = { success: true, uuid: ns.uuid, profileNum: ns.profileNum, ...ctx.params }
+    if (u.isIn(ctx.query, 'requestId')) {
+      isyInbound.request(ns.uuid, ns.profileNum, { ...ctx.query, success: true })
+    }
+  } catch (err) {
+    logger.error(`ISY Inbound Status: ${err.stack}`)
+    ctx.status = 401
+    ctx.body = { success: false, error: err.message, ...ctx.params }
+  }
+})
+
+// &lt;base>/nodes/&lt;nodeAddress>/report/remove
+// &lt;base>/nodes/&lt;nodeAddress>/report/rename?name=&lt;nodeName>
+// &lt;base>/nodes/&lt;nodeAddress>/report/enable
+// &lt;base>/nodes/&lt;nodeAddress>/report/disable
+// &lt;base>/nodes/&lt;nodeAddress>/report/add/&lt;nodeDefId>?primary=&lt;nodeAddress>&amp;name=&lt;nodeName>
+/**
+ * Not implemented yet in ISY
+ * base/id//nodes/report/command/nodeDefId/[?requestId=requestId]
+ * @name report
+ * @route {GET} base/id//nodes/report/command/nodeDefId/[?requestId=requestId]
+ */
+router.get('/:id/nodes/:nodeAddress/report/:command/:nodeDefId?', async ctx => {
+  try {
+    const ns = await getNodeserver(ctx)
+    logger.info(`[${ns.uuid}(${ns.profileNum})] ISY HTTP Inbound: Received Report`)
+    ctx.body = { success: true, uuid: ns.uuid, profileNum: ns.profileNum, ...ctx.params }
+    if (u.isIn(ctx.query, 'requestId')) {
+      isyInbound.request(ns.uuid, ns.profileNum, { ...ctx.query, success: true })
+    }
+  } catch (err) {
+    logger.error(`ISY Inbound Status: ${err.stack}`)
+    ctx.status = 401
+    ctx.body = { success: false, error: err.message, ...ctx.params }
+  }
+})
+
+// &lt;base>/nodes/&lt;nodeAddress>/cmd/&lt;command>
+// &lt;base>/nodes/&lt;nodeAddress>/cmd/&lt;command>/&lt;value>
+// &lt;base>/nodes/&lt;nodeAddress>/cmd/&lt;command>/&lt;value>/&lt;uom>
+// [?&lt;p1>.&lt;uom1>=&lt;val1>&amp;&lt;p2>...][requestId=&lt;requestId>]
+/**
+ * rest/id/nodeAddress/cmd/command/value/uom
+ * @name command
+ * @route {GET} rest/id/nodeAddress/cmd/command/value/uom
+ */
+router.get('/:id/nodes/:nodeAddress/cmd/:command/:value?/:uom?', async ctx => {
+  try {
+    const ns = await getNodeserver(ctx)
+    logger.info(
+      `[${ns.uuid}(${ns.profileNum})] ISY HTTP Inbound: Received ${
+        ctx.params.command
+      } for node: ${ctx.params.nodeAddress.slice(5)}`
+    )
+    ctx.body = { success: true, uuid: ns.uuid, profileNum: ns.profileNum, ...ctx.params }
+    const message = {
+      address: ctx.params.nodeAddress.slice(5),
+      cmd: ctx.params.command,
+      value: ctx.params.value || undefined,
+      uom: ctx.params.uom || undefined,
+      query: ctx.query || undefined
+    }
+    nscore.sendMessage(ns.uuid, ns.profileNum, { command: message })
+    if (u.isIn(ctx.query, 'requestId')) {
+      isyInbound.request(ns.uuid, ns.profileNum, { ...ctx.query, success: true })
+    }
+  } catch (err) {
+    logger.error(`ISY Inbound Status: ${err.stack}`)
+    ctx.status = 401
+    ctx.body = { success: false, error: err.message, ...ctx.params }
+  }
+})
+
+module.exports = router
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

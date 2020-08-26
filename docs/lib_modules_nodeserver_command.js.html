@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/nodeserver/command.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/nodeserver/command.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable
+  no-use-before-define,
+  no-underscore-dangle,
+  no-param-reassign
+  */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/command
+ * @version 3.0
+ */
+const convert = require('xml2js')
+
+// const config = require('../../config/config')
+const logger = require('../logger')
+const u = require('../../utils/utils')
+
+const isy = require('../isy/core')
+const isySystem = require('../isy/system')
+const isyNodeServer = require('../isy/nodeserver')
+const isyErrors = require('../isy/errors')
+// const nodeservice = require('../../services/nodeservers')
+const node = require('../../models/node')
+const driver = require('../../models/driver')
+const status = require('./status')
+// const nodeserver = require('../../models/nodeserver')
+
+async function checkResponse(cmd, response) {
+  let reason = null
+  if (response.status !== 200) {
+    try {
+      const opts = {
+        trim: true,
+        async: true,
+        mergeAttrs: true,
+        explicitArray: false
+      }
+      reason = await convert.parseStringPromise(response.data, opts).RestResponse.reason.code
+      throw new Error(
+        `${cmd} failed: ISY returned error: (${reason}) ${isyErrors.ERRORS[reason] || ''}`
+      )
+    } catch (err) {
+      throw new Error(`${cmd} failed: ISY returned status code ${response.status}`)
+    }
+  }
+}
+/**
+ * @route {addnode} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.addnode
+ * @param {string} data.addnode.address
+ * @param {string} data.addnode.primaryNode
+ * @param {string} data.addnode.nodeDefId
+ * @param {Object[]} data.addnode.drivers
+ * @param {Object[]} data.addnode.drivers.driver
+ * @param {Object[]} data.addnode.drivers.value
+ * @param {Object[]} data.addnode.drivers.uom
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": 13423,
+  "addnode": [{
+  "address": "controller",
+  "name": "steve",
+  "primaryNode": "controller",
+  "nodeDefId": "controller",
+  "nls": "ctlr",
+  "drivers": [{
+    "driver": "ST",
+    "value": "43",
+    "uom": 12
+    },
+    {
+    "driver": "GV1",
+    "value": "29.3",
+    "uom": 19
+    }]
+  }]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "addnode": [
+    {
+      "id": "fdf37143-e037-48f1-8904-6ed094be3373",
+      "uuid": "00:21:b9:02:45:1b",
+      "profileNum": 2,
+      "address": "controller",
+      "name": "Template Controller",
+      "nodeDefId": "controller",
+      "nls": null,
+      "hint": "0x00000000",
+      "controller": 0,
+      "primaryNode": "controller",
+      "isPrimary": 1,
+      "enabled": 1,
+      "timeAdded": 1595552956711,
+      "timeModified": 1595552956711,
+      "dbVersion": 1
+    }
+  ],
+  "id": 13423
+}
+ */
+async function addnode([uuid, profileNum], cmd, data) {
+  try {
+    if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+    if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  } catch (err) {
+    logger.error(`${cmd} :: ${err.stack}`)
+    return { error: `${err.message}` }
+  }
+  return Promise.all(
+    Object.values(data).map(async item => {
+      let response = {}
+      let existsInDb = false
+      let existsOnIsy = false
+      let update = false
+      let addDrivers = true
+      let existing = {}
+      try {
+        const props = u.verifyProps(item, ['address', 'primaryNode'])
+        if (!props.valid)
+          throw new Error(
+            `Request missing required property: ${props.missing} :: ${JSON.stringify(item)}`
+          )
+
+        if (typeof item !== 'object') throw new Error(`${cmd} object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        if (!Array.isArray(item.drivers)) throw new Error(`${cmd} drivers must be an array`)
+        existing = await status.getDrivers(uuid, profileNum, {
+          address: item.address
+        })
+        if (existing.drivers) {
+          existsOnIsy = true
+          // returns false if drivers are the same
+          addDrivers = await compareDrivers(uuid, profileNum, item)
+          existsInDb = await node.get(uuid, profileNum, item.address)
+          if (existsInDb) {
+            // checks and updates nodeDefId(with NLS) and hint
+            update = await checkNodeDefAndHint(uuid, profileNum, item, existsInDb)
+          }
+          if (!update &amp;&amp; !addDrivers)
+            logger.warn(
+              `node ${item.address} on profile ${profileNum} already exists, no nodeDef or driver changes detected`
+            )
+        }
+        if (existing.code &amp;&amp; existing.code !== 404)
+          throw new Error(`ISY returned error code: ${existing.code}`)
+        if (!existsInDb) {
+          logger.warn(
+            `node ${item.address} on profile ${uuid}/${profileNum} exists on the ISY but not in the database. Adding...`
+          )
+          await node.add({
+            uuid,
+            profileNum,
+            ...item
+          })
+        }
+        if (!existsOnIsy) {
+          const path = ['nodes', isy.addNodePrefix(profileNum, item.address), 'add', item.nodeDefId]
+          response = await isy.isyGet(
+            uuid,
+            'command',
+            isy.makeNodeUrl(uuid, profileNum, path, {
+              primary: isy.addNodePrefix(profileNum, item.primaryNode),
+              name: item.name || item.address,
+              ...(item.nls ? { nls: item.nls } : {})
+            }),
+            profileNum,
+            false // retry?
+          )
+          checkResponse(cmd, response)
+          if (u.isIn(item, 'hint')) item.hint = u.convertHint(item.hint)
+          logger.info(`[${uuid}_${profileNum}] ${cmd} sucessfully added node ${item.address}`)
+          await isyNodeServer.setHint(uuid, profileNum, item)
+          await isySystem.groupNodes(uuid, profileNum, item.address, item.primaryNode)
+        }
+        if (addDrivers) {
+          // add drivers to the db and set in ISY
+          await Promise.all(
+            item.drivers.map(dvr =>
+              driver
+                .add({
+                  uuid,
+                  profileNum,
+                  address: item.address,
+                  ...dvr
+                })
+                .then(status.setDriver(uuid, profileNum, { ...dvr, address: item.address }, true))
+                .catch(err => logger.error(`${cmd} add driver error: ${err.message}`))
+            )
+          )
+        } else {
+          item.drivers.map(dvr =>
+            status.setDriver(uuid, profileNum, { ...dvr, address: item.address })
+          )
+        }
+        return (await node.get(uuid, profileNum, item.address)) || {}
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.stack}`)
+        return {
+          address: item.address,
+          error: err.message,
+          ...(response.status || existing.code ? { code: response.status || existing.code } : {})
+        }
+      }
+    })
+  )
+}
+/**
+ * @route {removenode} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.removenode
+ * @param {string} data.removenode.address
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": 13423,
+  "removenode": [{
+    "address": "controller"
+  }]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{ 
+  removenode: [{
+    address: 'controller',
+    success: true 
+  }]
+}
+ */
+async function removenode([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {
+        address: item.address
+      }
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        const path = ['nodes', isy.addNodePrefix(profileNum, item.address), 'remove']
+        const response = await isy.isyGet(
+          uuid,
+          'command',
+          isy.makeNodeUrl(uuid, profileNum, path),
+          profileNum,
+          false // retry?
+        )
+        if (![200, 404].includes(response.status)) await checkResponse(cmd, response)
+        logger.info(`[${uuid}_${profileNum}] ${cmd} sucessfully removed node ${item.address}`)
+        await node.remove(uuid, profileNum, item.address)
+        return { ...result, success: true }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, success: false, error: err.message }
+      }
+    })
+  )
+}
+
+async function compareDrivers(uuid, profileNum, newNode) {
+  const existingDrivers = await driver.getAllNode(uuid, profileNum, newNode.address)
+  if (!existingDrivers) return true
+  // const result = existingDrivers.filter(o1 => newNode.drivers.some(o2 => o1.driver !== o2.driver))
+  const result = []
+  const lengthsMatch = existingDrivers.length === newNode.drivers.length
+  if (lengthsMatch) {
+    existingDrivers.forEach(o1 => {
+      let found = false
+      newNode.drivers.forEach(o2 => {
+        if (o1.driver === o2.driver) found = true
+      })
+      if (!found) result.push(o1)
+    })
+  }
+  if (!lengthsMatch || result.length > 0) {
+    await driver.removeAllNode(uuid, profileNum, newNode.address)
+    return true
+  }
+  return false
+}
+
+async function checkNodeDefAndHint(uuid, profileNum, newNode, existingNode) {
+  const updateObject = {}
+  if (u.isIn(newNode, 'hint'))
+    if (u.convertHint(newNode.hint) !== existingNode.hint) {
+      updateObject.hint = u.convertHint(newNode.hint)
+      logger.debug(
+        `[${uuid}_${profileNum}] ${
+          newNode.address
+        } hint change detected. Updated to ${u.convertHint(newNode.hint)}`
+      )
+    }
+  if (u.isIn(newNode, 'nodeDefId'))
+    if (newNode.nodeDefId !== existingNode.nodeDefId) {
+      updateObject.nodeDefId = newNode.nodeDefId
+      logger.debug(
+        `[${uuid}_${profileNum}] ${newNode.address} nodeDefId change detected. Updated to ${newNode.nodeDefId}`
+      )
+      await isyNodeServer.changeNodeDef(uuid, profileNum, newNode)
+    }
+  if (Object.keys(updateObject).length > 0) {
+    await node.update(uuid, profileNum, newNode.address, updateObject)
+  }
+}
+/**
+ * @route {changenode} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.removenode
+ * @param {string} data.removenode.address
+ * @param {string} data.removenode.nodeDefId
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": 13423,
+  "changenode": [{
+    "address": "controller",
+    "nodeDefId": "controller",
+    "nls": "ctlr"
+  }]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{ 
+  changenode: [{
+    address: 'controller',
+    nodeDefId: 'controller',
+    success: true 
+  }]
+}
+ */
+async function changenode([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {
+        address: item.address,
+        nodeDefId: item.nodeDefId
+      }
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        const updateObject = {}
+        updateObject.nodeDefId = item.nodeDefId
+        logger.info(
+          `[${uuid}_${profileNum}] ${item.address} changing nodeDefId. Updated to ${item.nodeDefId}`
+        )
+        await isyNodeServer.changeNodeDef(uuid, profileNum, item)
+        await node.update(uuid, profileNum, item.address, updateObject)
+        return { ...result, success: true }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, success: false, error: err.message }
+      }
+    })
+  )
+}
+/**
+ * @route {command} udi/pg3/ns/command/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {Object} data Request body
+ * @param {string} data.id
+ * @param {Object[]} data.command
+ * @param {string} data.command.address
+ * @param {string} data.command.nodeDefId
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "id": 13423,
+  "command": [{
+    "address": "controller",
+    "command": "DON",
+    "uom": "percent"
+    "value": 80,
+    params: [{
+      "param": "rate",
+      "uom": "uom58",
+      "value": "0.3"
+    }]
+  }]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  command: [{ 
+    address: 'controller',
+    command: 'DON',
+    success: true
+  }]
+}
+ */
+async function command([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  return Promise.all(
+    Object.values(data).map(async item => {
+      const result = {
+        address: item.address,
+        command: item.command
+      }
+      try {
+        if (typeof item !== 'object') throw new Error(`driver object invalid`)
+        if (!u.hasProps(item, API[cmd].props))
+          throw new Error(`${cmd} object does not have the correct properties`)
+        logger.info(`[${uuid}_${profileNum}] ${item.address} reporting command ${item.command}`)
+        await isyNodeServer.sendCommand(uuid, profileNum, item)
+        return { ...result, success: true }
+      } catch (err) {
+        logger.error(`command ${cmd} ${err.message}`)
+        return { ...result, success: false, error: err.message }
+      }
+    })
+  )
+}
+
+const API = {
+  addnode: {
+    props: ['address', 'primaryNode', 'nodeDefId', 'drivers'],
+    func: addnode
+  },
+  removenode: {
+    props: ['address'],
+    func: removenode
+  },
+  changenode: {
+    props: ['address', 'nodeDefId'],
+    func: changenode
+  },
+  command: {
+    props: ['address', 'command'],
+    func: command
+  }
+}
+
+module.exports = { API, removenode }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/models/secure.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/models/secure.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { v4: uuid } = require('uuid')
+
+const config = require('../config/config')
+const encryption = require('../modules/security/encryption')
+
+/**
+ *  Secure Model
+ * @module models/secure
+ * @version 3.0
+ */
+const TABLENAME = 'secure'
+
+// Returns array that is executed in order for Schema updates
+const TABLE = []
+// pragma user_version = 1
+TABLE[0] = `
+  CREATE TABLE IF NOT EXISTS "${TABLENAME}" (
+    id BLOB PRIMARY KEY UNIQUE,
+    key TEXT NOT NULL UNIQUE,
+    value BLOB NOT NULL,
+    dbVersion INTEGER
+  )
+`
+class DEFAULTS {
+  constructor() {
+    this.id = uuid()
+    this.key = ''
+    this.value = JSON.stringify({})
+    this.dbVersion = TABLE.length
+  }
+}
+
+const protectedKeys = ['pg3key']
+
+async function get(key) {
+  if (!key) throw new Error(`${TABLENAME} get requires a key`)
+  if (protectedKeys.includes(key)) throw new Error(`${key} is protected`)
+  const entry = config.db.prepare(`SELECT * FROM ${TABLENAME} WHERE (key) is (?)`).get(key)
+  if (!entry) return null
+  return encryption.decryptText(entry.value)
+}
+
+async function add(key, value) {
+  if (!key || !value) throw new Error(`${TABLENAME} add requires a key`)
+  if (protectedKeys.includes(key)) throw new Error(`${key} is protected`)
+  const newKey = new DEFAULTS()
+  newKey.key = key
+  newKey.value = encryption.encryptText(JSON.stringify(value))
+  return config.db
+    .prepare(
+      `INSERT INTO ${TABLENAME} (${Object.keys(newKey)})
+    VALUES (${Object.keys(newKey).fill('?')})`
+    )
+    .run(Object.values(newKey))
+}
+
+async function update(key, value) {
+  if (!key) throw new Error(`${TABLENAME} update requires a key and a value`)
+  if (protectedKeys.includes(key)) throw new Error(`${key} is protected`)
+  const currentKey = await get(key)
+  if (!currentKey) throw new Error(`${TABLENAME} key ${key} does not exist`)
+  const encryptedValue = encryption.encryptText(JSON.stringify(value))
+  return config.db
+    .prepare(`UPDATE ${TABLENAME} SET value = (?) WHERE (key) is (?)`)
+    .run(encryptedValue, key)
+}
+
+async function remove(key) {
+  if (!key) throw new Error(`${TABLENAME} remove requires a key`)
+  if (protectedKeys.includes(key)) throw new Error(`${key} is protected`)
+  const currentKey = await get(key)
+  if (!currentKey) throw new Error(`${key} doesn't exist`)
+  return config.db.prepare(`DELETE FROM ${TABLENAME} WHERE (key) is (?)`).run(key)
+}
+
+async function TEST() {
+  // Tests API for secure
+  let valid = false
+  await add('test', '123')
+  await update('test', 456)
+  const output = await get('test')
+  if (output === 456) valid = true
+  await remove('test')
+  return valid
+}
+
+module.exports = { TABLE, DEFAULTS, TEST, get, add, update, remove }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

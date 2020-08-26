@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/models/custom.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/models/custom.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const { v4: uuid } = require('uuid')
+
+const config = require('../config/config')
+const encryption = require('../modules/security/encryption')
+
+/**
+ *  Custom Model
+ * @module db
+ * @version 3.0
+ */
+const TABLENAME = 'custom'
+
+// Returns array that is executed in order for Schema updates
+const TABLE = []
+// pragma user_version = 1
+/**
+ * @type {}
+ */
+TABLE[0] = `
+  CREATE TABLE IF NOT EXISTS "${TABLENAME}" (
+    id BLOB PRIMARY KEY UNIQUE,
+    uuid TEXT NOT NULL,
+    profileNum INTEGER NOT NULL,
+    key TEXT NOT NULL,
+    value BLOB,
+    dbVersion INTEGER,
+    FOREIGN KEY (uuid, profileNum)
+      REFERENCES nodeserver(uuid, profileNum)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    UNIQUE(uuid, profileNum, key)
+  );
+  CREATE INDEX idx_${TABLENAME}_uuid_profileNum_key
+  ON ${TABLENAME} (uuid, profileNum, key)
+`
+class DEFAULTS {
+  constructor() {
+    this.id = uuid()
+    this.uuid = null
+    this.profileNum = null
+    this.key = null
+    this.value = null
+    this.dbVersion = TABLE.length
+  }
+}
+
+async function get(id, profileNum, key) {
+  if (!key) throw new Error(`${TABLENAME} get requires a uuid, profileNum, and key`)
+  const entry = config.db
+    .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum, key) is (?, ?, ?)`)
+    .get(id, profileNum, key)
+  if (!entry) return null
+  if (!entry.value) return entry
+  entry.value = encryption.decryptText(entry.value)
+  return entry
+}
+
+async function getAll(key, profileNum) {
+  const entries = config.db
+    .prepare(`SELECT * FROM ${TABLENAME} WHERE (uuid, profileNum) is (?, ?)`)
+    .all(key, profileNum)
+  Promise.allSettled(
+    entries.map(item => {
+      if (!item.value) return item
+      // eslint-disable-next-line no-param-reassign
+      item.value = encryption.decryptText(item.value)
+      return item
+    })
+  )
+  return entries
+}
+
+async function add(id, profileNum, key, value) {
+  if (!key || !value) throw new Error(`${TABLENAME} add requires a key and value`)
+  const newKey = new DEFAULTS()
+  newKey.uuid = id
+  newKey.profileNum = profileNum
+  newKey.key = key
+  newKey.value = value ? encryption.encryptText(value) : value
+  return config.db
+    .prepare(
+      `INSERT INTO ${TABLENAME} (${Object.keys(newKey)})
+      VALUES (${Object.keys(newKey).fill('?')})
+      ON CONFLICT(uuid, profileNum, key) DO UPDATE
+      SET value = excluded.value
+    `
+    )
+    .run(Object.values(newKey))
+}
+
+async function remove(id, profileNum, key) {
+  if (!key) throw new Error(`${TABLENAME} remove requires a key`)
+  const currentKey = await get(id, profileNum, key)
+  if (!currentKey) throw new Error(`${key} doesn't exist`)
+  return config.db
+    .prepare(`DELETE FROM ${TABLENAME} WHERE (uuid, profileNum, key) is (?, ?, ?)`)
+    .run(id, profileNum, key)
+}
+
+module.exports = { TABLE, DEFAULTS, get, getAll, add, remove }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

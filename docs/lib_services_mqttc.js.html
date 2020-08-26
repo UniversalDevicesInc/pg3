@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/services/mqttc.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/services/mqttc.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable no-unused-vars */
+/**
+ * MQTT Client Module
+ * @module services/mqttc
+ * @version 3.0
+ */
+
+const mqtt = require('mqtt')
+const Bottleneck = require('bottleneck')
+
+const logger = require('../modules/logger')
+const config = require('../config/config')
+const { addListeners } = require('../modules/mqtt/listeners')
+
+/* This controls the global overall queue for MQTT messages
+ * No matter how many requests are sent, it will conform to these limits
+ * This is limited to prevent flooding and DoS attacks
+ * minTime: 2ms allows for 500 requests per second 1000 ms / 2 per second
+ * highWater is how many can be queue'd (1000 max)
+ * strategy is the way in which the queue is emptied once highWater is hit
+ * https://github.com/SGrondin/bottleneck#strategies
+ */
+const GLOBALQUEUE = {
+  minTime: 2,
+  highWater: 1000,
+  strategy: Bottleneck.strategy.OVERFLOW
+}
+
+// Enables listeners for easy debugging
+function startQueueEvents(queue) {
+  queue.on('error', error => {
+    // logger.error(error.stack)
+  })
+  queue.on('failed', (error, jobInfo) => {
+    // logger.error(error.stack, `${JSON.stringify(jobInfo)}`)
+  })
+  queue.on('dropped', dropped => {
+    // logger.debug(`Dropped: ${JSON.stringify(dropped)}`)
+  })
+  queue.on('debug', (message, data) => {
+    // logger.debug(`Debug: ${message} :: ${JSON.stringify(data)}`)
+  })
+  queue.on('done', info => {
+    // logger.debug(`Job Info: ${JSON.stringify(info)}`)
+  })
+}
+
+function addSubscriptions() {
+  const subscriptions = [
+    'udi/pg3/ns/status/#',
+    'udi/pg3/ns/command/#',
+    'udi/pg3/ns/system/#',
+    'udi/pg3/ns/custom/#',
+    'udi/pg3/frontend/isy/#',
+    'udi/pg3/frontend/system/#',
+    'udi/pg3/frontend/ns/#'
+  ]
+  config.mqttClient.subscribe(subscriptions, (err, granted) => {
+    granted.map(grant => logger.debug(`MQTTC: Subscribed to ${grant.topic} QoS ${grant.qos}`))
+  })
+  config.mqttClient.publish(
+    'udi/pg3/connections',
+    JSON.stringify({ clientId: config.mqttClientId, connected: true })
+  )
+}
+
+/**
+ * MQTT Start Service and Connect via .env MQTT_HOST and MQTT_PORT provided.
+ * @method
+ * @param {function} callback - Callback when connected or if already started.
+ */
+function start() {
+  if (!config.mqttClient) {
+    config.queue.mqtt = new Bottleneck(GLOBALQUEUE)
+    startQueueEvents(config.queue.mqtt)
+    const options = {
+      keepalive: 10,
+      clean: true,
+      clientId: config.mqttClientId,
+      reconnectPeriod: 5000,
+      connectTimeout: 30 * 1000,
+      username: 'pg3',
+      password: config.mqttClientKey
+      // will: { retain: true },
+    }
+    const host = config.globalsettings.mqttHost || '127.0.0.1'
+    const port = config.globalsettings.mqttPort || 1883
+    if (config.globalsettings.secure) {
+      options.key = config.sslData.clientprivate
+      options.cert = config.sslData.clientcert
+      options.ca = config.sslData.cert
+      options.rejectUnauthorized = true
+    }
+    // options['will']['topic'] = 'udi/polyglot/connections/polyglot'
+    // options['will']['payload'] = new Buffer(JSON.stringify({node: config.mqttClientId, 'connected': false}))
+    const mqttConnectString = `${
+      config.globalsettings.secure ? 'mqtts://' : 'mqtt://'
+    }${host}:${port}`
+    config.mqttClient = mqtt.connect(mqttConnectString, options)
+
+    config.mqttClient.on('connect', () => {
+      addSubscriptions()
+    })
+
+    addListeners()
+
+    logger.info('Started MQTT Client Service')
+  }
+}
+
+/**
+ * MQTT Stop Service
+ * @method
+ * @param {function} callback - Callback when service is and conneciton is clear.
+ */
+async function stop() {
+  if (config.mqttClient) {
+    await config.mqttClient.publish(
+      'udi/pg3/connections',
+      JSON.stringify({ clientId: config.mqttClientId, connected: true })
+    )
+    logger.info('MQTT Client Services Stopping Gracefully.')
+    config.mqttClient.end(true, () => {
+      config.mqttClient = null
+    })
+  }
+}
+
+// API
+module.exports = {
+  start,
+  stop
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

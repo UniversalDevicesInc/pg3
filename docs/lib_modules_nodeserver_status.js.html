@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: lib/modules/nodeserver/status.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: lib/modules/nodeserver/status.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* eslint-disable
+  no-use-before-define,
+  no-underscore-dangle
+  */
+/**
+ * Nodeserver Drivers
+ * @module mqtt/ns
+ * @version 3.0
+ */
+const convert = require('xml2js')
+
+// const config = require('../../config/config')
+const logger = require('../logger')
+const u = require('../../utils/utils')
+
+const isy = require('../isy/core')
+const driver = require('../../models/driver')
+
+const API = {
+  get: {
+    props: ['address'],
+    func: get
+  },
+  set: {
+    props: ['address', 'driver', 'value', 'uom'],
+    func: set
+  }
+}
+
+async function get([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  return Promise.all(Object.values(data).map(item => getDrivers(uuid, profileNum, item)))
+}
+
+async function set([uuid, profileNum], cmd, data) {
+  if (!Array.isArray(data)) throw new Error(`${cmd} must be an array`)
+  if (data.length &lt;= 0) throw new Error(`${cmd} has no entries.`)
+  return Promise.all(Object.values(data).map(item => setDriver(uuid, profileNum, item)))
+}
+
+/**
+ * @route {GET} udi/pg3/ns/status/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {number} profileNum
+ * @param {Object} data Request body
+ * @param {Object[]} data.get - Perform GET action
+ * @param {string} data.get.address
+ * @example &lt;caption>Request&lt;/caption>
+  {
+  "get": [{
+    "address": "controller",
+   }]
+  }
+ * @example &lt;caption>Response&lt;/caption>
+  {
+  "get": [
+    {
+      "address": "controller",
+      "drivers": [
+        {
+          "driver": "GV1",
+          "value": "293",
+          "uom": "19"
+        },
+        {
+          "driver": "ST",
+          "value": "43",
+          "uom": "12"
+        }
+      ]
+    }
+  ]
+}
+ */
+async function getDrivers(uuid, profileNum, data) {
+  let response = {}
+  try {
+    if (typeof data !== 'object') throw new Error(`driver object invalid`)
+    if (!u.hasProps(data, API.get.props))
+      throw new Error(`driver object does not have the correct properties`)
+    const path = ['rest', 'nodes', isy.addNodePrefix(profileNum, data.address)]
+    response = await isy.isyGet(uuid, 'status', isy.makeSystemUrl(uuid, path), profileNum)
+    if (response.status !== 200) throw new Error(`node '${data.address}' not found`)
+    const result = { address: data.address, drivers: [] }
+    const opts = {
+      trim: true,
+      async: true,
+      mergeAttrs: true,
+      explicitArray: false
+    }
+    const parsed = await convert.parseStringPromise(response.data, opts)
+    if (Array.isArray(parsed.nodeInfo.properties.property)) {
+      parsed.nodeInfo.properties.property.forEach(item => {
+        result.drivers.push({
+          driver: `${item.id}`,
+          value: item.value,
+          uom: item.uom
+        })
+      })
+    } else if (Object.keys(parsed.nodeInfo.properties).length > 0) {
+      result.drivers[parsed.nodeInfo.properties.property.id] = {
+        value: parsed.nodeInfo.properties.property.value,
+        uom: parsed.nodeInfo.properties.property.uom
+      }
+    }
+    return result
+  } catch (err) {
+    logger.error(`[${uuid}_${profileNum}] status get :: ${err.stack}`)
+    return {
+      address: data.address,
+      error: err.message,
+      ...(response.status ? { code: response.status } : {})
+    }
+  }
+}
+
+/**
+ * @route {SET} udi/pg3/ns/status/{uuid}
+ * @param {string} uuid The UUID of the ISY
+ * @param {number} profileNum
+ * @param {Object} data Request body
+ * @param {Object[]} data.set - Perform SET action
+ * @param {string} data.set.address
+ * @param {string} data.set.driver
+ * @param {string} data.set.value
+ * @param {number} data.set.uom 
+ * @param {boolean} [isNew=false]
+ * @example &lt;caption>Request&lt;/caption>
+{
+  "set": [{
+    "address": "controller",
+    "driver": "ST",
+    "value": "42",
+    "uom": 12
+  }]
+}
+ * @example &lt;caption>Response&lt;/caption>
+{
+  "set": [{
+    "address": "controller",
+    "driver": "ST",
+    "value": "42",
+    "uom": 12
+  }]
+}
+ */
+async function setDriver(uuid, profileNum, data, isNew = false) {
+  let response = {}
+  try {
+    if (typeof data !== 'object') throw new Error(`driver object invalid`)
+    if (!u.hasProps(data, API.set.props))
+      throw new Error(`driver object does not have the correct properties`)
+    const path = [
+      'nodes',
+      isy.addNodePrefix(profileNum, data.address),
+      'report',
+      'status',
+      data.driver,
+      data.value,
+      data.uom
+    ]
+    response = await isy.isyGet(uuid, 'status', isy.makeNodeUrl(uuid, profileNum, path), profileNum)
+    if (response.status !== 200) throw new Error(`could not set driver on ISY ${response.status}`)
+    if (!isNew) {
+      driver.update(uuid, profileNum, data.address, data.driver, {
+        value: data.value,
+        uom: data.uom
+      })
+    }
+    return data
+  } catch (err) {
+    logger.error(`[${uuid}_${profileNum}] status set :: ${err.stack}`)
+    return {
+      address: data.address,
+      driver: data.driver,
+      error: err.message,
+      ...(response.status ? { code: response.status } : {})
+    }
+  }
+}
+
+module.exports = { API, getDrivers, setDriver }
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_http.html">config/http</a></li><li><a href="module-db.html">db</a></li><li><a href="module-models_globalsettings.html">models/globalsettings</a></li><li><a href="module-models_isy.html">models/isy</a></li><li><a href="module-models_node.html">models/node</a></li><li><a href="module-models_nodeserver.html">models/nodeserver</a></li><li><a href="module-models_secure.html">models/secure</a></li><li><a href="module-models_user.html">models/user</a></li><li><a href="module-modules_certificates.html">modules/certificates</a></li><li><a href="module-modules_db.html">modules/db</a></li><li><a href="module-modules_encryption.html">modules/encryption</a></li><li><a href="module-modules_environment.html">modules/environment</a></li><li><a href="module-modules_logger.html">modules/logger</a></li><li><a href="module-mqtt_command.html">mqtt/command</a></li><li><a href="module-mqtt_custom.html">mqtt/custom</a></li><li><a href="module-mqtt_frontend_isy.html">mqtt/frontend/isy</a></li><li><a href="module-mqtt_frontend_ns.html">mqtt/frontend/ns</a></li><li><a href="module-mqtt_frontend_system.html">mqtt/frontend/system</a></li><li><a href="module-mqtt_ns.html">mqtt/ns</a></li><li><a href="module-routes_auth.html">routes/auth</a></li><li><a href="module-routes_frontend.html">routes/frontend</a></li><li><a href="module-routes_log.html">routes/log</a></li><li><a href="module-routes_nodeserver.html">routes/nodeserver</a></li><li><a href="module-services_httpc.html">services/httpc</a></li><li><a href="module-services_mqttc.html">services/mqttc</a></li></ul><h3>Global</h3><ul><li><a href="global.html#frontendMessage">frontendMessage</a></li><li><a href="global.html#fs">fs</a></li><li><a href="global.html#publish">publish</a></li><li><a href="global.html#sendMessage">sendMessage</a></li><li><a href="global.html#start">start</a></li><li><a href="global.html#stop">stop</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.5</a> on Mon Aug 17 2020 02:14:09 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
