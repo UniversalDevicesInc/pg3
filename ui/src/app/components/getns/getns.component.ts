@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core'
+import { Router, ActivatedRoute } from '@angular/router'
 import { AddnodeService } from '../../services/addnode.service'
 import { NgbModal, NgbModalOptions } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { ModalNsUpdateComponent } from '../modal-ns-update/modal-ns-update.component'
 import { ModalNsAddComponent } from '../modal-ns-add/modal-ns-add.component'
+import { AuthService } from '../../services/auth.service'
 import { SettingsService } from '../../services/settings.service'
 import { WebsocketsService } from '../../services/websockets.service'
 import { Subscription } from 'rxjs'
@@ -33,14 +35,18 @@ export class GetnsComponent implements OnInit, OnDestroy {
   private subscription: Subscription = new Subscription()
   selectedRow: any
   maxNodeServers: Number = 25
+  portalLoggedIn = false
   nsArray: any[] = new Array(this.maxNodeServers).fill(1).map((x, i) => i + 1)
 
   constructor(
     private addNodeService: AddnodeService,
     public sockets: WebsocketsService,
     public settingsService: SettingsService,
+    public auth: AuthService,
     private modal: NgbModal,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     this.Math = Math
     this.modalOptions = {
@@ -53,6 +59,21 @@ export class GetnsComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.getConnected()
     this.getNSList()
+    this.route.queryParams.subscribe(params => {
+      if (params.pg3auth) {
+        this.auth.storePortalData(params.pg3auth)
+        this.router.navigate([], { replaceUrl: true })
+      }
+    })
+    this.subscription.add(
+      this.auth.portalLoggedIn.subscribe(loggedIn => {
+        if (loggedIn && this.portalLoggedIn !== loggedIn) {
+          this.portalLoggedIn = loggedIn
+          this.auth.portalCheckRefresh()
+        }
+      })
+    )
+    this.auth.portalCheckRefresh()
   }
 
   ngOnDestroy() {

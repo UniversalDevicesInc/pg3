@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { HttpClient, HttpHeaders } from '@angular/common/http'
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http'
 import { environment } from '../../environments/environment'
 
 import { SettingsService } from './settings.service'
@@ -7,15 +7,20 @@ import { BehaviorSubject } from 'rxjs'
 import { tap } from 'rxjs/operators'
 //import { WebsocketsService } from './websockets.service'
 import { JwtHelper } from '../helpers/token'
+import { ToastrService } from 'ngx-toastr'
 
 @Injectable()
 export class AuthService {
   authToken: any
   user: any
+  portalAuth: Object = {}
+  refreshingToken = false
   public isLoggedIn: BehaviorSubject<boolean> = new BehaviorSubject(false)
+  public portalLoggedIn: BehaviorSubject<boolean> = new BehaviorSubject(false)
 
   constructor(
     private http: HttpClient,
+    private toastr: ToastrService,
     private settingsService: SettingsService //private sockets: WebsocketsService
   ) {}
 
@@ -74,6 +79,68 @@ export class AuthService {
   loggedIn() {
     return this.tokenNotExpired('id_token')
   }
+
+  loadPortalData() {
+    this.portalAuth = JSON.parse(localStorage.getItem('portalData'))
+    return this.portalAuth
+  }
+
+  storePortalData(tokenDataB64) {
+    try {
+      const tokenData = JSON.parse(Buffer.from(tokenDataB64, 'base64').toString('utf8'))
+      localStorage.setItem('portalData', JSON.stringify(tokenData))
+      this.portalAuth = tokenData
+      this.portalLoggedIn.next(true)
+    } catch (err) {
+      console.log(err.stack)
+    }
+  }
+
+  portalLogin() {
+    // remove any queryparams
+    const currentLoc = window.location.href.split('?')[0]
+    const state = Buffer.from(JSON.stringify({ url: currentLoc })).toString('base64')
+    window.location.href = `https://pg3oauth.isy.io/v1/redirect?state=${state}`
+  }
+
+  portalLogout() {
+    this.portalLoggedIn.next(false)
+    localStorage.removeItem('portalData')
+    this.portalAuth = {}
+  }
+
+  async portalCheckRefresh() {
+    this.loadPortalData()
+    if (
+      this.portalAuth.hasOwnProperty('access_token') &&
+      this.portalAuth.hasOwnProperty('authExpires') &&
+      this.portalAuth.hasOwnProperty('refreshExpires')
+    ) {
+      let now = +Date.now()
+      // If refresh token expired
+      // Token Expired
+      if (now > this.portalAuth['authExpires']) {
+        this.portalLogout()
+        return false
+      }
+      this.portalLoggedIn.next(true)
+      return true
+      // Token expired or expires in less than 5 minutes
+      // if (now > this.portalAuth.authExpires - 1000 * 600) {
+      //   this.toastr.warning(`Portal Access Token Expired. Refreshing...`)
+      //   return await portalRefreshTokens()
+      // }
+    }
+    return false
+  }
+
+  // async portalRefreshTokens() {
+  //   const headers = new HttpHeaders({
+  //     'Content-Type': 'application/x-www-form-urlencoded'
+  //   })
+  //   const params = new HttpParams()
+  //   params.set('')
+  // }
 
   logout() {
     this.authToken = null

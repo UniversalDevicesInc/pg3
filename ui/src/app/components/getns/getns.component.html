@@ -1,28 +1,51 @@
-<div style="text-align: center;">
+<div style="text-align: center">
   <h1>Polyglot NodeServer Store</h1>
   <h4 *ngIf="nsList">
     Current NodeServers:
-    <span style="vertical-align: top;" class="badge badge-secondary">{{ nsList.length }}</span>
+    <span style="vertical-align: top" class="badge badge-secondary">{{ nsList.length }}</span>
   </h4>
+  <h4 *ngIf="auth.portalLoggedIn.value">
+    Currently Logged in as:
+    <span style="vertical-align: top" class="badge badge-secondary">{{
+      auth.portalAuth.profile.username
+    }}</span>
+  </h4>
+  <ng-container *ngIf="!auth.portalLoggedIn.value">
+    <button (click)="auth.portalLogin()" class="btn btn-primary">Login to Portal</button>
+  </ng-container>
+  <ng-container *ngIf="auth.portalLoggedIn.value">
+    <button (click)="auth.portalLogout()" class="btn btn-primary">Log Out of Portal</button>
+  </ng-container>
   <button (click)="getNSList()" class="btn btn-primary">Refresh</button>
   <button (click)="addNS()" class="btn btn-primary">Add New NodeServer to the Store</button>
 </div>
 <br />
-
+<div
+  *ngIf="!auth.portalLoggedIn.value"
+  style="text-align: center; vertical-align: middle; margin: auto"
+  class="text-white"
+>
+  In order to install NodeServers, you must click 'Login to Portal' and link with your my.isy.io
+  account.
+  <br /><br />
+</div>
 <div *ngIf="received">
-  <table class="table table-striped table-bordered table-hover" style="font-size: 12px;">
+  <table class="table table-striped table-bordered table-hover" style="font-size: 12px">
     <table class="table table-striped table-bordered table-hover">
       <thead>
         <tr>
-          <th width="10%">Name</th>
+          <th width="7%">Name</th>
           <th width="5%">Version</th>
           <th width="10%">Author</th>
-          <th width="6%">Language</th>
-          <th width="50%">Description</th>
-          <th width="15%" style="text-align: center; vertical-align: middle; margin: auto;">
+          <th width="5%">Language</th>
+          <th width="40%">Description</th>
+          <th width="10%" style="text-align: center; vertical-align: middle; margin: auto">
             Installed
           </th>
-          <th width="7%"></th>
+          <th width="7%" style="text-align: center; vertical-align: middle; margin: auto">Cost</th>
+          <th width="7%" style="text-align: center; vertical-align: middle; margin: auto">
+            Install
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -31,14 +54,14 @@
           [class.active]="i == selectedRow"
           text-align="center"
         >
-          <td style="vertical-align: middle;">
+          <td style="vertical-align: middle">
             <a href="{{ ns.url }}">{{ ns.name }}</a>
           </td>
-          <td style="vertical-align: middle;">{{ ns.version }}</td>
-          <td style="vertical-align: middle;">{{ ns.author }}</td>
-          <td style="vertical-align: middle;">{{ ns.language }}</td>
-          <td style="vertical-align: middle;">{{ ns.desc }}</td>
-          <td style="text-align: center; vertical-align: middle; margin: auto;">
+          <td style="vertical-align: middle">{{ ns.version }}</td>
+          <td style="vertical-align: middle">{{ ns.author }}</td>
+          <td style="vertical-align: middle">{{ ns.language }}</td>
+          <td style="vertical-align: middle">{{ ns.desc }}</td>
+          <td style="text-align: center; vertical-align: middle; margin: auto">
             <ng-container
               *ngIf="sockets.getNodeServers | async | filter: 'name':ns.name as nodeServers"
             >
@@ -52,8 +75,19 @@
               </ng-template>
             </ng-container>
           </td>
-          <td style="text-align: center; vertical-align: middle; margin: auto;">
-            <button (click)="open(install, ns)" class="btn btn-primary btn-sm">
+          <td style="text-align: center; vertical-align: middle; margin: auto">
+            <ng-container>{{ ns.cost ? '$' : '' }}</ng-container>
+            {{ ns.price || 'Free' }}
+            <ng-container *ngIf="ns.recurring">
+              /per {{ ns.recurring_period }} {{ ns.recurring_interval }}
+            </ng-container>
+          </td>
+          <td style="text-align: center; vertical-align: middle; margin: auto">
+            <button
+              *ngIf="auth.portalLoggedIn.value"
+              (click)="open(install, ns)"
+              class="btn btn-primary btn-sm"
+            >
               Install
             </button>
           </td>
@@ -63,9 +97,7 @@
   </table>
 </div>
 
-<p *ngIf="!received">
-  Getting installable NodeServer list from Polyglot Store. Standby....
-</p>
+<p *ngIf="!received">Getting installable NodeServer list from Polyglot Store. Standby....</p>
 <br />
 
 <!-- install Modal -->
@@ -80,36 +112,36 @@
   <!-- Body -->
   <div class="modal-body text-white">
     <h6 class="text-white">NodeServer:</h6>
-    <table class="table table-striped table-bordered table-hover" style="font-size: 12px;">
+    <table class="table table-striped table-bordered table-hover" style="font-size: 12px">
       <tbody>
         <tr>
-          <th width="25%" style="vertical-align: middle;"><b>Name</b></th>
-          <td style="vertical-align: middle;">{{ current['name'] }}</td>
+          <th width="25%" style="vertical-align: middle"><b>Name</b></th>
+          <td style="vertical-align: middle">{{ current['name'] }}</td>
         </tr>
         <tr>
-          <th style="vertical-align: middle;"><b>Language</b></th>
-          <td style="vertical-align: middle;">{{ current['language'] }}</td>
+          <th style="vertical-align: middle"><b>Language</b></th>
+          <td style="vertical-align: middle">{{ current['language'] }}</td>
         </tr>
         <tr>
-          <th style="vertical-align: middle;"><b>Version</b></th>
-          <td style="vertical-align: middle;">{{ current['version'] }}</td>
+          <th style="vertical-align: middle"><b>Version</b></th>
+          <td style="vertical-align: middle">{{ current['version'] }}</td>
         </tr>
       </tbody>
     </table>
     <h6 class="text-white">Target ISY:</h6>
-    <table class="table table-striped table-bordered table-hover" style="font-size: 12px;">
+    <table class="table table-striped table-bordered table-hover" style="font-size: 12px">
       <tbody>
         <tr>
-          <th width="25%" style="vertical-align: middle;"><b>Alias</b></th>
-          <td style="vertical-align: middle;">{{ settingsService.currentIsy.value['name'] }}</td>
+          <th width="25%" style="vertical-align: middle"><b>Alias</b></th>
+          <td style="vertical-align: middle">{{ settingsService.currentIsy.value['name'] }}</td>
         </tr>
         <tr>
-          <th style="vertical-align: middle;"><b>UUID</b></th>
-          <td style="vertical-align: middle;">{{ settingsService.currentIsy.value['uuid'] }}</td>
+          <th style="vertical-align: middle"><b>UUID</b></th>
+          <td style="vertical-align: middle">{{ settingsService.currentIsy.value['uuid'] }}</td>
         </tr>
         <tr>
-          <th style="vertical-align: middle;"><b>Firmware</b></th>
-          <td style="vertical-align: middle;">{{ settingsService.currentIsy.value['version'] }}</td>
+          <th style="vertical-align: middle"><b>Firmware</b></th>
+          <td style="vertical-align: middle">{{ settingsService.currentIsy.value['version'] }}</td>
         </tr>
       </tbody>
     </table>
@@ -139,9 +171,7 @@
   </div>
   <!-- Buttons -->
   <div class="modal-footer">
-    <button type="button" class="btn btn-primary" (click)="modal.close()">
-      Install
-    </button>
+    <button type="button" class="btn btn-primary" (click)="modal.close()">Install</button>
     <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">
       Cancel
     </button>
