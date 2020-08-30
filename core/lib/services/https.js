@@ -1,8 +1,11 @@
-/* eslint callback-return: "off" */
+/* eslint callback-return: "off",
+  func-names: ["error", "always", { "generators": "never" }]
+ */
 const Koa = require('koa')
 const cors = require('@koa/cors')
 const compress = require('koa-compress')
 const serve = require('koa-static')
+const send = require('koa-send')
 const bodyParser = require('koa-body')
 const jwt = require('koa-jwt')
 
@@ -64,7 +67,17 @@ async function start() {
       jwt({
         secret: config.globalsettings.id
       }).unless({
-        path: [/^\/auth/, '/', /^\/frontend\/ispolisy/, /^\/ns/]
+        path: [
+          /^\/auth/,
+          '/',
+          /^\/frontend\/ispolisy/,
+          /^\/ns/,
+          /^\/getns/,
+          /^\/dashboard/,
+          /^\/nsdetails/,
+          /^\/settings/,
+          /^\/log/
+        ]
       })
     )
     // app.ws.use(async (ctx, next) => {
@@ -78,6 +91,10 @@ async function start() {
     app.use(logRoutes.allowedMethods())
     app.use(nsRoutes.routes())
     app.use(nsRoutes.allowedMethods())
+    app.use(function* () {
+      yield send(this, `public/index.html`)
+    })
+
     try {
       if (config.globalsettings.secure) {
         let sslOptions = {}

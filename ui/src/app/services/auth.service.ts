@@ -112,6 +112,7 @@ export class AuthService {
   async portalCheckRefresh() {
     this.loadPortalData()
     if (
+      this.portalAuth &&
       this.portalAuth.hasOwnProperty('access_token') &&
       this.portalAuth.hasOwnProperty('authExpires') &&
       this.portalAuth.hasOwnProperty('refreshExpires')
