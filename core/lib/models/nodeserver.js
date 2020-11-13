@@ -41,6 +41,7 @@ TABLE[0] = `
     executable TEXT NOT NULL,
     shortPoll INTEGER NOT NULL,
     longPoll INTEGER NOT NULL,
+    orderId TEXT,
     dbVersion INTEGER,
     FOREIGN KEY (uuid)
       REFERENCES isy(uuid)

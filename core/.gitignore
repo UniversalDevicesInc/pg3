@@ -58,7 +58,7 @@ typings/
 .env
 
 # Angular Frontend
-./frontend/
+../ui/
 
 # Project Specific
 ssl/

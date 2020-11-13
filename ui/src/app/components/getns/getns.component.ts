@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core'
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core'
 import { Router, ActivatedRoute } from '@angular/router'
 import { AddnodeService } from '../../services/addnode.service'
 import { NgbModal, NgbModalOptions } from '@ng-bootstrap/ng-bootstrap'
@@ -10,6 +10,7 @@ import { SettingsService } from '../../services/settings.service'
 import { WebsocketsService } from '../../services/websockets.service'
 import { Subscription } from 'rxjs'
 import { ToastrService } from 'ngx-toastr'
+
 import {
   faAngleDoubleDown,
   faAngleDoubleUp,
@@ -22,6 +23,7 @@ import {
   styleUrls: ['./getns.component.css']
 })
 export class GetnsComponent implements OnInit, OnDestroy {
+
   Math: any
   public mqttConnected: boolean = false
   public nsList: any
@@ -36,7 +38,19 @@ export class GetnsComponent implements OnInit, OnDestroy {
   selectedRow: any
   maxNodeServers: Number = 25
   portalLoggedIn = false
+  transactionsReceived = false
+  purchases = {}
   nsArray: any[] = new Array(this.maxNodeServers).fill(1).map((x, i) => i + 1)
+
+  // @HostListener('window:focus', ['$event'])
+  // onFocus(event: FocusEvent): void {
+  //   if (this.portalLoggedIn) {
+  //     if (!this.transactionsReceived) {
+  //       this.checkTransactions()
+  //     }
+  //   }
+  //   this.auth.portalCheckRefresh()
+  // }
 
   constructor(
     private addNodeService: AddnodeService,
@@ -56,7 +70,7 @@ export class GetnsComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.getConnected()
     this.getNSList()
     this.route.queryParams.subscribe(params => {
@@ -67,9 +81,15 @@ export class GetnsComponent implements OnInit, OnDestroy {
     })
     this.subscription.add(
       this.auth.portalLoggedIn.subscribe(loggedIn => {
+        this.portalLoggedIn = loggedIn
         if (loggedIn && this.portalLoggedIn !== loggedIn) {
-          this.portalLoggedIn = loggedIn
           this.auth.portalCheckRefresh()
+        }
+        if (loggedIn) {
+          if (!this.transactionsReceived) {
+            this.transactionsReceived = true
+            this.checkTransactions()
+          }
         }
       })
     )
@@ -156,6 +176,45 @@ export class GetnsComponent implements OnInit, OnDestroy {
       this.sockets.sendMessage('nodeservers', { removeNs: ns }, false, true)
       this.toastr.success(`Uninstalling ${ns.name} please wait...`)
     } else this.showDisconnected()
+  }
+
+  checkTransactions() {
+    this.toastr.success(`Checking for purchases. Please wait...`)
+    this.auth.portalSyncTransactions().subscribe(transactions => {
+      if (!Array.isArray(transactions)) return
+      console.log(`Success! ${JSON.stringify(transactions)}`)
+      transactions.map(transaction => {
+        if (!['processing', 'complete'].includes(transaction['order_status'])) return
+        if (!Array.isArray(transaction['items'])) return
+        transaction['items'].map(item => {
+          if (!item['poli_id']) return
+          this.purchases[item['poli_id']] = {
+            order_id: transaction.order_id,
+            timestamp: transaction.timestamp,
+            order_status: transaction.order_status,
+            details: transaction.details,
+            registered_polisy: transaction.registered_polisy,
+            item
+          }
+          return item
+        })
+        return transaction
+      })
+      this.toastr.success(`Successfully checked for purchased nodeservers.`)
+    },
+      err => {
+        if (err && err.error && err.error.message && err.error.message === `No Orders Exist.`) {
+          this.toastr.success(`Successfully checked for purchased nodeservers. None found.`)
+          console.log(`${err.error.message}`)
+        } else {
+          this.toastr.error(`Failed to get purchased nodeservers. Check the console for error log.`)
+          console.log(err)
+        }
+    })
+  }
+
+  openLink(url) {
+    window.open(url, '_blank')
   }
 
   // updateAvailable(ns) {

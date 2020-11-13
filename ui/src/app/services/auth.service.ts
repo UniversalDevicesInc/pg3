@@ -121,17 +121,18 @@ export class AuthService {
       // If refresh token expired
       // Token Expired
       if (now > this.portalAuth['authExpires']) {
+        // Token expired or expires in less than 5 minutes
+        // if ((now > this.portalAuth.authExpires - 1000 * 600) && (now < this.portalAuth.refreshExpires)) {
+        //   this.toastr.warning(`Portal Access Token Expired. Refreshing...`)
+        //   return await portalRefreshTokens()
+        // }
         this.portalLogout()
         return false
       }
+      // access_token not expired
       this.portalLoggedIn.next(true)
       return true
-      // Token expired or expires in less than 5 minutes
-      // if (now > this.portalAuth.authExpires - 1000 * 600) {
-      //   this.toastr.warning(`Portal Access Token Expired. Refreshing...`)
-      //   return await portalRefreshTokens()
-      // }
-    }
+   }
     return false
   }
 
@@ -141,7 +142,18 @@ export class AuthService {
   //   })
   //   const params = new HttpParams()
   //   params.set('')
+  //   return true
   // }
+
+  portalSyncTransactions() {
+    const formData = new FormData()
+    formData.append('query_by', 'login')
+    formData.append('user', this.portalAuth['profile']['username'])
+    const headers = new HttpHeaders({
+      'access_token': this.portalAuth['access_token']
+    })
+    return this.http.post(`https://www.universal-devices.com/wp-json/ud/v1/poli/get_user_transactions`, formData, { headers: headers })
+  }
 
   logout() {
     this.authToken = null

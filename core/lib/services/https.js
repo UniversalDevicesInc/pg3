@@ -91,8 +91,8 @@ async function start() {
     app.use(logRoutes.allowedMethods())
     app.use(nsRoutes.routes())
     app.use(nsRoutes.allowedMethods())
-    app.use(function* () {
-      yield send(this, `public/index.html`)
+    app.use(async ctx => {
+      await send(ctx, `public/index.html`)
     })
 
     try {
