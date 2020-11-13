@@ -11,5 +11,6 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/UniversalDevicesInc/pg3/issues"
-  }
+  },
+  "devDependencies": {}
 }
