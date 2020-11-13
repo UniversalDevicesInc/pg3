@@ -95,7 +95,8 @@ async function getUuid() {
       explicitArray: false
     }
     const converted = await convert.parseStringPromise(response.data, opts)
-    version = converted.root.device.modelVersion
+    // modelVersion may not be present on certain firmware version.
+    version = converted.root.device.modelVersion || ''
     uuid = converted.root.device.UDN.slice(5)
     discovered = 1
   } catch (err) {
