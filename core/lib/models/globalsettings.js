@@ -39,7 +39,7 @@ class DEFAULTS {
   constructor() {
     this.id = uuid()
     this.name = 'pg3'
-    this.pg3Version = process.env.npm_package_version
+    this.pg3Version = require('../../package.json').version
     this.mqttHost = process.env.PG3MQTTHOST || 'localhost'
     this.mqttPort = process.env.PG3MQTTPORT || 1883
     this.ipAddress = process.env.PG3IP || ip.address() || '127.0.0.1'
@@ -93,10 +93,17 @@ async function update(updateObject) {
     .run('pg3')
 }
 
+async function updateVersion() {
+  const { version } = require('../../package.json')
+  return config.db
+    .prepare(`UPDATE ${TABLENAME} SET pg3Version = '${version}' WHERE (name) is (?)`)
+    .run('pg3')
+}
+
 async function TEST() {
   // Test API for globalsettings
   await update({ ssl: config.ssl })
   return true
 }
 
-module.exports = { TABLE, DEFAULTS, TEST, get, update }
+module.exports = { TABLE, DEFAULTS, TEST, get, update, updateVersion }

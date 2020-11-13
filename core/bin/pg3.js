@@ -40,7 +40,7 @@ const environment = require('../lib/modules/environment')
 const certificates = require('../lib/modules/security/certificates')
 
 if (require.main === module) {
-  logger.info(`Starting PG3 version ${process.env.npm_package_version}`)
+  logger.info(`Starting PG3 version ${require('../package.json').version}`)
   logger.info(`Using Workdir ${process.env.PG3WORKDIR}`)
 }
 if (fs.existsSync(`${workDir}.env`)) {

@@ -59,6 +59,9 @@ async function settingsTable() {
     config.globalsettings = await globalsettings.get()
     if (config.globalsettings) {
       logger.info(`Loaded ${table} successfully. Database version ${config[table].dbVersion}`)
+      if (config.globalsettings.pg3Version !== require('../../package.json').version) {
+        globalsettings.updateVersion()
+      }
       return
     }
   } else {
