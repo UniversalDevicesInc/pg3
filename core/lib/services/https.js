@@ -92,7 +92,7 @@ async function start() {
     app.use(nsRoutes.routes())
     app.use(nsRoutes.allowedMethods())
     app.use(async ctx => {
-      await send(ctx, `./public/index.html`)
+      await send(ctx, `/index.html`, { root: staticFolder })
     })
 
     try {
