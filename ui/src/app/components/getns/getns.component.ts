@@ -184,7 +184,7 @@ export class GetnsComponent implements OnInit, OnDestroy {
       if (!Array.isArray(transactions)) return
       console.log(`Success! ${JSON.stringify(transactions)}`)
       transactions.map(transaction => {
-        if (!['processing', 'complete'].includes(transaction['order_status'])) return
+        if (!['processing', 'completed'].includes(transaction['order_status'])) return
         if (!Array.isArray(transaction['items'])) return
         transaction['items'].map(item => {
           if (!item['poli_id']) return

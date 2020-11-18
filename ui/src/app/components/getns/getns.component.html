@@ -203,10 +203,10 @@
   </div>
   <!-- Buttons -->
   <div class="modal-footer">
-    <ng-container *ngIf="purchases[current['uuid']]">
+    <ng-container *ngIf="purchases[current['uuid']] || !current['price']">
       <button type="button" class="btn btn-primary" (click)="modal.close()">Install</button>
     </ng-container>
-    <ng-container *ngIf="!purchases[current['uuid']]">
+    <ng-container *ngIf="!purchases[current['uuid']] && current['price']">
       <button type="button" class="btn btn-primary" (click)="modal.dismiss(); openLink(current['storeUrl'])">Purchase</button>
     </ng-container>
     <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">

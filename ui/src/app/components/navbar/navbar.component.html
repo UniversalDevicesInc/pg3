@@ -73,20 +73,17 @@
         </div>
       </li>
 
-      <li class="nav-item" *ngIf="authService.loggedIn()">
-        <div ngbDropdown>
-          <span class="nav-link text-light" id="nsMenu" ngbDropdownToggle>NodeServers</span>
-          <div ngbDropdownMenu aria-labelledby="nsMenu">
-            <!-- <button
-                class="dropdown-item"
-                [routerLinkActive]="['active']"
-                [routerLinkActiveOptions]="{ exact: true }"
-                [routerLink]="['/addnode']"
-                (click)="isCollapsed = !isCollapsed"
-              >
-                Add NodeServer
-              </button>
-              <li class="dropdown-divider"></li> -->
+      <li
+        *ngIf="authService.loggedIn()"
+        class="nav-item"
+        [routerLinkActive]="['active']"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <a class="nav-link" [routerLink]="['/getns']" (click)="isCollapsed = !isCollapsed">
+          NodeServer Store
+        </a>
+      </li>
+      <!-- <li class="nav-item" *ngIf="authService.loggedIn()">
             <button
               class="dropdown-item"
               [routerLinkActive]="['active']"
@@ -96,9 +93,12 @@
             >
               NodeServer Store
             </button>
+        <div ngbDropdown>
+          <span class="nav-link text-light" id="nsMenu" ngbDropdownToggle>NodeServers</span>
+          <div ngbDropdownMenu aria-labelledby="nsMenu">
           </div>
         </div>
-      </li>
+      </li> -->
 
       <li class="nav-item" *ngIf="authService.loggedIn()">
         <div ngbDropdown>
