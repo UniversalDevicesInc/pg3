@@ -48,10 +48,10 @@ async function start() {
   setInterval(verifyNodeServers, 5 * 60000) // 5 Minutes
   const nodeservers = await ns.getAllInstalled()
   if (nodeservers.length < 1) return logger.info(`No installed NodeServers found`)
-  logger.info(`Starting installed NodeServers...`)
+  logger.info(`Starting installed and enabled NodeServers...`)
   return Promise.allSettled(
     nodeservers.map(async nodeServer => {
-      await startNs(nodeServer)
+      await startNs(nodeServer, false)
     })
   )
 }
@@ -66,7 +66,7 @@ async function stop() {
   const nodeservers = await ns.getAll()
   return Promise.allSettled(
     nodeservers.map(nodeServer => {
-      if (nodeServer.type.toLowerCase() !== 'unmanaged') return stopNs(nodeServer)
+      if (nodeServer.type.toLowerCase() !== 'unmanaged') return stopNs(nodeServer, true)
       return nodeServer
     })
   )
@@ -252,7 +252,7 @@ async function removeNs(nodeServer) {
     logger.info(`[${uuid}_${profileNum})]: Removing NodeServer: ${name}`)
     const existingNs = await ns.get(uuid, profileNum)
     if (!existingNs) throw new Error(`[${uuid}_${profileNum})]: ${name} does not exist.`)
-    await stopNs(existingNs)
+    await stopNs(existingNs, true)
     const localDir = `${process.env.PG3WORKDIR}ns/${uuid}_${profileNum}`
     // Check if NodeServer folder exists and remove it
     if (uuid && profileNum && fs.existsSync(localDir)) {
@@ -268,13 +268,12 @@ async function removeNs(nodeServer) {
   }
 }
 
-async function startNs(nodeServer) {
+async function startNs(nodeServer, enabled) {
   if (nodeServer.type.toLowerCase() === 'unmanaged') return { success: false, error: `unmanaged` }
   if (config.nodeProcesses[nodeServer.id]) {
     logger.error(`[${nodeServer.name}(${nodeServer.profileNum})] :: already running.`)
     return { success: false, error: `already running` }
   }
-  config.nodeProcesses[nodeServer.id] = true
   if (!VALID_TYPES.includes(nodeServer.type)) {
     logger.error(
       `[${nodeServer.name}(${nodeServer.profileNum})] :: Invalid Type: '${nodeServer.type}', valid types are '${VALID_TYPES}'`
@@ -287,6 +286,12 @@ async function startNs(nodeServer) {
     )
     return { success: false, error: `directory not found` }
   }
+
+  if (!nodeServer.enabled && !enabled) {
+    logger.error(`[${nodeServer.name}(${nodeServer.profileNum})] :: Not Enabled: '`)
+    return { success: false, error: `nodeserver not enabled` }
+  }
+
   try {
     const serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
     if (utils.isIn(serverJson, 'devMode') && !serverJson.devMode) {
@@ -325,8 +330,10 @@ async function startNs(nodeServer) {
     logger.info(
       `[${nodeServer.name}(${nodeServer.profileNum})] :: Starting NodeServer - Version ${serverJson.credits[0].version}`
     )
+    config.nodeProcesses[nodeServer.id] = true
     const updateObject = {
-      timeStarted: `${Date.now()}`
+      timeStarted: `${Date.now()}`,
+      enabled: 1
     }
     ;['version', 'executable', 'type', 'logLevel', 'devMode'].map(item => {
       if (utils.isIn(serverJson, item)) updateObject[item] = serverJson[item]
@@ -387,7 +394,7 @@ async function startNs(nodeServer) {
   }
 }
 
-async function stopNs(nodeServer) {
+async function stopNs(nodeServer, enable) {
   if (config.nodeProcesses[nodeServer.id]) {
     logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Stopping Nodeserver`)
     stopPolls(nodeServer)
@@ -395,6 +402,11 @@ async function stopNs(nodeServer) {
     await utils.timeout(3000)
     try {
       config.nodeProcesses[nodeServer.id].kill('SIGTERM')
+      nodeServer.enabled = enable
+      const updateObject = {
+        enabled: enable
+      }
+      ns.update(nodeServer.uuid, nodeServer.profileNum, updateObject)
       logger.info(`${nodeServer.name} stopped`)
       // process.kill(-config.nodeProcesses[nodeServer.id].pid)
     } catch (err) {
@@ -409,12 +421,12 @@ async function stopNs(nodeServer) {
 async function restartNs(nodeServer) {
   logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Restarting Nodeserver`)
   if (config.nodeProcesses[nodeServer.id]) {
-    await stopNs(nodeServer)
+    await stopNs(nodeServer, true)
   } else {
     logger.warn(`[${nodeServer.name}(${nodeServer.profileNum})]: Was not running. Starting...`)
   }
   await utils.timeout(3000)
-  return startNs(nodeServer)
+  return startNs(nodeServer, true)
 }
 
 async function stopPolls(nodeServer) {
