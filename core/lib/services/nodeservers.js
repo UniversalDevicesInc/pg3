@@ -291,7 +291,7 @@ async function startNs(nodeServer) {
     const serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
     config.git[nodeServer.id] = git(nodeServer.home)
     logger.info(`[${nodeServer.name}(${nodeServer.profileNum})] :: Checking for update...`)
-    const update = await config.git[nodeServer.id].pull()
+    const update = await config.git[nodeServer.id].pull('origin', 'master', {'--rebase': 'true'})
     if (update && update.summary.changes !== 0) {
       logger.info(
         `[${nodeServer.name}(${nodeServer.profileNum})] :: New Version detected: re-running install process...`
