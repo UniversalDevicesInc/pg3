@@ -150,7 +150,7 @@ async function startNs(id, cmd, data) {
   const { uuid, profileNum } = data
   try {
     const nodeServer = await ns.get(uuid, profileNum)
-    return servicens.startNs(nodeServer)
+    return servicens.startNs(nodeServer, true)
   } catch (err) {
     logger.error(`startNs: ${err.stack}`)
   }
@@ -186,7 +186,7 @@ async function stopNs(id, cmd, data) {
   const { uuid, profileNum } = data
   try {
     const nodeServer = await ns.get(uuid, profileNum)
-    return servicens.stopNs(nodeServer)
+    return servicens.stopNs(nodeServer, false)
   } catch (err) {
     logger.error(`stopNs: ${err.stack}`)
   }
