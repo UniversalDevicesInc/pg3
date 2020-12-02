@@ -413,6 +413,7 @@ async function stopNs(nodeServer, enable) {
       if (err instanceof TypeError) logger.info(`${nodeServer.name} stopped`)
       else logger.error(`stopNs: ${err.stack}`)
     }
+    delete config.nodeProcesses[nodeServer.id]
     return { success: true }
   }
   return { success: false, error: `${nodeServer.name} not running` }
