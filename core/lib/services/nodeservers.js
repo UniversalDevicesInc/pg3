@@ -8,6 +8,7 @@ const logger = require('../modules/logger')
 const config = require('../config/config')
 const utils = require('../utils/utils')
 const ns = require('../models/nodeserver')
+const custom = require('../models/custom')
 const nodes = require('../models/node')
 const isyns = require('../modules/isy/nodeserver')
 const isysystem = require('../modules/isy/system')
@@ -203,6 +204,12 @@ async function installNs(nodeServer, serverJson = null) {
         `[${nodeServer.name}(${nodeServer.profileNum})] :: Updated: ${nodeServer.version} => ${version}`
       )
     await ns.update(nodeServer.uuid, nodeServer.profileNum, { version })
+
+    var customparams = JSON.stringify(serverJson.customparams)
+    if(customparams) {
+      await custom.add(nodeServer.uuid, nodeServer.profileNum, "customparams", customparams)
+    }
+
     return installProfile(nodeServer)
   } catch (err) {
     return logger.error(`installNs: ${err.stack}`)
