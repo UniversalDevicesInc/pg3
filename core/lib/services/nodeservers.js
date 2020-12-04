@@ -8,6 +8,7 @@ const logger = require('../modules/logger')
 const config = require('../config/config')
 const utils = require('../utils/utils')
 const ns = require('../models/nodeserver')
+const custom = require('../models/custom')
 const nodes = require('../models/node')
 const isyns = require('../modules/isy/nodeserver')
 const isysystem = require('../modules/isy/system')
@@ -204,6 +205,15 @@ async function installNs(nodeServer, serverJson = null) {
         `[${nodeServer.name}(${nodeServer.profileNum})] :: Updated: ${nodeServer.version} => ${version}`
       )
     await ns.update(nodeServer.uuid, nodeServer.profileNum, { version })
+
+    // Add default custom parameters if database key is empty
+    var customparams = JSON.stringify(serverJson.customParams)
+    const exists = await custom.get(nodeServer.uuid, nodeServer.profileNum, "customparams")
+    if(exists == null && customparams) {
+      logger.info('Adding default custom paramaters to database')
+      await custom.add(nodeServer.uuid, nodeServer.profileNum, "customparams", customparams)
+    }
+
     return installProfile(nodeServer)
   } catch (err) {
     return logger.error(`installNs: ${err.stack}`)
