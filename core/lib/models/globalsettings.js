@@ -25,6 +25,7 @@ TABLE[0] = `
     bindIpAddress TEXT,
     listenPort INTEGER,
     secure INTEGER NOT NULL CHECK (secure IN (0,1)),
+    store TEXT,
     customCerts INTEGER NOT NULL CHECK (customCerts IN (0,1)),
     beta INTEGER NOT NULL CHECK (beta IN (0,1)),
     timeStarted INTEGER,
@@ -46,6 +47,7 @@ class DEFAULTS {
     this.bindIpAddress = process.env.PG3BINDIP || '0.0.0.0'
     this.listenPort = process.env.PG3LISTENPORT || process.env.POLISY ? 443 : 3000
     this.secure = 1
+    this.store = 'https://pgcstore.isy.io/'
     this.customCerts = 0
     this.beta = 0
     this.polisy = process.env.POLISY ? 1 : 0
@@ -60,6 +62,7 @@ const MUTABLE = [
   'mqttPort',
   'ipAddress',
   'listenPort',
+  'store',
   'secure',
   'customCerts',
   'beta',

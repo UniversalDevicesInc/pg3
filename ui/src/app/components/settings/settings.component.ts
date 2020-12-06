@@ -32,6 +32,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     this.settingsForm = this.fb.group({
       ipAddress: '',
       listenPort: [3000, Validators.required],
+      store: 'https://pg3store.isy.io/',
       secure: false,
       beta: false
     })

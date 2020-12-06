@@ -23,7 +23,17 @@ export class AddnodeService {
   }
 
   getNSList() {
-    var nsIndexURL = 'https://pg3store.isy.io/v1/list?sort'
+  try {
+      this.settings = JSON.parse(localStorage.getItem('settings'))
+      if (this.settings.store) {
+        var nsIndexURL = this.settings.store + 'v1/list?sort'
+      } else {
+        var nsIndexURL = 'https://pg3store.isy.io/v1/list?sort'
+      }
+    } catch (err) {
+      var nsIndexURL = 'https://pg3store.isy.io/v1/list?sort'
+      console.log(err)
+    }
     const headers = new HttpHeaders()
     return this.http.get(nsIndexURL, { headers: headers })
   }
