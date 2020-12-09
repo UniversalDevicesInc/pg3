@@ -289,7 +289,7 @@ async function startNs(nodeServer) {
   }
   try {
     const serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
-    if (!serverJson.devMode) {
+    if (utils.isIn(serverJson, 'devMode') && !serverJson.devMode) {
       config.git[nodeServer.id] = git(nodeServer.home)
       logger.info(`[${nodeServer.name}(${nodeServer.profileNum})] :: Checking for update...`)
       const update = await config.git[nodeServer.id].pull()
