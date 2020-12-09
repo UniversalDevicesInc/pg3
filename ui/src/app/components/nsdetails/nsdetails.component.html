@@ -137,7 +137,18 @@
     </button>
     <!-- <button (click)="settings.savePackage(selectedNodeServer.profileNum)" class="btn btn-primary">
       Download Log Package
+	onchange="onLevelChange()"
     </button> -->
+
+    <select
+        [(ngModel)]="logLevel"
+        class="btn btn-primary dropdown-toggle btn-block"
+	style="width: 200px; position: relative; float: none; margin: auto; display: inline-block;"
+	(ngModelChange)="onLevelChange($event)"
+    >
+        <option *ngFor="let level of Levels" [value]="level.id">{{ level.name }}</option>
+    </select>
+
     <div>
       <label>
         <input

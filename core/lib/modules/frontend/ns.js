@@ -341,6 +341,24 @@ async function updateNotices(id, cmd, data) {
   ]
 }
  */
+
+async function setLogLevel(id, cmd, data) {
+  const { uuid, profileNum, level } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+
+    nodeServer.logLevel = level
+
+    await ns.update(uuid, profileNum, { logLevel: level })
+
+    /* send new level to node server */
+    return servicens.sendLogLevel(nodeServer)
+  } catch (err) {
+    logger.error(`setLogLevel: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
 async function getCustom(id, cmd, data) {
   const { uuid, profileNum, keys } = data
   return nscustom.get([uuid, profileNum], 'get', keys)
@@ -423,6 +441,10 @@ const API = {
   updateNotices: {
     props: ['uuid', 'profileNum', 'notices'],
     func: updateNotices
+  },
+  setLogLevel: {
+    props: ['uuid', 'profileNum', 'level'],
+    func: setLogLevel
   },
   getCustom: {
     props: ['uuid', 'profileNum', 'keys'],

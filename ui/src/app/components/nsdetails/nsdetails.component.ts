@@ -41,6 +41,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   public child: any
   public logId: any
   public gotFile: boolean = false
+  public logLevel: any
   customparamsForm: FormGroup
   // customtypedparamsForm: FormGroup
   submitted = false
@@ -57,9 +58,17 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     private http: HttpClient
   ) {}
 
+  Levels: any = [
+	  { id:0, name:'Critical', value:'CRITICAL' },
+	  { id:1, name:'Error', value:'ERROR' },
+	  { id:2, name:'Warning', value:'WARNING' },
+	  { id:3, name:'Info', value:'INFO' },
+	  { id:4, name:'Debug', value:'DEBUG' }
+  ]
+
   ngOnInit() {
     this.customparamsForm = this.fb.group({
-      customparams: new FormArray([])
+      customparams: new FormArray([]),
     })
     // this.customtypedparamsForm = this.fb.group({
     //   customtypedparams: new FormArray([])
@@ -73,15 +82,34 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
       }
     })
     this.autoScroll = true
+    this.logLevel = this.Levels[1].id // how to initialize this from ns
     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
     // if (!this.refreshInterval) {
     //   this.refreshInterval = setInterval(() => {
     //     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
     //   }, 5000)
     // }
+
+    this.settings.currentNs.subscribe(ns => {
+      this.Levels.forEach( (l) => {
+        if (l.value == ns.logLevel) {
+	  this.logLevel = l.id
+        }
+      })
+    })
+
     this.subscription.add(
       this.settings.currentNs.subscribe(ns => {
         if (!ns || !ns.hasOwnProperty('timeStarted')) return
+
+	if (ns.logLevel) {
+	  this.Levels.forEach( (l) => {
+	    if (l.value == ns.logLevel) {
+	      this.logLevel = l.id
+	    }
+	  })
+	}
+
         if (!this.uptimeInterval && ns.timeStarted) {
           this.uptimeInterval = setInterval(() => {
             this.calculateUptime(ns)
@@ -132,6 +160,28 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
         })
       })
     )
+  }
+
+  onLevelChange(newLevel) {
+    const command = 'setLogLevel'
+    if (this.sockets.connected) {
+      this.sockets.sendMessage(
+        'ns',
+        {
+          [command]: {
+            uuid: this.settings.currentNs.value['uuid'],
+            profileNum: this.settings.currentNs.value['profileNum'],
+	    level: this.Levels[this.logLevel].value
+          }
+        },
+        false,
+        false
+      )
+    }
+  }
+
+  get logLevelName() {
+	  return this.customparamsForm.get('logLevelName')
   }
 
   ngOnDestroy() {

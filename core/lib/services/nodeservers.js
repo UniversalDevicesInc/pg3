@@ -168,7 +168,8 @@ async function createNs(nodeServer, restore = false) {
       branch: (await git(localDir).status()).current,
       url,
       shortPoll: serverJson.shortPoll || 60,
-      longPoll: serverJson.longPoll || 300
+      longPoll: serverJson.longPoll || 300,
+      logLevel: serverJson.logLevel || 'WARNING'
     }
     await ns.add(addObj)
     const newNs = await ns.get(uuid, profileNum)
@@ -457,6 +458,11 @@ async function startPolls(nodeServer) {
   }
 }
 
+async function sendLogLevel(nodeServer) {
+  const message = { level: nodeServer.logLevel }
+  nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { setLogLevel: message})
+}
+
 async function getNs(nodeServer) {
   const { uuid, profileNum } = nodeServer
   try {
@@ -550,6 +556,7 @@ module.exports = {
   loadProfile,
   stopPolls,
   startPolls,
+  sendLogLevel,
   getNs,
   getAllNs,
   getNodes,

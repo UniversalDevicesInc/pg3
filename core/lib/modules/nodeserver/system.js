@@ -65,6 +65,19 @@ async function restart([uuid, profileNum], cmd, data) {
   return { success: false, error: 'Failed, check log for details.' }
 }
 
+async function setloglevel([uuid, profileNum], cmd, data) {
+  const { level } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    nodeServer.logLevel = level
+    await ns.update(uuid, profileNum, { logLevel: level })
+    return nsservice.sendLogLevel(nodeServer)
+  } catch (err) {
+    logger.error(`setLogLevel: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
 const API = {
   config: {
     props: [],
@@ -89,6 +102,10 @@ const API = {
   restart: {
     props: [],
     func: restart
+  },
+  setLogLevel: {
+    props: ['level'],
+    func: setloglevel
   }
 }
 
