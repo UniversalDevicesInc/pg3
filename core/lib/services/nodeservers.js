@@ -164,7 +164,7 @@ async function createNs(nodeServer, restore = false) {
       home: localDir,
       type: serverJson.type,
       executable: serverJson.executable,
-      devMode: serverJson.testMode,
+      devMode: serverJson.devMode,
       branch: (await git(localDir).status()).current,
       url,
       shortPoll: serverJson.shortPoll || 60,
@@ -289,14 +289,16 @@ async function startNs(nodeServer) {
   }
   try {
     const serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
-    config.git[nodeServer.id] = git(nodeServer.home)
-    logger.info(`[${nodeServer.name}(${nodeServer.profileNum})] :: Checking for update...`)
-    const update = await config.git[nodeServer.id].pull()
-    if (update && update.summary.changes !== 0) {
-      logger.info(
-        `[${nodeServer.name}(${nodeServer.profileNum})] :: New Version detected: re-running install process...`
-      )
-      await installNs(nodeServer, serverJson)
+    if (!serverJson.devMode) {
+      config.git[nodeServer.id] = git(nodeServer.home)
+      logger.info(`[${nodeServer.name}(${nodeServer.profileNum})] :: Checking for update...`)
+      const update = await config.git[nodeServer.id].pull()
+      if (update && update.summary.changes !== 0) {
+        logger.info(
+          `[${nodeServer.name}(${nodeServer.profileNum})] :: New Version detected: re-running install process...`
+        )
+        await installNs(nodeServer, serverJson)
+      }
     }
     // Start Child Process
     const currentIsy = config.isys.find(isy => isy.uuid === nodeServer.uuid)
@@ -326,7 +328,7 @@ async function startNs(nodeServer) {
     const updateObject = {
       timeStarted: `${Date.now()}`
     }
-    ;['version', 'executable', 'type', 'logLevel'].map(item => {
+    ;['version', 'executable', 'type', 'logLevel', 'devMode'].map(item => {
       if (utils.isIn(serverJson, item)) updateObject[item] = serverJson[item]
       return item
     })
