@@ -373,6 +373,7 @@ async function startNs(nodeServer) {
     })
 
     // Send STDIN
+    await utils.timeout(500)
     if (config.nodeProcesses[nodeServer.id]) {
       await utils.timeout(500)
       config.nodeProcesses[nodeServer.id].stdin.write(`${init}\n`)
