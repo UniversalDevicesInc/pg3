@@ -40,7 +40,9 @@ async function start() {
         )
           updateValue = 1
         changed = true
-        return globalsettings.update(key, updateValue)
+	var dict = {}
+	dict[key] = updateValue
+        return globalsettings.update(dict)
       }
       return false
     })
