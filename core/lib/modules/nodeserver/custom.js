@@ -11,6 +11,7 @@ const logger = require('../logger')
 const u = require('../../utils/utils')
 
 const custom = require('../../models/custom')
+const nscore = require('./core')
 
 const KEYS = [
   'customparams',
@@ -60,6 +61,7 @@ async function set([uuid, profileNum], cmd, data) {
         const value = typeof item.value === 'object' ? JSON.stringify(item.value) : item.value
         await custom.add(uuid, profileNum, item.key, value)
         logger.info(`[${uuid}_${profileNum}] Set ${item.key}`)
+        nscore.sendMessage(uuid, profileNum, { [item.key] : value })
         return { success: true, key: item.key }
       } catch (err) {
         logger.error(`command ${cmd} ${err.message}`)
