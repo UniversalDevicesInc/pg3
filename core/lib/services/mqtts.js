@@ -10,6 +10,7 @@ const config = require('../config/config')
 const u = require('../utils/utils')
 const encryption = require('../modules/security/encryption')
 const ns = require('../models/nodeserver')
+const inbound = require('../modules/mqtt/inbound')
 // const nsservice = require('./nodeservers')
 // const user = require('../models/user')
 
@@ -236,7 +237,20 @@ async function updateConnected(id, state) {
       await Promise.allSettled(
         config.isys.map(async isy => {
           if (id.includes(isy.uuid)) {
-            return ns.update(clientParts[0], clientParts[1], { connected: state })
+                  ns.update(clientParts[0], clientParts[1], { connected: state })
+		  /*
+		   * What if we want to send a message to the ISY to update the "controller"
+		   * node status?  We should figure out which node is the "controller" and
+		   * then send a status update to that node.
+		   * We can call processMesssage(topic, message) to do this
+		   *
+		   * FIXME:  Is there a better way to do this?  Also should we check that
+		   * a node with address == "controller" exist?
+		   */
+		  const topic = 'udi/pg3/ns/status/' + clientParts[0] + '_' + clientParts[1]
+		  const message = {"set":[{"address": "controller", "driver":"ST", "value":state, "uom":2}]}
+	    return inbound.processMessage(topic, message)
+            //return ns.update(clientParts[0], clientParts[1], { connected: state })
           }
           return isy
         })
