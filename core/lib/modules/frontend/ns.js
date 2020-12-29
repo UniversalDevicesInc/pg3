@@ -228,6 +228,44 @@ async function restartNs(id, cmd, data) {
   }
   return { success: false, error: 'Failed, check log for details.' }
 }
+
+/**
+ * @route {loadProfile} udi/pg3/frontend/ns/admin
+ * @param {Object} data Request body
+ * @param {Object} data.loadProfile
+ * @param {string} data.loadProfile.uuid
+ * @param {number} data.loadProfile.profileNum
+ * @example <caption>Request</caption>
+{
+  "loadProfile": {
+    "uuid": "00:21:b9:02:45:1b",
+    "profileNum": 2
+  }
+}
+ * @example <caption>Successful Response</caption>
+{
+  "loadProfile": {
+    "success": true
+  }
+}
+ * @example <caption>Error Response</caption>
+{
+  "loadProfile": {
+    "error": "string"
+  }
+}
+ */
+async function loadProfile(id, cmd, data) {
+  const { uuid, profileNum } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    return servicens.loadProfile(nodeServer)
+  } catch (err) {
+    logger.error(`loadProfile: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
 /**
  * @route {removeNode} udi/pg3/frontend/ns/admin
  * @param {Object} data Request body
@@ -373,6 +411,10 @@ const API = {
   restartNs: {
     props: ['uuid', 'profileNum'],
     func: restartNs
+  },
+  loadProfile: {
+    props: ['uuid', 'profileNum'],
+    func: loadProfile
   },
   removeNode: {
     props: ['uuid', 'profileNum', 'address'],

@@ -430,6 +430,11 @@ async function restartNs(nodeServer) {
   return startNs(nodeServer, true)
 }
 
+async function loadProfile(nodeServer) {
+  logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Sending nodeserver files to ISY...`)
+  installProfile(nodeServer)
+}
+
 async function stopPolls(nodeServer) {
   clearInterval(config.shortPolls[nodeServer.id])
   clearInterval(config.longPolls[nodeServer.id])
@@ -542,6 +547,7 @@ module.exports = {
   startNs,
   stopNs,
   restartNs,
+  loadProfile,
   stopPolls,
   startPolls,
   getNs,
