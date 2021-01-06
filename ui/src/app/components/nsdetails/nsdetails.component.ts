@@ -85,7 +85,24 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     })
     this.autoScroll = true
     this.logLevel = this.Levels[1].id // how to initialize this from ns
+
     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
+    
+    // Also make sure we get the custom parameters and notices for this node server
+    this.sockets.sendMessage('ns', {
+      getCustom: {
+        uuid: this.settings.currentNsDetails['uuid'],
+        profileNum: this.settings.currentNsDetails['profileNum'],
+        keys: [
+          { key: 'customparams' },
+          { key: 'customparamsdoc' },
+          { key: 'customtypedparams' },
+          { key: 'customtypeddata' },
+          { key: 'notices' }
+        ]
+      }
+    })
+
     // if (!this.refreshInterval) {
     //   this.refreshInterval = setInterval(() => {
     //     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
