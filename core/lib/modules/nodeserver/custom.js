@@ -112,7 +112,8 @@ async function get([uuid, profileNum], cmd, data) {
         if (typeof item !== 'object') throw new Error(`custom object invalid`)
         if (!u.hasProps(item, API[cmd].props))
           throw new Error(`${cmd} object does not have the correct properties`)
-        if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a valid property`)
+        // Uncommenting the below line would only allow retreval of system keys
+	//if (!KEYS.includes(item.key)) throw new Error(`${item.key} is not a valid property`)
         const value = await custom.get(uuid, profileNum, item.key)
         if (value) {
           logger.info(`[${uuid}_${profileNum}] Retrieved ${item.key}`)

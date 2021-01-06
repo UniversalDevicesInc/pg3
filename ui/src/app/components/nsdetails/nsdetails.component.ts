@@ -32,6 +32,8 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
   public _typedCustomData: string = ''
   public typedCustomData: object = {}
   public typedParams: any[] = []
+  public customParamsDoc: string = ''
+  public notices: any
   public uptime: any
   public uptimeInterval: any
   public refreshInterval: any
@@ -87,6 +89,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     // if (!this.refreshInterval) {
     //   this.refreshInterval = setInterval(() => {
     //     this.sockets.sendMessage('ns', { getNs: { ...this.settings.currentNsDetails } })
+    //
     //   }, 5000)
     // }
 
@@ -126,6 +129,8 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
           if (entry.key === 'customparams') {
             try {
               const params = JSON.parse(entry.value)
+	      // Clear any existing entries as below will only add to the control list
+	      ;(this.customparamsForm.controls.customparams as FormArray).clear()
               Object.entries(params).map(([key, value]) => {
                 ;(this.customparamsForm.controls.customparams as FormArray).push(
                   this.fb.group({
@@ -134,7 +139,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
                   })
                 )
               })
-              // console.log(this.customparamsForm.controls.customparams['controls'])
+              //console.log(this.customparamsForm.controls.customparams['controls'])
             } catch (err) {
               console.log(`customparams value is not json parseable`)
             }
@@ -155,6 +160,24 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
               this.typedCustomData = params
             } catch (err) {
               console.log(`customtypeddata value is not json parseable`)
+            }
+          }
+	  if (entry.key === 'notices') {
+	    try {
+	      const notices = JSON.parse(entry.value)
+	      this.notices = notices
+	      this.settings.currentNs.value['notices'] = notices
+	    } catch (err) {
+              console.log(`notices value is not json parseable`)
+            }
+          }
+	  if (entry.key === 'customparamsdoc') {
+	    try {
+	      const customparamsdoc = entry.value
+	      this.customParamsDoc = customparamsdoc
+	      this.settings.currentNs.value['customparamsdoc'] = customparamsdoc
+	    } catch (err) {
+              console.log(`customparamsdoc value is not json parseable ${err}`)
             }
           }
         })

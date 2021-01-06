@@ -25,6 +25,7 @@ export class WebsocketsService {
   public addIsy: Subject<object> = new Subject()
   public updateIsy: Subject<object> = new Subject()
   public removeIsy: Subject<object> = new Subject()
+  //public updateNotices: BehaviorSubject<object> = new BehaviorSubject(null)
   public updateNotices: Subject<object> = new Subject()
   public invalidCredentials: Subject<object> = new Subject()
   public logData: Subject<string> = new Subject()
@@ -157,6 +158,7 @@ export class WebsocketsService {
     //   this._seq++
     // }
     topic = `udi/pg3/frontend/${topic}/${this.authService.user}`
+    console.log(`UI PUBLISHING to ${topic} ${msg}`)
     this.client.publish(topic, msg, { qos: 0, retained: retained })
   }
 
@@ -229,7 +231,8 @@ export class WebsocketsService {
                     { key: 'customparams' },
                     { key: 'customparamsdoc' },
                     { key: 'customtypedparams' },
-                    { key: 'customtypeddata' }
+                    { key: 'customtypeddata' },
+                    { key: 'notices' }
                   ]
                 }
               })
@@ -442,13 +445,37 @@ export class WebsocketsService {
     this.subscription.add(
       this.updateNotices.subscribe(msg => {
         if (!msg) return
+
         if (msg.hasOwnProperty('success') && msg['success']) {
           this.toastr.success(`Notices updated successfully.`)
-        } else {
+        } else if (msg['error']) {
           this.toastr.error(`Notices update failed: ${msg['error']}`)
-        }
+        } else { // Normal message to set notices
+          if (
+            this.settingsService.currentNsDetails.hasOwnProperty('uuid')
+          ) {
+	    // FIXME:
+	    // Directly settting via settingsService doesn't seem to work. There
+	    // ought to be some way to set notices here other than caling sendMessage.
+	    //this.settingsService.currentNsDetails['notices'] = msg
+	    //this.settingsService.currentNs.value['notices'] = msg
+	    //
+	    // Calling sendMessage to get the custom key notices work for setting
+	    // the notice.  But this seems like extra work.
+            this.sendMessage('ns', {
+              getCustom: {
+                uuid: this.settingsService.currentNsDetails['uuid'],
+                profileNum: this.settingsService.currentNsDetails['profileNum'],
+                keys: [
+                  { key: 'notices' }
+                ]
+              }
+            })
+	  }
+	}
       })
     )
+
     this.subscription.add(
       this.setPolls.subscribe(msg => {
         if (!msg) return

@@ -2,6 +2,8 @@ const { v4: uuid } = require('uuid')
 
 const config = require('../config/config')
 const encryption = require('../modules/security/encryption')
+const frontendcore = require('../modules/frontend/core')
+const logger = require('../modules/logger')
 
 /**
  *  Custom Model
@@ -77,7 +79,7 @@ async function add(id, profileNum, key, value) {
   newKey.profileNum = profileNum
   newKey.key = key
   newKey.value = value ? encryption.encryptText(value) : value
-  return config.db
+  await config.db
     .prepare(
       `INSERT INTO ${TABLENAME} (${Object.keys(newKey)})
       VALUES (${Object.keys(newKey).fill('?')})
@@ -86,6 +88,9 @@ async function add(id, profileNum, key, value) {
     `
     )
     .run(Object.values(newKey))
+
+    newKey.value = value  // Force back to unencrypted to send to frontend
+    return frontendcore.frontendMessage({getCustom: [newKey]})
 }
 
 async function remove(id, profileNum, key) {
