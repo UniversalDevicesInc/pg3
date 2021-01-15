@@ -406,7 +406,7 @@ async function command([uuid, profileNum], cmd, data) {
         if (typeof item !== 'object') throw new Error(`driver object invalid`)
         if (!u.hasProps(item, API[cmd].props))
           throw new Error(`${cmd} object does not have the correct properties`)
-        logger.info(`[${uuid}_${profileNum}] ${item.address} reporting command ${item.command}`)
+        logger.info(`[${uuid}_${profileNum}] ${item.address} reporting command ${item.cmd}`)
         await isyNodeServer.sendCommand(uuid, profileNum, item)
         return { ...result, success: true }
       } catch (err) {
@@ -431,7 +431,7 @@ const API = {
     func: changenode
   },
   command: {
-    props: ['address', 'command'],
+    props: ['address', 'cmd'],
     func: command
   }
 }

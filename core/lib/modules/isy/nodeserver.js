@@ -41,7 +41,7 @@ async function sendCommand(uuid, profileNum, data) {
     core.addNodePrefix(profileNum, data.address),
     'report',
     'cmd',
-    data.command
+    data.cmd
   ]
   if (u.isIn(data, 'value')) {
     path.push(data.value)
