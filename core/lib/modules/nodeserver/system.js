@@ -78,6 +78,20 @@ async function setloglevel([uuid, profileNum], cmd, data) {
   return { success: false, error: 'Failed, check log for details.' }
 }
 
+async function setloglist([uuid, profileNum], cmd, data) {
+  const { levels } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+    const llist = JSON.stringify(levels)
+    nodeServer.logLevelList = llist
+    await ns.update(uuid, profileNum, { logLevelList: llist })
+    return nsservice.sendLogList(nodeServer) // Sending to frontend
+  } catch (err) {
+    logger.error(`setLogList: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
 const API = {
   config: {
     props: [],
@@ -106,6 +120,10 @@ const API = {
   setLogLevel: {
     props: ['level'],
     func: setloglevel
+  },
+  setLogList: {
+    props: ['levels'],
+    func: setloglist
   }
 }
 

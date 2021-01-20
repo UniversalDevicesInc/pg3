@@ -359,6 +359,23 @@ async function setLogLevel(id, cmd, data) {
   return { success: false, error: 'Failed, check log for details.' }
 }
 
+async function setLogList(id, cmd, data) {
+  const { uuid, profileNum, levels } = data
+  try {
+    const nodeServer = await ns.get(uuid, profileNum)
+
+    nodeServer.logLevelList = levels
+
+    await ns.update(uuid, profileNum, { logLevelList: levels })
+
+    /* send new level to node server */
+    return servicens.sendLogLevelList(nodeServer)
+  } catch (err) {
+    logger.error(`setLogLevelList: ${err.stack}`)
+  }
+  return { success: false, error: 'Failed, check log for details.' }
+}
+
 async function getCustom(id, cmd, data) {
   const { uuid, profileNum, keys } = data
   return nscustom.get([uuid, profileNum], 'get', keys)
@@ -445,6 +462,10 @@ const API = {
   setLogLevel: {
     props: ['uuid', 'profileNum', 'level'],
     func: setLogLevel
+  },
+  setLogLevelList: {
+    props: ['uuid', 'profileNum', 'levels'],
+    func: setLogList
   },
   getCustom: {
     props: ['uuid', 'profileNum', 'keys'],

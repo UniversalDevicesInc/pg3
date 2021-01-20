@@ -16,7 +16,7 @@ const TABLENAME = 'nodeserver'
 
 // Returns array that is executed in order for Schema updates
 const TABLE = []
-// pragma user_version = 1
+// pragma user_version = 2
 TABLE[0] = `
   CREATE TABLE IF NOT EXISTS "${TABLENAME}" (
     id BLOB PRIMARY KEY UNIQUE,
@@ -34,6 +34,7 @@ TABLE[0] = `
     home TEXT NOT NULL,
     log TEXT NOT NULL,
     logLevel TEXT NOT NULL,
+    logLevelList TEXT NOT NULL,
     enabled INTEGER NOT NULL CHECK (enabled IN (0,1)),
     connected INTEGER NOT NULL CHECK (connected IN (0,1)),
     devMode INTEGER NOT NULL CHECK (devMode IN (0,1)),
@@ -62,6 +63,13 @@ class DEFAULTS {
     this.timeModified = Date.now()
     this.log = 'logs/debug.log'
     this.logLevel = 'DEBUG'
+    this.logLevelList = JSON.stringify([
+	    {'id':4, 'name':'Debug', 'value':'DEBUG'},
+	    {'id':3, 'name':'Info', 'value':'INFO'},
+	    {'id':2, 'name':'Warning', 'value':'WARNING'},
+	    {'id':1, 'name':'Error', 'value':'ERROR'},
+	    {'id':0, 'name':'Critical', 'value':'CRITICAL'}
+            ])
     this.shortPoll = 60
     this.longPoll = 300
     this.branch = 'master'
@@ -84,6 +92,7 @@ const MUTABLE = [
   'home',
   'log',
   'logLevel',
+  'logLevelList',
   'enabled',
   'connected',
   'devMode',
@@ -158,6 +167,7 @@ async function getFull(key, profileNum) {
   Object.keys(value).forEach(item => {
     if (ENCRYPTED.includes(item)) value[item] = encryption.decryptText(value[item])
   })
+
   // eslint-disable-next-line no-param-reassign
   try {
     // eslint-disable-next-line no-param-reassign
@@ -166,6 +176,7 @@ async function getFull(key, profileNum) {
     // eslint-disable-next-line no-param-reassign
     value.notices = {}
   }
+
   value.nodes =
     config.db
       .prepare(`SELECT * FROM node WHERE (uuid, profileNum) is (?, ?)`)

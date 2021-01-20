@@ -111,6 +111,14 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
     // }
 
     this.settings.currentNs.subscribe(ns => {
+      if (!ns) return
+
+      try {
+        this.Levels = JSON.parse(ns.logLevelList)
+      } catch (err) {
+	console.log(`Failed to get logLevel or logLevelList: ${err}`)
+      }
+
       this.Levels.forEach( (l) => {
         if (l.value == ns.logLevel) {
 	  this.logLevel = l.id
@@ -122,12 +130,20 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
       this.settings.currentNs.subscribe(ns => {
         if (!ns || !ns.hasOwnProperty('timeStarted')) return
 
-	if (ns.logLevel) {
-	  this.Levels.forEach( (l) => {
-	    if (l.value == ns.logLevel) {
-	      this.logLevel = l.id
-	    }
-	  })
+	try {
+          if (ns.logLevelList) {
+	    this.Levels = JSON.parse(ns.logLevelList)
+          }
+
+	  if (ns.logLevel) {
+	    this.Levels.forEach( (l) => {
+	      if (l.value == ns.logLevel) {
+	        this.logLevel = l.id
+	      }
+	    })
+	  }
+	} catch (err) {
+	  console.log(`Log level failure add: ${err}`)
 	}
 
         if (!this.uptimeInterval && ns.timeStarted) {
@@ -194,7 +210,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 	      this.customParamsDoc = customparamsdoc
 	      this.settings.currentNs.value['customparamsdoc'] = customparamsdoc
 	    } catch (err) {
-              console.log(`customparamsdoc value is not json parseable ${err}`)
+              console.log(`Setting customparamsdoc failed: ${err}`)
             }
           }
         })

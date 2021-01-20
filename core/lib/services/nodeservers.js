@@ -473,6 +473,11 @@ async function sendLogLevel(nodeServer) {
   nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { setLogLevel: message})
 }
 
+async function sendLogList(nodeServer) {
+  const message = { levels: nodeServer.logLevelList }
+  nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { setLogLevelList: message})
+}
+
 async function getNs(nodeServer) {
   const { uuid, profileNum } = nodeServer
   try {
@@ -567,6 +572,7 @@ module.exports = {
   stopPolls,
   startPolls,
   sendLogLevel,
+  sendLogList,
   getNs,
   getAllNs,
   getNodes,
