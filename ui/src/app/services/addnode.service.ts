@@ -15,7 +15,7 @@ export class AddnodeService {
 
   submitNewNS(url) {
     //var submitURL = 'https://8skwp2eayd.execute-api.us-east-1.amazonaws.com/prod/add'
-    var submitURL = 'https://pgcstore.isy.io/v1/add'
+    var submitURL = 'https://pg3store.isy.io/v1/add'
     let headers = new HttpHeaders({ 'Content-Type': 'application/json' })
     let httpOptions = { headers: headers }
     const body = JSON.stringify({ url: url })
@@ -23,7 +23,7 @@ export class AddnodeService {
   }
 
   getNSList() {
-    var nsIndexURL = 'https://pgcstore.isy.io/v1/list?sort'
+    var nsIndexURL = 'https://pg3store.isy.io/v1/list?sort'
     const headers = new HttpHeaders()
     return this.http.get(nsIndexURL, { headers: headers })
   }

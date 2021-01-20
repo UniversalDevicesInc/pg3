@@ -189,12 +189,12 @@ router.post('/restoreFrom2', async ctx => {
     logger.info(`RESTORE: Backup decrypted, processing NodeServers for Restore...`)
     const options = {
       method: 'get',
-      url: 'https://pgcstore.isy.io/v1/list?all',
+      url: 'https://pg3store.isy.io/v1/list?all',
       timeout: 5000
     }
     const storeRes = await axios(options)
     if (storeRes.status !== 200) {
-      throw new Error('Could not get nodeservers from pgcstore')
+      throw new Error('Could not get nodeservers from pg3store')
     }
     const storeNodeServers = storeRes.data
     if (decrypted.nodeServers && decrypted.nodeServers.length > 0) {
