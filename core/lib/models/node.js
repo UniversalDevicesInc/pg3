@@ -4,6 +4,7 @@ const config = require('../config/config')
 const u = require('../utils/utils')
 const frontendcore = require('../modules/frontend/core')
 const ns = require('./nodeserver')
+// const logger = require('../modules/logger')
 
 /**
  *  Node Model
@@ -27,6 +28,7 @@ TABLE[0] = `
     hint TEXT,
     controller INTEGER NOT NULL CHECK (controller IN (0,1)),
     primaryNode TEXT,
+    private BLOB,
     isPrimary INTEGER NOT NULL CHECK (isPrimary IN (0,1)),
     enabled INTEGER NOT NULL CHECK (enabled IN (0,1)),
     timeAdded INTEGER NOT NULL,
@@ -48,6 +50,7 @@ class DEFAULTS {
     this.controller = 0
     this.isPrimary = 0
     this.hint = '0x00000000'
+    this.private = null
     this.timeAdded = Date.now()
     this.timeModified = Date.now()
     this.dbVersion = TABLE.length
@@ -56,7 +59,7 @@ class DEFAULTS {
 
 const REQUIRED = ['uuid', 'profileNum', 'address', 'primaryNode']
 const IMMUTABLE = ['id', 'timeAdded', 'timeModified', 'dbVersion']
-const MUTABLE = ['name', 'nodeDefId', 'hint', 'controller', 'isPrimary', 'enabled']
+const MUTABLE = ['name', 'nodeDefId', 'hint', 'controller', 'isPrimary', 'enabled', 'private']
 
 async function get(key, profileNum, address) {
   if (!key || !profileNum || !address)
