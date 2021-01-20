@@ -39,7 +39,7 @@
     "@koa/router": "^9.0.1",
     "aedes": "^0.42.0",
     "archiver": "^5.0.0",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "bcrypt": "^5.0.0",
     "better-sqlite3": "^7.0.1",
     "bottleneck": "^2.19.5",
