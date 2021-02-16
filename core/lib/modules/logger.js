@@ -34,7 +34,7 @@ const logFormat = printf(info => {
   return `${info.timestamp} [${info.label}] ${info.level}: ${info.message}`
 })
 
-const tsFormat = () => new Date().toLocaleString()
+const tsFormat = () => new Date().toLocaleString([], { hour12: false })
 
 transportArray.push(
   new transports.Console({
@@ -57,9 +57,9 @@ transportArray.push(
     filename: `pg3-%DATE%.log`,
     dirname: `${logDir}`,
     level: logLevel,
-    maxsize: '10m',
+    maxsize: '100m',
     maxFiles: '14d',
-    compress: false,
+    compress: true,
     handleExceptions: true,
     exitOnError: true,
     tailable: true,
