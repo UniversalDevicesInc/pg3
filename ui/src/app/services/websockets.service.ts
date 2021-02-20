@@ -201,14 +201,14 @@ export class WebsocketsService {
   }
 
   addSubscribers() {
-    // this.subscription.add(
-    //   this.getNodeServers.subscribe((nodeservers: any[]) => {
-    //     if (Array.isArray(nodeservers)) {
-    //       console.log(nodeservers)
-    //       this.settingsService.currentNodeServers.next(nodeservers)
-    //     }
-    //   })
-    // )
+     this.subscription.add(
+       this.getNodeServers.subscribe((nodeservers: any[]) => {
+         if (Array.isArray(nodeservers)) {
+           console.log(nodeservers)
+           this.settingsService.currentNodeServers.next(nodeservers)
+         }
+       })
+     )
 
     this.subscription.add(
       this.getNs.subscribe((msg: any[]) => {
