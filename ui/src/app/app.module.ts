@@ -42,6 +42,7 @@ import { ShowlogComponent } from './components/showlog/showlog.component'
 import { GetnsComponent } from './components/getns/getns.component'
 import { ModalNsUpdateComponent } from './components/modal-ns-update/modal-ns-update.component'
 import { ModalNsAddComponent } from './components/modal-ns-add/modal-ns-add.component'
+import { ModalNsLocalComponent } from './components/modal-ns-local/modal-ns-local.component'
 import { NsnoticesComponent } from './components/nsnotices/nsnotices.component'
 
 import { DropdownDirective } from './components/navbar/dropdown'
@@ -96,7 +97,8 @@ const appRoutes: Routes = [
     SafePipe,
     PolisyconfComponent,
     FilterPipe,
-    ReversefilterPipe
+    ReversefilterPipe,
+    ModalNsLocalComponent
   ],
   imports: [
     BrowserModule,
@@ -123,7 +125,8 @@ const appRoutes: Routes = [
     ConfirmComponent,
     NodepopComponent,
     ModalNsUpdateComponent,
-    ModalNsAddComponent
+    ModalNsAddComponent,
+    ModalNsLocalComponent
   ],
   providers: [
     Title,

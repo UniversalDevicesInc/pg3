@@ -5,6 +5,7 @@ import { NgbModal, NgbModalOptions } from '@ng-bootstrap/ng-bootstrap'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { ModalNsUpdateComponent } from '../modal-ns-update/modal-ns-update.component'
 import { ModalNsAddComponent } from '../modal-ns-add/modal-ns-add.component'
+import { ModalNsLocalComponent } from '../modal-ns-local/modal-ns-local.component'
 import { AuthService } from '../../services/auth.service'
 import { SettingsService } from '../../services/settings.service'
 import { WebsocketsService } from '../../services/websockets.service'
@@ -154,6 +155,27 @@ export class GetnsComponent implements OnInit, OnDestroy {
               }
             }
           )
+        }
+      })
+      .catch(error => {})
+  }
+
+  localNS() {
+    const modalRef = this.modal.open(ModalNsLocalComponent, { centered: true })
+    modalRef.componentInstance.title = 'Add NodeServer to Polyglot'
+    modalRef.componentInstance.body = `Please enter the repository link of the NodeServer.`
+    modalRef.result
+      .then(items => {
+        if (items) {
+     	  this.current = {}
+	  this.current['url'] = items[0]
+	  this.current['name'] = items[2]
+	  this.selectedSlot = items[1]
+          if (this.selectedSlot === 0) {
+            this.toastr.error(`NodeServer slot not selected. Try again.`)
+          } else {
+      	    this.installNS()
+	  }
         }
       })
       .catch(error => {})
