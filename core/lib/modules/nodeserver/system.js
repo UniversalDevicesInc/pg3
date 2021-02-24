@@ -92,6 +92,17 @@ async function setloglist([uuid, profileNum], cmd, data) {
   return { success: false, error: 'Failed, check log for details.' }
 }
 
+async function getisyinfo([uuid, profileNum], cmd, data) {
+  try {
+    const isyinfo = isy.getIsyConfig(uuid)
+    const info = { 'isy_ip_address': isyinfo.ip, 'isy_username': isyinfo.username, 'isy_password': isyinfo.password,
+	    'isy_port': isyinfo.port, 'isy_https': isyinfo.secure }
+    return info
+  } catch (err) {
+    return { success: false, error: 'Failed to get ISY info.' }
+  }
+}
+
 const API = {
   config: {
     props: [],
@@ -124,6 +135,10 @@ const API = {
   setLogList: {
     props: ['levels'],
     func: setloglist
+  },
+  getIsyInfo: {
+    props: [],
+    func: getisyinfo
   }
 }
 
