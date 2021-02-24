@@ -1,0 +1,40 @@
+<div class="modal-dialog">
+  <div class="modal-content">
+     <div class="modal-header">
+       <button type="button" class="close" (click)="cancel()" >&times;</button>
+       <h4 class="modal-title">{{title || 'Confirm'}}</h4>
+     </div>
+     <div class="modal-body">
+       <p>{{body || 'Are you sure?'}}</p>
+       <div class="form-group">
+           <label class="col-form-label" for="inputNS">Enter git clone link</label>
+           <input [(ngModel)]='nslink' type="text" width="80%" class="form-control" placeholder="/home/user/polyglot/udi-poly-template-python.git" id="inputNS">
+           <label class="col-form-label" for="inputNSname">Enter NodeServer name</label>
+           <input [(ngModel)]='nsname' type="text" width="80%" class="form-control" placeholder="" id="inputNSname">
+
+
+      	   <label><h6 class="text-white">Select Available Slot:</h6></label><br />
+           <select
+             [(ngModel)]="selectedSlot"
+             class="button"
+             class="btn btn-primary dropdown-toggle btn-block"
+           >
+             <option [ngValue]="0" hidden>Select Slot</option>
+             <ng-container
+               *ngFor="
+                 let slot of settingsService.currentNodeServers
+                   | async
+                   | reversefilter: settingsService.currentIsy.value['uuid']
+               "
+             >
+               <option *ngIf="slot">{{ slot }}</option>
+             </ng-container>
+           </select>
+       </div>
+     </div>
+     <div class="modal-footer">
+       <button type="submit" class="btn btn-primary" (click)="submit()">Submit</button>
+       <button type="button" class="btn btn-primary" (click)="cancel()">Cancel</button>
+     </div>
+   </div>
+</div>
