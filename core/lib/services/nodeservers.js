@@ -304,16 +304,26 @@ async function startNs(nodeServer, enabled) {
   }
 
   try {
-    const serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
+    let serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
     if (utils.isIn(serverJson, 'devMode') && !serverJson.devMode) {
       config.git[nodeServer.id] = git(nodeServer.home)
       logger.info(`[${nodeServer.name}(${nodeServer.profileNum})] :: Checking for update...`)
       const update = await config.git[nodeServer.id].pull('origin', 'master', {'--rebase': 'true'})
-      if (update && update.summary.changes !== 0) {
-        logger.info(
-          `[${nodeServer.name}(${nodeServer.profileNum})] :: New Version detected: re-running install process...`
-        )
-        await installNs(nodeServer, serverJson)
+
+      // Can we check server.json here to see if node server should be deleted?
+      serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
+      if (utils.isIn(serverJson, 'deprecated')) {
+	await removeNs(nodeServer)
+	logger.info(`[${nodeServe.name}] has been deprecated and removed.`)
+        return { success: true }
+      } else {
+
+        if (update && update.summary.changes !== 0) {
+          logger.info(
+            `[${nodeServer.name}(${nodeServer.profileNum})] :: New Version detected: re-running install process...`
+          )
+          await installNs(nodeServer, serverJson)
+	}
       }
     }
     // Start Child Process
