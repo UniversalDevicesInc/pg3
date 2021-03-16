@@ -26,6 +26,7 @@ const authRoutes = require('../routes/auth')
 const frontendRoutes = require('../routes/frontend')
 const logRoutes = require('../routes/log')
 const nsRoutes = require('../routes/nodeserver')
+const transactionRoutes = require('../routes/transactions')
 
 /**
  * HTTP Server Start Service.
@@ -76,7 +77,8 @@ async function start() {
           /^\/dashboard/,
           /^\/nsdetails/,
           /^\/settings/,
-          /^\/log/
+          /^\/log/,
+          /^\/transaction/
         ]
       })
     )
@@ -91,6 +93,8 @@ async function start() {
     app.use(logRoutes.allowedMethods())
     app.use(nsRoutes.routes())
     app.use(nsRoutes.allowedMethods())
+    app.use(transactionRoutes.routes())
+    app.use(transactionRoutes.allowedMethods())
     app.use(async ctx => {
       await send(ctx, `/index.html`, { root: staticFolder })
     })
