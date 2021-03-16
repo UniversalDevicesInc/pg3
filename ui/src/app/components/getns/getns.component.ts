@@ -203,13 +203,26 @@ export class GetnsComponent implements OnInit, OnDestroy {
   checkTransactions() {
     this.toastr.success(`Checking for purchases. Please wait...`)
     this.auth.portalSyncTransactions().subscribe(transactions => {
-      if (!Array.isArray(transactions)) return
+      if (!Array.isArray(transactions)) {
+	      console.log(`BOBBY -> Failed, transactions is not an array`)
+	      return
+      }
       console.log(`Success! ${JSON.stringify(transactions)}`)
       transactions.map(transaction => {
-        if (!['processing', 'completed'].includes(transaction['order_status'])) return
-        if (!Array.isArray(transaction['items'])) return
+        if (!['processing', 'completed'].includes(transaction['order_status'])){
+		console.log(`BOBBY -> Failed, order status not valid `)
+		return
+	}
+        if (!Array.isArray(transaction['items'])) {
+		console.log(`BOBBY -> Failed, items is not an array`)
+		return
+	}
         transaction['items'].map(item => {
-          if (!item['poli_id']) return
+          if (!item['poli_id']) {
+		  console.log(`BOBBY -> Failed, missing poli_id`)
+		  return
+	  }
+	  console.log(`BOBBY-> ID:  vs. ${item['poli_id']}`)
           this.purchases[item['poli_id']] = {
             order_id: transaction.order_id,
             timestamp: transaction.timestamp,
@@ -218,8 +231,10 @@ export class GetnsComponent implements OnInit, OnDestroy {
             registered_polisy: transaction.registered_polisy,
             item
           }
+	  console.log(`BOBBY -> return item ${JSON.stringify(item)}`)
           return item
         })
+	console.log(`BOBBY -> return transaction ${JSON.stringify(transaction)}`)
         return transaction
       })
       this.toastr.success(`Successfully checked for purchased nodeservers.`)

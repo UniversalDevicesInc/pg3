@@ -21,7 +21,8 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private toastr: ToastrService,
-    private settingsService: SettingsService //private sockets: WebsocketsService
+    //private sockets: WebsocketsService,
+    private settingsService: SettingsService
   ) {}
 
   /*
@@ -152,7 +153,20 @@ export class AuthService {
     const headers = new HttpHeaders({
       'access_token': this.portalAuth['access_token']
     })
-    return this.http.post(`https://www.universal-devices.com/wp-json/ud/v1/poli/get_user_transactions`, formData, { headers: headers })
+
+    // Initial thought was to send a message via websocket connection
+    // to get transactions.  But that creates a circular dependency.
+    //  this.sockets.sendMessage('system', {getTranactions: {}})
+    // maybe we can call post to PG3 core web server?
+    this.settingsService.loadSettings()
+    console.log(`BOBBY -> ${JSON.stringify(this.settingsService.settings)}`)
+    var host = 'https://' + this.settingsService.settings['ipAddress'] + ':' + this.settingsService.settings['listenPort'] + '/transaction'
+    console.log(`BOBBY -> ${host}`)
+
+    var r = this.http.post(host, formData, { headers: headers })
+    console.log(`BOBBY -> ${JSON.stringify(r)}`)
+    //return this.http.post(`https://www.universal-devices.com/wp-json/ud/v1/poli/get_user_transactions`, formData, { headers: headers })
+    return r
   }
 
   logout() {
