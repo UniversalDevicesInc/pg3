@@ -3,6 +3,9 @@ const path = require('path')
 const fs = require('fs-extra')
 const childProcess = require('child_process')
 const git = require('simple-git')
+const unzipper = require('unzipper')
+const tar = require('tar')
+const axios = require('axios')
 
 const logger = require('../modules/logger')
 const config = require('../config/config')
@@ -147,6 +150,86 @@ async function gitClone(uuid, profileNum, url, localDir) {
   await git().clone(url, localDir)
 }
 
+async function zipInstall(uuid, profileNum, url, localDir) {
+  // Check if NodeServer folder exists and remove it
+  if (uuid && profileNum && fs.existsSync(localDir)) {
+    logger.warn(`[${uuid}-${profileNum}] :: NodeServer folder exists, removing... ${localDir}`)
+    fs.rmdirSync(localDir, { recursive: true })
+  }
+  //logger.info(`[${uuid}_${profileNum}] :: Downloading and unpacking ${url} into ${localDir}`)
+
+  fs.mkdir(localDir, { recursive: true })
+
+  if (url.startsWith('http')) {
+    // Download package from UDI and store in temporary location?
+    try {
+      await new Promise((resolve, reject) => {
+              axios({method: 'get', url: url, responseType: 'stream'}).then(response => {
+		      response.data
+	      	.pipe(unzipper.Extract({path:localDir}))
+	      .on('close', () => resolve())
+	      .on('error', (error) => reject(error))
+	      })
+      })
+    } catch (err) {
+      logger.error(`zipInstall: ${err.stack}`)
+    }
+  } else {
+    // Local file, unzip directly do we need to make sure localDir exists?
+    // unzip -d <localDir> -u  <url>
+    try {
+      await new Promise((resolve, reject) => {
+	      fs.createReadStream(url)
+	      .pipe(unzipper.Extract({path:localDir}))
+	      .on('close', () => resolve())
+	      .on('error', (error) => reject(error))
+      })
+    } catch (err) {
+      logger.error(`zipInstall: ${err.stack}`)
+    }
+  }
+}
+
+async function tarInstall(uuid, profileNum, url, localDir) {
+  // Check if NodeServer folder exists and remove it
+  if (uuid && profileNum && fs.existsSync(localDir)) {
+    logger.warn(`[${uuid}-${profileNum}] :: NodeServer folder exists, removing... ${localDir}`)
+    fs.rmdirSync(localDir, { recursive: true })
+  }
+
+  fs.mkdirSync(localDir)
+
+  //logger.info(`[${uuid}_${profileNum}] :: Downloading and unpacking ${url} into ${localDir}`)
+  if (url.startsWith('http')) {
+    try {
+      await new Promise((resolve, reject) => {
+              axios({method: 'get', url: url, responseType: 'stream', headers: {Accepts: 'application/x-compressed-gzip'}}).then(response => {
+		      response.data
+	      	.pipe(tar.x({C:localDir, newer: 1, sync: 1}))
+	      .on('close', () => resolve())
+	      .on('error', (error) => reject(error))
+	      })
+      })
+    } catch (err) {
+      logger.error(`tarInstall: ${err.stack}`)
+    }
+  } else {
+    // Local file, unzip directly do we need to make sure localDir exists?
+    // extract -C <localDir>  <url>
+    try {
+      await new Promise((resolve, reject) => {
+	      fs.createReadStream(url)
+	      .pipe(tar.x({C:localDir, newer: 1, sync: 1}))
+	      .on('close', () => resolve())
+	      .on('error', (error) => reject(error))
+      })
+    } catch (err) {
+      logger.error(`tarInstall: ${err.stack}`)
+    }
+  }
+}
+
+
 // TODO
 async function gitCheckout(nodeServer) {}
 
@@ -155,8 +238,20 @@ async function createNs(nodeServer, restore = false) {
   try {
     logger.info(`[${uuid}_${profileNum}] :: Creating Nodeserver '${name}'`)
     const localDir = `${process.env.PG3WORKDIR}ns/${uuid}_${profileNum}`
-    await gitClone(uuid, profileNum, url, localDir)
+
+    // if URL ends in .zip do something different
+    if (url.endsWith('.zip')) {
+      await zipInstall(uuid, profileNum, url, localDir)
+    } else if (url.endsWith('.tgz')) {
+      await tarInstall(uuid, profileNum, url, localDir)
+    } else if (url.endsWith('.tar.gz')) {
+      await tarInstall(uuid, profileNum, url, localDir)
+    } else {
+      await gitClone(uuid, profileNum, url, localDir)
+    }
+
     const serverJson = fs.readJSONSync(`${localDir}/server.json`)
+
     const addObj = {
       uuid,
       name,
@@ -166,7 +261,7 @@ async function createNs(nodeServer, restore = false) {
       type: serverJson.type,
       executable: serverJson.executable,
       devMode: serverJson.devMode,
-      branch: (await git(localDir).status()).current,
+      //branch: (await git(localDir).status()).current,
       url,
       shortPoll: serverJson.shortPoll || 60,
       longPoll: serverJson.longPoll || 300,
@@ -174,7 +269,7 @@ async function createNs(nodeServer, restore = false) {
     }
     await ns.add(addObj)
     const newNs = await ns.get(uuid, profileNum)
-    logger.info(`[${uuid}_${profileNum}] :: Clone Complete. Added '${name}' to database...`)
+    logger.info(`[${uuid}_${profileNum}] :: Installation Complete. Added '${name}' to database...`)
     await isyns.installNodeServer(newNs)
     await installNs(newNs, serverJson)
     if (!restore) {
