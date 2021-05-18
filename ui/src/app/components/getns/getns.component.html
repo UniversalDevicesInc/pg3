@@ -77,13 +77,15 @@
               </ng-template>
             </ng-container>
           </td>
+	  <!--  Cost column: Free | [cost] -->
           <td style="text-align: center; vertical-align: middle; margin: auto">
             <ng-container>{{ ns.price ? '$' : '' }}</ng-container>
             {{ ns.price || 'Free' }}
             <ng-container *ngIf="ns.recurring">
-              /per {{ ns.recurring_period }} {{ ns.recurring_interval }}
+              /per {{ ns.recurring }} {{ ns.recurringPeriod }}
             </ng-container>
           </td>
+	  <!--  Install column: Install | Purchase -->
           <td style="text-align: center; vertical-align: middle; margin: auto">
             <ng-container *ngIf="!ns.price || auth.portalLoggedIn.value">
               <button (click)="open(install, ns)" class="btn btn-primary btn-sm">
@@ -165,7 +167,11 @@
           </tr>
           <tr>
             <th style="vertical-align: middle"><b>At</b></th>
-            <td style="vertical-align: middle">{{ purchases[current['uuid']].timestamp.date }}</td>
+            <td style="vertical-align: middle">{{ purchases[current['uuid']].timestamp }}</td>
+          </tr>
+          <tr>
+            <th style="vertical-align: middle"><b>Expires</b></th>
+            <td style="vertical-align: middle">{{ purchases[current['uuid']].expires }}</td>
           </tr>
         </tbody>
       </table>
@@ -208,7 +214,7 @@
       <button type="button" class="btn btn-primary" (click)="modal.close()">Install</button>
     </ng-container>
     <ng-container *ngIf="!purchases[current['uuid']] && current['price']">
-      <button type="button" class="btn btn-primary" (click)="modal.dismiss(); openLink(current['storeUrl'])">Purchase</button>
+      <button type="button" class="btn btn-primary" (click)="modal.dismiss(); openLink(current['uuid'])">Purchase</button>
     </ng-container>
     <button ngbAutofocus type="button" class="btn btn-primary" (click)="modal.dismiss()">
       Cancel

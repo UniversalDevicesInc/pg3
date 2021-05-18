@@ -113,7 +113,31 @@ export class GetnsComponent implements OnInit, OnDestroy {
   getNSList() {
     this.addNodeService.getNSList().subscribe(nsList => {
       if (!nsList) return
+
       this.nsList = nsList
+
+      // Need to loop through the list, parse purchaseOptions and
+      // set price appropriately.
+      for (let ns of this.nsList) {
+        if (ns.purchaseOptions) {
+	  // loop through the options looking for one with non-zero price
+	  ns.price = 0
+	  for (let option of ns.purchaseOptions) {
+	    if ("price" in option && option.price > 0) {
+	      ns.price = option.price
+	      if ("recurring" in option) {
+	        ns.recurring = option.recurring
+	      }
+	      if ("recurringPeriod" in option) {
+	        ns.recurringPeriod = option.recurringPeriod
+	      }
+	    }
+	  }
+	} else {
+	  ns.price = 0
+	}
+      }
+
       this.received = true
       this.toastr.success(`Refreshed NodeServers List from Server.`)
     })
@@ -183,11 +207,19 @@ export class GetnsComponent implements OnInit, OnDestroy {
 
   installNS() {
     if (this.mqttConnected) {
+      const nsid = this.current['uuid']
       this.current['uuid'] = this.settingsService.currentIsy.value['uuid']
       this.current['profileNum'] = this.selectedSlot
+      this.current['nsid'] = nsid
       console.log(this.current, this.selectedSlot)
       this.sockets.sendMessage('isy', { installNs: this.current }, false, false)
       this.toastr.success(`Installing ${this.current['name']} please wait...`)
+      this.auth.portalNodeServerInstalled(nsid, 'true').subscribe(response => {
+        console.log(`Success! ${JSON.stringify(response)}`)
+      },
+      err => {
+          console.log(err)
+      })
       this.selectedSlot = 0
       this.current = {}
     } else this.showDisconnected()
@@ -197,29 +229,52 @@ export class GetnsComponent implements OnInit, OnDestroy {
     if (this.mqttConnected) {
       this.sockets.sendMessage('nodeservers', { removeNs: ns }, false, true)
       this.toastr.success(`Uninstalling ${ns.name} please wait...`)
+      this.auth.portalNodeServerInstalled(ns.nsid, 'false').subscribe(response => {
+        console.log(`Success! ${JSON.stringify(response)}`)
+      },
+      err => {
+          console.log(err)
+      })
     } else this.showDisconnected()
   }
 
   checkTransactions() {
+    // This returns a list of node server purchase transactions.  New
+    // format is array of  {
+    //             nsid: '',
+    //             active: 1|0,
+    //             txid: 'xxx', 
+    //             purchase_date: date/time, 
+    //             expiry: date/time,
+    //             }
+
     this.toastr.success(`Checking for purchases. Please wait...`)
-    this.auth.portalSyncTransactions().subscribe(transactions => {
-      if (!Array.isArray(transactions)) return
+
+    this.auth.portalSyncTransactions().subscribe(response => {
+      const transactions = response['data']
+      if (!Array.isArray(transactions)) {
+	      console.log(`Failed, transactions is not an array`)
+	      return
+      }
       console.log(`Success! ${JSON.stringify(transactions)}`)
+
       transactions.map(transaction => {
-        if (!['processing', 'completed'].includes(transaction['order_status'])) return
-        if (!Array.isArray(transaction['items'])) return
-        transaction['items'].map(item => {
-          if (!item['poli_id']) return
-          this.purchases[item['poli_id']] = {
-            order_id: transaction.order_id,
-            timestamp: transaction.timestamp,
-            order_status: transaction.order_status,
-            details: transaction.details,
-            registered_polisy: transaction.registered_polisy,
-            item
+	if (!transaction['nsid']) {
+	  console.log(`Failed, missing node server ID`)
+	  return
+	}
+
+	if (!transaction['active']) {
+	  console.log(`Order ${transaction['txid']} is not active`)
+	} else {
+	  // For each active transaction, map them to purchases[nsid]
+          this.purchases[transaction['nsid']] = {
+            order_id: transaction['txid'],
+            timestamp: transaction['purchase_date'],
+	    expires: transaction['expiry']
           }
-          return item
-        })
+	}
+
         return transaction
       })
       this.toastr.success(`Successfully checked for purchased nodeservers.`)
@@ -236,7 +291,8 @@ export class GetnsComponent implements OnInit, OnDestroy {
   }
 
   openLink(url) {
-    window.open(url, '_blank')
+    this.auth.portalPurchaseNodeServer(url)
+    //window.open(url, '_blank')
   }
 
   // updateAvailable(ns) {
