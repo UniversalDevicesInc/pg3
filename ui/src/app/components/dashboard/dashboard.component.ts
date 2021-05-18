@@ -4,6 +4,7 @@ import { AddnodeService } from '../../services/addnode.service'
 import { NodeServer } from '../../models/nodeserver.model'
 import { Router } from '@angular/router'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+import { AuthService } from '../../services/auth.service'
 import { ConfirmComponent } from '../confirm/confirm.component'
 import { NodepopComponent } from '../nodepop/nodepop.component'
 import { SettingsService } from '../../services/settings.service'
@@ -40,6 +41,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private addNodeService: AddnodeService,
     private modal: NgbModal,
     private router: Router,
+    private auth: AuthService,
     public settingsService: SettingsService,
     private toastr: ToastrService
   ) {
@@ -101,6 +103,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.toastr.success(
       `Removing NodeServer: ${nodeServer.name} from slot: ${nodeServer.profileNum}`
     )
+
+    // Notify the UDI Portal that the node server is no longer installed
+    this.auth.portalNodeServerInstalled(nodeServer.nsid, 'false').subscribe(response => {
+      console.log(`Success! ${JSON.stringify(response)}`)
+    },
+    err => {
+        console.log(err)
+    })
   }
 
   showConfirm(nodeServer) {
