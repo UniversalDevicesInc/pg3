@@ -1,3 +1,4 @@
+const address = require('address')
 const logger = require('./logger')
 const config = require('../config/config')
 
@@ -47,6 +48,16 @@ async function start() {
       return false
     })
   )
+
+  // Ideally, we'd only want to update the mac address if it's changed
+  // which is not something that should happen often or at all.  But we
+  // don't read the existing settings until later.  It doesn't really hurt
+  // anything to set this on every start.
+  var dict = {}
+  dict['macAddress'] = address.interface('IPv4').mac
+  changed = true
+  globalsettings.update(dict)
+
   if (changed) {
     logger.info(`Updated configuration with overrides`)
     config.globalsettings = await globalsettings.get()

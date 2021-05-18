@@ -1,5 +1,6 @@
 const { v4: uuid } = require('uuid')
 const ip = require('ip')
+var address = require('address')
 
 const config = require('../config/config')
 const u = require('../utils/utils')
@@ -24,6 +25,7 @@ TABLE[0] = `
     ipAddress TEXT,
     bindIpAddress TEXT,
     listenPort INTEGER,
+    macAddress TEXT,
     secure INTEGER NOT NULL CHECK (secure IN (0,1)),
     store TEXT,
     customCerts INTEGER NOT NULL CHECK (customCerts IN (0,1)),
@@ -54,6 +56,7 @@ class DEFAULTS {
     this.timeStarted = Date.now()
     this.timeAdded = Date.now()
     this.dbVersion = TABLE.length
+    this.macAddress = address.interface('IPv4').mac
   }
 }
 
@@ -62,6 +65,7 @@ const MUTABLE = [
   'mqttPort',
   'ipAddress',
   'listenPort',
+  'macAddress',
   'store',
   'secure',
   'customCerts',
