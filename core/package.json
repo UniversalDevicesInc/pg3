@@ -37,6 +37,7 @@
   "dependencies": {
     "@koa/cors": "^3.1.0",
     "@koa/router": "^9.0.1",
+    "address": "^1.1.2",
     "aedes": "^0.42.0",
     "archiver": "^5.0.0",
     "axios": "^0.19.2",
