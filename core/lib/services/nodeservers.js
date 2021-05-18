@@ -234,7 +234,7 @@ async function tarInstall(uuid, profileNum, url, localDir) {
 async function gitCheckout(nodeServer) {}
 
 async function createNs(nodeServer, restore = false) {
-  const { uuid, name, profileNum, url } = nodeServer
+  const { uuid, name, profileNum, url, nsid } = nodeServer
   try {
     logger.info(`[${uuid}_${profileNum}] :: Creating Nodeserver '${name}'`)
     const localDir = `${process.env.PG3WORKDIR}ns/${uuid}_${profileNum}`
@@ -255,6 +255,7 @@ async function createNs(nodeServer, restore = false) {
     const addObj = {
       uuid,
       name,
+      nsid,
       profileNum,
       version: serverJson.credits[0].version,
       home: localDir,
