@@ -146,13 +146,77 @@ export class AuthService {
   // }
 
   portalSyncTransactions() {
-    const formData = new FormData()
-    formData.append('query_by', 'login')
-    formData.append('user', this.portalAuth['profile']['username'])
+
+    this.settingsService.loadSettings()
+
+    // Try sending request directly to portal.
+    // A number of different methods have been proposed and tested to
+    // get the user (or Polisy) list of purchased node servers. 
+    //   Initialy this was supposed to be handled by a wordpress
+    //   plugin in the UDI store but that had security issues and
+    //   was replaced with an ISY Portal API.
+    //
+    // To access the list via the ISY Portal API, we tried:
+    //    1) Sending an HTTP(s) request to the PG3 core to retrieve
+    //    the list.  However, the browser blocks this because the
+    //    PG3 core's server doesn't have an SSL certificiate signed by
+    //    an authority.
+    //
+    //    2) Sending a message to the PG3 core over the MQTT link. This
+    //    works, but is asynchronous and we'd have to create an event and
+    //    wait for that to get the response. That's complicate.
+    //
+    //    3) Use the API directly and send the request to the Portal API
+    //    here. Initially, the response is blocked by the browser because
+    //    of CORS. If we open up the API and have it responde with the
+    //    appropriate CORS headers, this should be working.
+   
+    const headers = new HttpHeaders()
+    	.set('Authorization', `Bearer ${this.portalAuth['access_token']}`)
+	.set('content-type', 'application/json')
+
+    var host = 'https://my.isy.io/api/nodeserver/list/' + 
+    		this.settingsService.settings['macAddress']
+
+    var r = this.http.get(host, {'headers': headers})
+    return r
+  }
+
+  // 
+  // Redirect the browser to the node server purchase page on the 
+  // ISY Portal.
+  // 
+  portalPurchaseNodeServer(nsid) {
+    this.settingsService.loadSettings()
+
     const headers = new HttpHeaders({
-      'access_token': this.portalAuth['access_token']
+      'Authentication': `Bearer ${this.portalAuth['access_token']}`
     })
-    return this.http.post(`https://www.universal-devices.com/wp-json/ud/v1/poli/get_user_transactions`, formData, { headers: headers })
+
+    var host = 'https://my.isy.io/nodeserver/purchase?nsid=' + nsid + 
+    		'&pid=' + this.settingsService.settings['macAddress'] + 
+		'&redirect=window.location'
+
+    window.open(host, '_blank')
+  }
+
+  //
+  //  Notify the ISY Portal that a node server was installed
+  //  or uninstalled.  installed should be 'true' or 'false'
+  //
+  portalNodeServerInstalled(nsid, installed) {
+    this.settingsService.loadSettings()
+
+    const headers = new HttpHeaders()
+    	.set('Authorization', `Bearer ${this.portalAuth['access_token']}`)
+	.set('Content-Type', 'application/x-www-form-urlencoded')
+
+    var host = 'https://my.isy.io/api/nodeserver/update/' + 
+    		this.settingsService.settings['macAddress'] + '/' + nsid
+
+    const body = `installed=${installed}`
+
+    return this.http.post(host, body, { headers: headers })
   }
 
   logout() {
