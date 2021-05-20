@@ -24,6 +24,7 @@ TABLE[0] = `
     token BLOB NOT NULL,
     name TEXT NOT NULL,
     nsid TEXT,
+    expires INTEGER,
     nickname TEXT,
     profileNum INTEGER NOT NULL CHECK (profileNum BETWEEN 0 AND 25),
     timeAdded INTEGER NOT NULL,
@@ -76,6 +77,7 @@ class DEFAULTS {
     this.branch = 'master'
     this.devMode = 0
     this.nsid = ''
+    this.expires = 0
     this.dbVersion = TABLE.length
   }
 }
@@ -102,7 +104,8 @@ const MUTABLE = [
   'longPoll',
   'type',
   'executable',
-  'nsid'
+  'nsid',
+  'expires'
 ]
 
 async function getColumn(key, profileNum, columnKey) {

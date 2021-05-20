@@ -234,7 +234,7 @@ async function tarInstall(uuid, profileNum, url, localDir) {
 async function gitCheckout(nodeServer) {}
 
 async function createNs(nodeServer, restore = false) {
-  const { uuid, name, profileNum, url, nsid } = nodeServer
+  const { uuid, name, profileNum, url, nsid, expires } = nodeServer
   try {
     logger.info(`[${uuid}_${profileNum}] :: Creating Nodeserver '${name}'`)
     const localDir = `${process.env.PG3WORKDIR}ns/${uuid}_${profileNum}`
@@ -256,6 +256,7 @@ async function createNs(nodeServer, restore = false) {
       uuid,
       name,
       nsid,
+      expires,
       profileNum,
       version: serverJson.credits[0].version,
       home: localDir,
@@ -462,6 +463,7 @@ async function startNs(nodeServer, enabled) {
     // STDERR
     config.nodeProcesses[nodeServer.id].stderr.on('data', data => {
       stopPolls(nodeServer)
+      stopExpire(nodeServer)
       logger.error(`[${nodeServer.name}(${nodeServer.profileNum})] :: STDERR: ${data.toString()}`)
       delete config.nodeProcesses[nodeServer.id]
     })
@@ -476,6 +478,7 @@ async function startNs(nodeServer, enabled) {
       logger.error(`[${nodeServer.name}(${nodeServer.profileNum})] :: Error: ${err}`)
       if (config.nodeProcesses[nodeServer.id]) {
         stopPolls(nodeServer)
+        stopExpire(nodeServer)
         delete config.nodeProcesses[nodeServer.id]
       }
     })
@@ -484,6 +487,7 @@ async function startNs(nodeServer, enabled) {
     config.nodeProcesses[nodeServer.id].on('exit', (code, signal) => {
       if (config.nodeProcesses[nodeServer.id]) {
         stopPolls(nodeServer)
+        stopExpire(nodeServer)
         delete config.nodeProcesses[nodeServer.id]
       }
       if (nodeServer) {
@@ -504,6 +508,10 @@ async function startNs(nodeServer, enabled) {
     }
     // Start polls
     await startPolls(nodeServer)
+
+    // Start expire check
+    await startExpire(nodeServer)
+
     return { success: true }
   } catch (err) {
     logger.error(`startNs: ${err.stack}`)
@@ -515,6 +523,7 @@ async function stopNs(nodeServer, enable) {
   if (config.nodeProcesses[nodeServer.id]) {
     logger.info(`[${nodeServer.name}(${nodeServer.profileNum})]: Stopping Nodeserver`)
     stopPolls(nodeServer)
+    stopExpire(nodeServer)
     await nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { stop: {} })
     await utils.timeout(3000)
     try {
@@ -571,6 +580,41 @@ async function startPolls(nodeServer) {
       nscore.sendMessage(nodeServer.uuid, nodeServer.profileNum, { longPoll: {} })
     }, 1 * nodeServer.longPoll * 1000)
     config.longPolls[nodeServer.id].unref()
+  }
+}
+
+async function stopExpire(nodeServer) {
+  clearInterval(config.expireChecks[nodeServer.id])
+  delete config.expireChecks[nodeServer.id]
+}
+
+// Start a process to check if the node server subscription has expired.
+async function startExpire(nodeServer) {
+  if (nodeServer.expires) {
+    config.expireChecks[nodeServer.id] = setInterval(() => {
+        //nscore.hasExpired(nodeServer)
+	if (nodeServer.expires < Date.now()) {
+	  logger.error(`EXPIRE CHECK: ${nodeServer.name} subscription expired`)
+	  // Adds notice to database.  Is this OK?
+    	  custom.add(nodeServer.uuid, nodeServer.profileNum, 'notices', '{"expired": "The subscription for this node server has expired"}')
+	  
+          stopNs(nodeServer, true)
+	} else {
+	  var delta = Math.trunc((((nodeServer.expires - Date.now()) / 1000) / 3600) / 24)
+	  if (delta < 2) {
+    	    custom.add(nodeServer.uuid, nodeServer.profileNum, 'notices', '{"expired": "The subscription for this node server will expire tomorrow"}')
+	  } else if (delta < 5) {
+	    logger.info(`EXPIRE CHECK: ${nodeServer.name} subscription expires in ${delta} days `)
+    	    custom.add(nodeServer.uuid, nodeServer.profileNum, 'notices', '{"expired": "The subscription for this node server will expire soon"}')
+	  } else if (delta < 10) {
+	    logger.info(`EXPIRE CHECK: ${nodeServer.name} subscription expires in ${delta} days `)
+	  } else if (delta < 14) {
+	    logger.info(`EXPIRE CHECK: ${nodeServer.name} subscription expires in ${delta} days `)
+	  }
+	}
+		
+    }, 60 * 1000)
+    config.expireChecks[nodeServer.id].unref()
   }
 }
 

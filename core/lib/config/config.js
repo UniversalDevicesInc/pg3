@@ -28,7 +28,8 @@ const config = {
   updateTimes: {},
   git: {},
   shortPolls: {},
-  longPolls: {}
+  longPolls: {},
+  expireChecks: {}
 }
 
 module.exports = config

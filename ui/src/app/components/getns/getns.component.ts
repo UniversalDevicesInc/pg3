@@ -211,6 +211,12 @@ export class GetnsComponent implements OnInit, OnDestroy {
       this.current['uuid'] = this.settingsService.currentIsy.value['uuid']
       this.current['profileNum'] = this.selectedSlot
       this.current['nsid'] = nsid
+      try {
+      	const expire = new Date(this.purchases[nsid].expires).getTime()
+      	this.current['expires'] = expire
+      } catch {
+      	this.current['expires'] = 0
+      }
       console.log(this.current, this.selectedSlot)
       this.sockets.sendMessage('isy', { installNs: this.current }, false, false)
       this.toastr.success(`Installing ${this.current['name']} please wait...`)
