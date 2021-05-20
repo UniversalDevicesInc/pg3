@@ -49,7 +49,7 @@ class DEFAULTS {
     this.bindIpAddress = process.env.PG3BINDIP || '0.0.0.0'
     this.listenPort = process.env.PG3LISTENPORT || process.env.POLISY ? 443 : 3000
     this.secure = 1
-    this.store = 'https://pgcstore.isy.io/'
+    this.store = 'https://pg3store.isy.io/'
     this.customCerts = 0
     this.beta = 0
     this.polisy = process.env.POLISY ? 1 : 0
