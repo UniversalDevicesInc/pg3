@@ -150,6 +150,27 @@ async function gitClone(uuid, profileNum, url, localDir) {
   await git().clone(url, localDir)
 }
 
+// Get a pre-signed URL for the filename specified in the s3Url
+async function getPreSignedURL(s3Url) {
+	// First, get the filename from the URL
+	const pkg_name_parts = s3Url.split('/')
+	const pkg_name = pkg_name_parts[pkg_name_parts.length - 1];
+	if (pkg_name == '') {
+		console.log(`no package name: ${s3Url}`);
+		return s3Url;
+	}
+
+	// Make call to API to get pre-signed URL
+	try {
+		var resp = await axios.get("https://pg3store.isy.io/v2/presignedfile?name=" + pkg_name);
+
+		return resp.data['url'];
+	} catch (err) {
+		logger.error(`pre-signed: ${err.stack}`)
+	}
+	return s3Url;
+}
+
 async function zipInstall(uuid, profileNum, url, localDir) {
   // Check if NodeServer folder exists and remove it
   if (uuid && profileNum && fs.existsSync(localDir)) {
@@ -161,10 +182,17 @@ async function zipInstall(uuid, profileNum, url, localDir) {
   fs.mkdir(localDir, { recursive: true })
 
   if (url.startsWith('http')) {
+    var presigned = url;
+
+    // If nessassary get a pre-signed url
+    if (url.includes('pg3store')) {
+      presigned = await getPreSignedURL(url);
+    }
+
     // Download package from UDI and store in temporary location?
     try {
       await new Promise((resolve, reject) => {
-              axios({method: 'get', url: url, responseType: 'stream'}).then(response => {
+              axios({method: 'get', url: presigned, responseType: 'stream'}).then(response => {
 		      response.data
 	      	.pipe(unzipper.Extract({path:localDir}))
 	      .on('close', () => resolve())
@@ -201,9 +229,16 @@ async function tarInstall(uuid, profileNum, url, localDir) {
 
   //logger.info(`[${uuid}_${profileNum}] :: Downloading and unpacking ${url} into ${localDir}`)
   if (url.startsWith('http')) {
+    var presigned = url;
+
+    // If nessassary get a pre-signed url
+    if (url.includes('pg3store')) {
+      presigned = await getPreSignedURL(url);
+    }
+
     try {
       await new Promise((resolve, reject) => {
-              axios({method: 'get', url: url, responseType: 'stream', headers: {Accepts: 'application/x-compressed-gzip'}}).then(response => {
+              axios({method: 'get', url: presigned, responseType: 'stream', headers: {Accepts: 'application/x-compressed-gzip'}}).then(response => {
 		      response.data
 	      	.pipe(tar.x({C:localDir, newer: 1, sync: 1}))
 	      .on('close', () => resolve())
