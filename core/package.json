@@ -27,7 +27,7 @@
     "lint": "eslint --color .",
     "release": "np && git commit -am 'release' && git push",
     "preversion": "cd ../ui && npm version patch",
-    "version": "cd ../ui && ng build --prod",
+    "version": "cd ../ui && ng build --prod && git add -A",
     "update:check": "ncu",
     "update:run": "ncu -u; npm install"
   },
