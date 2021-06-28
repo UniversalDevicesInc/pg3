@@ -42,8 +42,8 @@ export class GetnsComponent implements OnInit, OnDestroy {
   transactionsReceived = false
   purchases = {}
   nsArray: any[] = new Array(this.maxNodeServers).fill(1).map((x, i) => i + 1)
-  sortHeader: 'name'
-  sortDir: boolean = true
+  sortHeader = 'name'
+  sortDir: boolean = false
 
 
   // @HostListener('window:focus', ['$event'])
