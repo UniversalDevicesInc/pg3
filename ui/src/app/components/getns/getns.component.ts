@@ -43,6 +43,7 @@ export class GetnsComponent implements OnInit, OnDestroy {
   purchases = {}
   nsArray: any[] = new Array(this.maxNodeServers).fill(1).map((x, i) => i + 1)
   sortHeader: 'name'
+  sortDir: boolean = true
 
 
   // @HostListener('window:focus', ['$event'])
@@ -75,11 +76,34 @@ export class GetnsComponent implements OnInit, OnDestroy {
 
   sortTable(param) {
     this.sortHeader = param;
-
+    this.sortDir = !this.sortDir;
     this.received = false;
+
+    const compare = (a, b) => {
+      if (!a[param] && !b[param]) {
+        return 0;
+      } else if (a[param] && !b[param]) {
+        return -1;
+      } else if (!a[param] && b[param]) {
+        return 1;
+      } else {
+	if (a[param] < b[param]) {
+	  return !this.sortDir ? -1 : 1;
+	} else if (a[param] > b[param]) {
+	  return !this.sortDir ? 1 : -1;
+	} else {
+	  return 0;
+	}
+      }
+    };
+
+    this.nsList.sort(compare);
+
+    /*
     this.nsList.sort((a, b) =>
 		     (a[param] > b[param]) ? 1 :
 			     ((b[param] > a[param]) ? -1 : 0));
+    */
 
     for (let ns of this.nsList) {
       console.log(`${ns.name} ${ns.author}`);
