@@ -18,7 +18,9 @@
     <button (click)="checkTransactions()" class="btn btn-primary">Sync Purchases</button>
   </ng-container>
   <button (click)="getNSList()" class="btn btn-primary">Refresh Store</button>
+  <!--
   <button (click)="addNS()" class="btn btn-primary">Add New NodeServer to the Store</button>
+  -->
   <button (click)="localNS()" class="btn btn-primary">Install Local NodeServer</button>
 </div>
 <br />
@@ -36,10 +38,10 @@
     <table class="table table-striped table-bordered table-hover">
       <thead>
         <tr>
-          <th width="7%">Name</th>
+          <th width="7%" (click)="sortTable('name')">Name</th>
           <th width="5%">Version</th>
-          <th width="10%">Author</th>
-          <th width="5%">Language</th>
+          <th width="10%" (click)="sortTable('author')">Author</th>
+          <th width="5%" (click)="sortTable('language')">Language</th>
           <th width="36%">Description</th>
           <th width="10%" style="text-align: center; vertical-align: middle; margin: auto">
             Installed

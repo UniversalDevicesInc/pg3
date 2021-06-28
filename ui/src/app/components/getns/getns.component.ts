@@ -42,6 +42,8 @@ export class GetnsComponent implements OnInit, OnDestroy {
   transactionsReceived = false
   purchases = {}
   nsArray: any[] = new Array(this.maxNodeServers).fill(1).map((x, i) => i + 1)
+  sortHeader: 'name'
+
 
   // @HostListener('window:focus', ['$event'])
   // onFocus(event: FocusEvent): void {
@@ -69,6 +71,23 @@ export class GetnsComponent implements OnInit, OnDestroy {
       backdrop: 'static',
       backdropClass: 'customBackdrop'
     }
+  }
+
+  sortTable(param) {
+    this.sortHeader = param;
+
+    this.received = false;
+    this.nsList.sort((a, b) =>
+		     (a[param] > b[param]) ? 1 :
+			     ((b[param] > a[param]) ? -1 : 0));
+
+    for (let ns of this.nsList) {
+      console.log(`${ns.name} ${ns.author}`);
+      console.log(`${JSON.stringify(ns)}`);
+    }
+
+    this.received = true;
+    this.toastr.success(`Sorted NodeServers List.`)
   }
 
   async ngOnInit() {
@@ -138,6 +157,9 @@ export class GetnsComponent implements OnInit, OnDestroy {
 	}
       }
 
+      this.nsList.sort((a, b) =>
+		     (a[this.sortHeader] > b[this.sortHeader]) ? 1 :
+			     ((b[this.sortHeader] > a[this.sortHeader]) ? -1 : 0));
       this.received = true
       this.toastr.success(`Refreshed NodeServers List from Server.`)
     })
