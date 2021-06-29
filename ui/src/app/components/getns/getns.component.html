@@ -60,7 +60,14 @@
 			<ng-template #des>&#x25be;</ng-template>
 			</span>
 	  </th>
-          <th width="36%">Description</th>
+          <th width="5%" (click)="sortTable('modified')">Modified
+			<span *ngIf="sortHeader === 'modified'">
+			<span *ngIf="sortDir;then asc else des">^</span>
+			<ng-template #asc>&#x25b4;</ng-template>
+			<ng-template #des>&#x25be;</ng-template>
+			</span>
+	  </th>
+          <th width="31%">Description</th>
           <th width="10%" style="text-align: center; vertical-align: middle; margin: auto">
             Installed
           </th>
@@ -82,6 +89,7 @@
           <td style="vertical-align: middle">{{ ns.version }}</td>
           <td style="vertical-align: middle">{{ ns.author }}</td>
           <td style="vertical-align: middle">{{ ns.language }}</td>
+          <td style="vertical-align: middle">{{ ns.modified }}</td>
           <td style="vertical-align: middle">{{ ns.desc }}</td>
           <td style="text-align: center; vertical-align: middle; margin: auto">
             <ng-container

@@ -179,6 +179,19 @@ export class GetnsComponent implements OnInit, OnDestroy {
 	} else {
 	  ns.price = 0
 	}
+
+	// Create a last modified date
+	var date;
+	if (ns.ts_updated) {
+	  date = new Date(ns.ts_updated * 1000);
+	} else {
+	  date = new Date(ns.ts_added * 1000);
+	}
+	ns.modified = (date.getMonth()+1) +
+		    '/' + date.getDate() + 
+		    '/' + date.getFullYear() + 
+		    ' ' + date.getHours() + 
+		    ':' + date.getMinutes();  
       }
 
       this.nsList.sort((a, b) =>
