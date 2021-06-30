@@ -323,10 +323,16 @@ async function installNs(nodeServer, serverJson = null) {
   try {
     // eslint-disable-next-line no-param-reassign
     if (!serverJson) serverJson = fs.readJSONSync(`${nodeServer.home}/server.json`)
+
+    const myShell = '/usr/local/bin/bash';
+    if (!fs.existsSync(myShell)) {
+      const myShell = '/bin/bash';
+    }
+
     if (utils.isIn(serverJson, 'install')) {
       const opts = {
         cwd: nodeServer.home,
-        shell: '/bin/bash'
+        shell: myShell
       }
       const runCmd = `/bin/sh ./${serverJson.install}`
       await spawn(`${nodeServer.name}(${nodeServer.profileNum})`, runCmd, [], opts)
