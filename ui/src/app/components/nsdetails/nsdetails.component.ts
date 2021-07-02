@@ -119,6 +119,7 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 	console.log(`Failed to get logLevel or logLevelList: ${err}`)
       }
 
+      // Set the log level selection to the current level.
       this.Levels.forEach( (l) => {
         if (l.value == ns.logLevel) {
 	  this.logLevel = l.id
@@ -220,14 +221,23 @@ export class NsdetailsComponent implements OnInit, OnDestroy {
 
   onLevelChange(newLevel) {
     const command = 'setLogLevel'
+    var lvl
     if (this.sockets.connected) {
+      // Looks like this.logLevel/newLevel is the id, not the index into 
+      // the array.  So look up the level matching that id
+      this.Levels.forEach( (l) => {
+        if (l.id == newLevel) {
+	  lvl = l.value
+        }
+      })
+
       this.sockets.sendMessage(
         'ns',
         {
           [command]: {
             uuid: this.settings.currentNs.value['uuid'],
             profileNum: this.settings.currentNs.value['profileNum'],
-	    level: this.Levels[this.logLevel].value
+	    level: lvl
           }
         },
         false,
