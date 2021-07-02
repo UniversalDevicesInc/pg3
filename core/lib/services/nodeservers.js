@@ -104,14 +104,25 @@ async function verifyNodeServers() {
       try {
         nodeServers = await isysystem.getExistingNodeServers(isy.uuid)
       } catch (err) {
+        // If we hit this, we weren't able to connect to the ISY
+        // and we should abort. Otherwise, we'll remove all
+        // the node servers from the database and then mark
+        // them as unmanaged when we connect to the ISY next.
         logger.error(`getExistingNodeServers :: ${err.message}`)
         sendFrontend401(isy.uuid)
+	return
       }
       const installed = []
+
       if (!Array.isArray(nodeServers)) nodeServers = [nodeServers]
+
+      // For each node server installed on the ISY, check to see
+      // if it is in our database.  If so, all's good, if not
+      // add it to the database as unmanaged
       await Promise.allSettled(
         nodeServers.map(async nodeS => {
           installed.push(nodeS.profile)
+	  // Is node server found in our database
           const dbNs = await ns.get(isy.uuid, nodeS.profile)
           if (!dbNs) {
             await addUnManaged(isy, nodeS)
@@ -124,8 +135,14 @@ async function verifyNodeServers() {
           }
         })
       )
+
+      // Now check to see if we have node servers in our database
+      // for this ISY that didn't get pushed to the install
+      // array.  If so, we delete them from the database.
       let allNs = await ns.getIsy(isy.uuid)
+
       if (!Array.isArray(allNs)) allNs = [allNs]
+
       await Promise.allSettled(
         allNs.map(async nodeS => {
           if (!installed.includes(nodeS.profileNum.toString())) {
@@ -268,8 +285,16 @@ async function tarInstall(uuid, profileNum, url, localDir) {
 // TODO
 async function gitCheckout(nodeServer) {}
 
+//  Install a new node server
+//    1. Copy the node server files to a unique folder [isy_id_profile]
+//       unzip, untar, or git clone
+//    2. create an entry in the node server database
+//    3. install node server on ISY
+//    4. run the node server install process
+//    5. start the node server
 async function createNs(nodeServer, restore = false) {
   const { uuid, name, profileNum, url, nsid, expires } = nodeServer
+  var ret
   try {
     logger.info(`[${uuid}_${profileNum}] :: Creating Nodeserver '${name}'`)
     const localDir = `${process.env.PG3WORKDIR}ns/${uuid}_${profileNum}`
@@ -307,7 +332,15 @@ async function createNs(nodeServer, restore = false) {
     await ns.add(addObj)
     const newNs = await ns.get(uuid, profileNum)
     logger.info(`[${uuid}_${profileNum}] :: Installation Complete. Added '${name}' to database...`)
-    await isyns.installNodeServer(newNs)
+
+    // What if this fails????
+    ret = await isyns.installNodeServer(newNs)
+    if (!ret) {
+      await ns.remove(uuid, profileNum)
+      logger.error(`Failed to install ${name} to ISY ${uuid}`)
+      return { ...nodeServer, success: false, error: 'Install to ISY failed' }
+    }
+
     await installNs(newNs, serverJson)
     if (!restore) {
       await startNs(newNs)

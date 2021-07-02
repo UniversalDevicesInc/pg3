@@ -91,6 +91,7 @@ async function profileUpload(uuid, profileNum, type, filename, data) {
 
 async function installNodeServer(nodeServer) {
   const { uuid, profileNum } = nodeServer
+  var ret = true
   try {
     const args = {
       ip: config.globalsettings.ipAddress,
@@ -118,7 +119,9 @@ async function installNodeServer(nodeServer) {
     }
   } catch (err) {
     logger.error(`installNodeServer :: ${err.stack}`)
+    ret = false
   }
+  return ret
 }
 
 async function removeNodeServer(nodeServer) {
